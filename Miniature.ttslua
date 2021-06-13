@@ -1,0 +1,50 @@
+local data = {
+  x = 20,
+  y = 20,
+  board_guid = "892585"
+}
+
+local board = nil
+
+local load_disabled = false
+
+function onLoad(saved_data)
+  if load_disabled == false and saved_data ~= "" then
+    local loaded_data = JSON.decode(saved_data)
+    data = loaded_data
+  end
+
+  local position = data["x"] .. ":" ..  data["y"]
+
+  local position_panel = {
+    tag = "Panel",
+    attributes =
+    {
+      position = "0 0 -51",
+    },
+    children = {
+      {
+        tag = "Text",
+        attributes =
+        {
+          id = "position",
+          text = position,
+          fontSize = "30",
+        },
+      }
+    }
+  }
+  self.UI.setXmlTable({position_panel})
+end
+
+function updateSave()
+  saved_data = JSON.encode(data)
+  self.script_state = saved_data
+end
+
+function update_position(param)
+  data["x"] = param[1]
+  data["y"] = param[2]
+  self.UI.setAttribute("position", "text", data["x"] .. ":" .. data["y"])
+  updateSave()
+end

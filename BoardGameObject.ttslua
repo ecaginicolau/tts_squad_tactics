@@ -1,0 +1,86 @@
+#include Board
+#include utils
+
+load_disabled = false
+
+--Runs when game is loaded.
+function onLoad(saved_data)
+  if load_disabled == false and saved_data ~= "" then
+    local loaded_data = JSON.decode(saved_data)
+    local valid = true
+    if #loaded_data ~= size_y then
+      valid = false
+    elseif #loaded_data[1] ~= size_x then
+      valid  = false
+    end
+    if valid then
+      board = loaded_data
+    else
+      -- if the store size is invalid reset it.
+      board_reset()
+    end
+  end
+
+  -- First get the position of all miniature, the number of miniature will change the board
+  get_all_miniature()
+
+  -- Create snap points, could be skipped if already done
+  board_create_snap_points()
+
+  -- Create 2 Context menu for debug
+  self.addContextMenuItem("Edit Board", board_edit)
+  self.addContextMenuItem("Reset Board", board_reset)
+
+  -- Create the board UI itself, now depends on the number of miniatures
+  board_create()
+
+  -- We can't edit an UI created in the same frame, so update it a bit later
+  Wait.frames(reset_miniature, 10)
+end
+
+-- Show covers for all miniatures
+function reset_miniature()
+  board_show_miniature_cover()
+end
+
+function updateSave()
+  saved_data = JSON.encode(board)
+  self.script_state = saved_data
+end
+
+-- Get the position of all miniature and add them to the board
+function get_all_miniature()
+  local list_miniature = getObjectsWithTag("miniature")
+  dic_miniature_position = {}
+  for _, miniature in ipairs(list_miniature) do
+    dic_miniature_position[miniature.getGUID()] = board_get_coordinate(miniature.getPosition())
+  end
+end
+
+
+function onObjectDrop(player_color, object)
+  -- only continue if it's a miniature
+  if object.hasTag("miniature") then
+    -- get the miniature coordinate on the board
+    local coordinate = board_get_coordinate(object.getPosition())
+    -- store the miniature position in a dictionary for now
+    dic_miniature_position[object.getGUID()] = coordinate
+    -- hide every tiles
+    board_show_miniature_cover()
+    -- send the new position to the miniature
+    object.call("update_position", coordinate)
+    miniature_board_hide(object.getGUID())
+  end
+end
+
+function onObjectPickUp(player_color, object)
+  -- only continue if it's a miniature
+  if object.hasTag("miniature") then
+    -- get the miniature coordinate on the board
+    local coordinate = board_get_coordinate(object.getPosition())
+    -- Hide the starting position
+    board_tile_display(coordinate[1], coordinate[2], false)
+    -- Display the miniature panel
+    miniature_board_show(object.getGUID())
+  end
+end

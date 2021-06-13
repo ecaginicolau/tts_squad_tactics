@@ -1,0 +1,450 @@
+row_rotation = "270 0 0"
+tile_rotation = "0 90 270"
+
+-- this is for the 40/24 adapted to "One World"
+size_x = 40
+size_y = 24
+panel_x = 4840.0
+panel_y = 2900.0
+-- this is for a square
+-- size_x = 20
+-- size_y = 20
+-- panel_x = 3750.0
+-- panel_y = 3750.0
+
+tile_size_x = panel_x / size_x
+tile_size_y = panel_y / size_y
+
+cover_width = 60 -- this doesn't scale correctly if the tile is scaled
+cover_height = 12 -- this doesn't scale correctly if the tile is scaled
+cover_z = -8
+
+-- tileset basic enum
+dic_color = {
+  "#00000000", -- HIDDEN
+  "#50FF50", -- WALKABLE
+  "#FF5050", -- Blocked
+  "#5050FF", -- SemiCover
+}
+
+board = {}
+board_panel = {}
+
+-- The maximum move an miniature can do
+nb_move = 8
+
+-- The toggle that store if we are in edit mode
+editable = false
+
+-- The direction of the 4 faces
+direction = {
+  { 0, - 1}, -- 1 up
+  { 1, 0}, -- 2 right
+  { 0, 1}, -- 3 down
+  { - 1, 0}, -- 4 left
+}
+
+-- this store the current position of every miniature, should be changed to a more complex structure later
+dic_miniature_position = {}
+
+-- the panel under every miniature, it's a portion of the board panel
+miniature_panel_x = tile_size_x * (nb_move * 2 + 1)
+miniature_panel_y = tile_size_y * (nb_move * 2 + 1)
+
+function board_create_tile(x, y, mode)
+  -- Create a single tile for the main board
+  -- it has 2 mode, run or edit. In run the tile is hidden by default and in edit it's shown + has a button
+  local tile_id = board_get_tile_id(x, y)
+  local tile_value = board[y][x]
+  local color = dic_color[tile_value + 1]
+  local pos_x = (panel_x / size_x) * (x - 0.5) - panel_x / 2
+  local pos_y = panel_y / 2 - (panel_y / size_y) * (y - 0.5)
+  local active = "false"
+  if mode == "edit" then
+    active = "true"
+  end
+
+  local tile =
+  {
+    tag = "Image",
+    attributes =
+    {
+      id = tile_id,
+      active = active,
+      color = color,
+      image = "WalkableGray",
+      width = tile_size_x,
+      height = tile_size_y,
+      position = pos_x.." " .. pos_y .. " 0",
+    },
+    children = {},
+  }
+
+  if mode == "edit" then
+    tile["children"] =
+    {
+      {
+        tag = "Button",
+        attributes =
+        {
+          active = "true",
+          id = "button".. tile_id,
+          color = "#000000BB",
+          onClick = "board_change_tile("..x.."x"..y..")",
+        },
+        children = {}
+      }
+    }
+  else
+    if tile_value == 1 then -- only need cover on walkable tile
+      for face = 1, 4, 1 do
+        local cover = board_create_cover(x, y, face)
+        if cover ~= nil then
+          tile["children"][#tile["children"] + 1] = cover
+        end
+      end
+    end
+  end
+  return tile
+end
+
+
+function board_get_tile_id(x, y)
+  return "tile_"..x.."x"..y
+end
+
+function board_create_cover(x, y, face)
+  -- face 1 = top
+  -- face 2 = right
+  -- face 3 = bottom
+  -- face 4 = left
+
+  -- we need to make sure there needs to be a cover in this tile + face
+  local cover_status = board_get_cover_status_face(x, y, face)
+  -- cover_status[1] store if there is a need for a cover on this face
+  if not cover_status[1] then
+    -- if it's not needed, no need to continue
+    return nil
+  end
+
+  -- depending on the face we need to rotate the cover image, it's a bit complex rotation so hard code it
+  local rotation = row_rotation
+  if (face % 2 == 0) then
+    rotation = tile_rotation
+  end
+
+  -- depending on the face we need to move the cover image a little bit from the center of the tile
+  local pos_x = 0
+  local pos_y = 0
+  if face == 1 then
+    pos_y = tile_size_y / 2
+  elseif face == 2 then
+    pos_x = tile_size_x / 2
+  elseif face == 3 then
+    pos_y = - tile_size_y / 2
+  elseif face == 4 then
+    pos_x = - tile_size_x / 2
+  end
+
+  -- the Z position is always the same, hard coded
+  local pos_z = cover_z
+  -- create the position attribute
+  local position = tostring(pos_x) .. " " .. tostring(pos_y) .. " " .. tostring(pos_z)
+
+  local semi = cover_status[2]
+  local image = "Couverture"
+  if semi then
+    image = "SemiCouverture"
+  end
+
+  local cover =
+  {
+    tag = "Image",
+    attributes =
+    {
+      rotation = rotation,
+      position = position,
+      height = cover_height,
+      width = cover_width,
+      image = image,
+    }
+  }
+
+  return cover
+end
+
+function board_create(mode)
+
+  local board_panel =
+  {
+    tag = "Panel",
+    attributes =
+    {
+      scale = "0.1 0.1 6.6",
+      id = "panel_board",
+      height = panel_y,
+      width = panel_x,
+      position = "0 0 -11",
+      rotation = "0 0 0",
+    },
+    children = {}
+  }
+
+  local list_panel = {board_panel}
+  for y = 1, size_y, 1 do
+    for x = 1, size_x, 1 do
+      board_panel["children"][#board_panel["children"] + 1] = board_create_tile(x, y, mode)
+    end
+  end
+
+  for guid, coordinate in pairs(dic_miniature_position) do
+    local pos_x = (panel_x / size_x) * (coordinate[1] - 0.5) - panel_x / 2
+    local pos_y = panel_y / 2 - (panel_y / size_y) * (coordinate[2] - 0.5)
+    local position = pos_x .. " " .. pos_y .. " 0"
+    -- list_panel[#list_panel + 1] =
+
+    local guid_panel =
+    {
+      tag = "Panel",
+      attributes =
+      {
+        scale = "1 1 1",
+        id = "panel_" .. guid,
+        height = miniature_panel_x,
+        width = miniature_panel_y,
+        position = position,
+        rotation = "0 0 0",
+        active = "false",
+      },
+      children = {}
+    }
+    for y = 1, nb_move * 2 + 1, 1 do
+      for x = 1, nb_move * 2 + 1, 1 do
+        guid_panel["children"][#guid_panel["children"] + 1] = miniature_board_create_tile(coordinate[1], coordinate[2], x, y, guid)
+      end
+    end
+    -- Making them a child of the main board helps having the same coordinate and scale
+    board_panel["children"][#board_panel["children"] + 1] = guid_panel
+  end
+
+  self.UI.setXmlTable({board_panel})
+end
+
+function miniature_board_hide(guid)
+  -- First hide the board
+  self.UI.setAttribute("panel_" .. guid, "active", "false")
+  -- now move it under the new position of the miniature
+  local coordinate = dic_miniature_position[guid]
+  -- Calculate the position based on the coordinate
+  local pos_x = (panel_x / size_x) * (coordinate[1] - 0.5) - panel_x / 2
+  local pos_y = panel_y / 2 - (panel_y / size_y) * (coordinate[2] - 0.5)
+  -- Update the miniature panel position while hidden
+  local position = pos_x .. " " .. pos_y .. " 0"
+  self.UI.setAttribute("panel_" .. guid, "position", position)
+  -- Create a local subfunction to make a coroutine with a parameter
+  local ref = "board_update_tiles_miniature_"..guid
+  _G[ref] = function ()
+    local coordinate = dic_miniature_position[guid]
+    local nb_changed = 0
+    for y = 1, nb_move * 2 + 1, 1 do
+      for x = 1, nb_move * 2 + 1, 1 do
+        local changed = miniature_board_update_tile(coordinate[1], coordinate[2], x, y, guid)
+        if changed then
+          nb_changed = nb_changed + 1
+          if nb_changed % 10 == 0 then
+            coroutine.yield(0)
+          end
+        end
+      end
+    end
+    print("Changed tiles: " .. nb_changed)
+    return 1
+  end
+  startLuaCoroutine(self, ref)
+end
+
+function miniature_board_show(guid)
+  self.UI.setAttribute("panel_" .. guid, "active", "true")
+end
+
+function board_create_snap_points()
+  local bounds = self.getBoundsNormalized()
+  local size = bounds['size']
+  -- The list of all snap points of this objects, this will overwrite any old snap points
+  local list_snap_points = {}
+  local scale = self.getScale()
+  -- Apply scale to size because the snapoint are pure relative
+  size[1] = size[1] / scale[1]
+  size[2] = size[2] / scale[2]
+  size[3] = size[3] / scale[3]
+
+  -- Always put on top of the board
+  local pos_y = size[2] / 2
+
+  for y = 1, size_y, 1 do
+    for x = 1, size_x, 1 do
+      local pos_x = -size[1] / 2 + ((x - 0.5) / size_x) * size[1]
+      local pos_z = -size[3] / 2 + ((y - 0.5) / size_y) * size[3]
+      local snap_position = {pos_x, pos_y, pos_z}
+      list_snap_points[#list_snap_points + 1] = { position = snap_position}
+    end
+  end
+  self.setSnapPoints(list_snap_points)
+end
+
+
+function board_edit()
+  editable = not editable
+  if editable then
+    board_create("edit")
+  else
+    board_create("run")
+
+  end
+end
+
+
+function board_change_tile(_, param)
+  local t = split(param, "x")
+  local x = tonumber(t[1])
+  local y = tonumber(t[2])
+  local tile_value = board[y][x]
+  tile_value = (tile_value + 1) % #dic_color
+  board[y][x] = tile_value
+  board_refresh_tile(x, y)
+  updateSave()
+end
+
+function board_get_cover_status_face(x, y, face)
+  local direction = direction[face]
+  local dx = direction[1] + x
+  local dy = direction[2] + y
+  return board_get_cover_status(x, y, dx, dy)
+end
+
+
+function board_get_cover_status(x1, y1, x2, y2)
+  -- make sure both coordinate are inside the board
+  if 1 > x1 or x1 > size_x or 1 > y1 or y1 > size_y then
+    return {false, false}
+  end
+
+  if 1 > x2 or x2 > size_x or 1 > y2 or y2 > size_y then
+    return {false, false}
+  end
+  -- they are in the board, handle value
+  local tile_value1 = board[y1][x1]
+  local tile_value2 = board[y2][x2]
+  -- only display a cover if the next tile is walkable (1)
+  if (tile_value1 == 1 and tile_value2 > 1) or (tile_value2 == 1 and tile_value1 > 1) then
+    local semi = false
+    if tile_value1 == 3 or tile_value2 == 3 then
+      semi = true
+    end
+    return {true, semi}
+  else
+    return {false, false}
+  end
+end
+
+function board_refresh_tile(x, y)
+  local tile_value = board[y][x]
+  local tile_id = board_get_tile_id(x, y)
+  self.UI.setAttribute(tile_id, "color", dic_color[tile_value + 1])
+end
+
+function board_tile_display(x, y, display)
+  self.UI.setAttribute(board_get_tile_id(x, y), "active", display)
+end
+
+function board_show_miniature_cover()
+  for guid, position in pairs(dic_miniature_position) do
+    board_tile_display(position[1], position[2], true)
+  end
+  return 1
+end
+
+function board_reset()
+  board = {}
+  for y = 1, size_y, 1 do
+    board[y] = {}
+    for x = 1, size_x, 1 do
+      board[y][x] = 1 --  walkable
+    end
+  end
+end
+
+function board_get_coordinate(position)
+  local bounds = self.getBounds()
+  local center = bounds['center']
+  local size = bounds['size']
+  local pos_x = -center[1] + position[1] + size[1] / 2.0
+  local pos_y = center[3] - position[3] + size[3] / 2.0
+
+  local cell_size_x = size[1] / size_x
+  local cell_size_y = size[3] / size_y
+  pos_x = pos_x - cell_size_x / 2
+  pos_y = pos_y - cell_size_y / 2
+
+  pos_x = round(pos_x / cell_size_x) + 1 -- dont' forget to add 1 to be LUA compliant
+  pos_y = round(pos_y / cell_size_y) + 1 -- dont' forget to add 1 to be LUA compliant
+  return {pos_x, pos_y}
+end
+
+
+function miniature_board_update_tile(pos_x, pos_y, x, y, guid)
+  local tile_id = board_get_tile_id(x, y)
+  -- Use the position of the miniature  + the local x/y to find the coordinate in the board
+  local tile_x = pos_x - nb_move - 1 + x
+  local tile_y = pos_y - nb_move - 1 + y
+  -- by default the tile is invisible, value 0
+  local tile_value = 0
+  -- since it's a square around the miniature we need to make sure the coordinate are not outisde of bounds
+  if tile_x >= 1 and tile_x <= size_x and tile_y >= 1 and tile_y <= size_y then
+    tile_value = board[tile_y][tile_x]
+  end
+  -- Get the color of the tile
+  local color = dic_color[tile_value + 1]
+  -- Check if the color has changed, no need to make an update if it didn't change.
+  -- The getAttribute must run locally, no network needed, so it should be at least 2x faster
+  local old_color = self.UI.getAttribute(guid.."_"..tile_id, "color")
+  if color ~= old_color then
+    -- print("old color: " .. old_color .." new color: " .. color)
+    self.UI.setAttribute(guid.."_"..tile_id, "color", color)
+    -- The tile has changed
+    return true
+  end
+  -- The tile has not changed
+  return false
+end
+
+function miniature_board_create_tile(pos_x, pos_y, x, y, guid)
+  local tile_id = board_get_tile_id(x, y)
+  -- Use the position of the miniature  + the local x/y to find the coordinate in the board
+  local tile_x = pos_x - nb_move - 1 + x
+  local tile_y = pos_y - nb_move - 1 + y
+  local tile_value = 0
+  if tile_x >= 1 and tile_x <= size_x and tile_y >= 1 and tile_y <= size_y then
+    tile_value = board[tile_y][tile_x]
+  end
+  local color = dic_color[tile_value + 1]
+  -- The position on the miniature panel
+  local pos_x = (miniature_panel_x / (nb_move * 2 + 1)) * (x - 0.5) - miniature_panel_x / 2
+  local pos_y = miniature_panel_y / 2 - (miniature_panel_y / (nb_move * 2 + 1)) * (y - 0.5)
+
+  local tile =
+  {
+    tag = "Image",
+    attributes =
+    {
+      id = guid.."_"..tile_id,
+      active = "true",
+      color = color,
+      image = "WalkableGray",
+      width = tile_size_x,
+      height = tile_size_y,
+      position = pos_x.." " .. pos_y .. " 0",
+    }
+  }
+  return tile
+end
