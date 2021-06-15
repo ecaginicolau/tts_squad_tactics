@@ -1,0 +1,348 @@
+-- for debug
+local list_line = {}
+
+local is_cone_displayed =  false
+-- avoid calculating this every single time
+degree_to_radian = math.pi / 180.0
+
+-- debug/dev
+local cone = {
+  guid = "1787b5",
+  pointing_angle = 0,
+  angle = 45, -- degree angle should be easier to understand by the player
+  distance = 6.5, -- add 0.5 because it start from a center of a tile
+  old_coordinate = { - 999, - 999}
+}
+
+
+function raytrace(x0, y0, x1, y1)
+  dx = math.abs(x1 - x0)
+  dy = math.abs(y1 - y0)
+
+  x = math.floor(x0)
+  y = math.floor(y0)
+
+  n = 1
+
+  if dx == 0 then
+    x_inc = 0
+    error = 999999.9 -- infinity
+  elseif x1 > x0 then
+    x_inc = 1
+    n = n + math.floor(x1) - x
+    error = (math.floor(x0) + 1 - x0) * dy
+  else
+    x_inc = -1
+    n = n + x - math.floor(x1)
+    error = (x0 - math.floor(x0)) * dy
+  end
+  if dy == 0 then
+    y_inc = 0
+    error = -999999.9 -- -infinity
+  elseif y1 > y0 then
+    y_inc = 1
+    n = n + math.floor(y1) - y
+    error = error - (math.floor(y0) + 1 - y0) * dx
+  else
+    y_inc = -1
+    n = n + y - math.floor(y1)
+    error = error - (y0 - math.floor(y0)) * dx
+  end
+
+  local list_visted_tile = {}
+
+  while n > 0 do
+    n = n - 1
+    -- print("Visit: " .. x ..", " .. y)
+    list_visted_tile[#list_visted_tile + 1] = {x, y}
+    if error > 0 then
+      y = y + y_inc
+      error = error - dx
+    elseif error == 0 then -- diagonal exact, 2 step
+      x = x + x_inc
+      y = y + y_inc
+      error = error - dx
+      error = error + dy
+      n = n - 1
+    else
+      x = x + x_inc
+      error = error + dy
+    end
+  end
+
+  return list_visted_tile
+end
+
+
+function los_miniature_all()
+  for guid1, coordinate1 in pairs(dic_miniature_position) do
+    los_miniature_single(guid1)
+  end
+end
+
+function los_miniature_single(guid1)
+  list_line = {}
+  self.setVectorLines({})
+
+  coordinate1 = dic_miniature_position[guid1]
+  function los_miniature_single_coroutine()
+    for guid2, coordinate2 in pairs(dic_miniature_position) do
+      if guid1 ~= guid2 then
+        local visible = los_coordinate(coordinate1, coordinate2)
+        -- coroutine.yield(0)
+        if visible then
+          los_couverture(coordinate1, coordinate2)
+        end
+      end
+    end
+
+    los_draw_lines()
+    return 1
+  end
+  startLuaCoroutine(self, "los_miniature_single_coroutine")
+end
+
+
+function los_tile_visible(x, y)
+  -- print("los_tile_visible: " .. x .. ":" .. y)
+  -- 0 is invisible and 2 is blocked, both block line of sight
+  if x < 1 or x > size_x then
+    return false
+  end
+  if y < 1 or y > size_y then
+    return false
+  end
+  if board[y][x] == 0 or board[y][x] == 2 then
+    return false
+  end
+  return true
+end
+
+function los_check_visted_tiled(list_visted_tile)
+  for _, coordinate in ipairs(list_visted_tile) do
+    if not los_tile_visible(coordinate[1], coordinate[2]) then
+      return false
+    end
+  end
+  return true
+end
+
+function los_coordinate(coordinate1, coordinate2)
+  -- raytracing from slightly inside AND slightly outside the tile seems to remove most of the LoS issue, but double the nb of checks...
+  list_dx = { - 0.01, 0.01, 0.99, 1.01}
+  -- Thats 256 rays in totals ... it may be too much. Hopefully it's only done locally.
+  for _, dx1 in ipairs(list_dx) do
+    coroutine.yield(0) -- this limite the nb of ray calculated per frame to 64
+    for _, dy1 in ipairs(list_dx) do
+      for _, dx2 in ipairs(list_dx) do
+        for _, dy2 in ipairs(list_dx) do
+          local list_visted_tile = raytrace(coordinate1[1] + dx1, coordinate1[2] + dy1, coordinate2[1] + dx2, coordinate2[2] + dy2)
+          local line_visible = los_check_visted_tiled(list_visted_tile)
+          if line_visible then
+            -- no need to continue if we need it's visible
+            return true
+          end
+        end
+      end
+    end
+  end
+
+  return false
+end
+
+function los_couverture(coordinate1, coordinate2)
+  local dx = coordinate1[1] - coordinate2[1]
+  local dy = coordinate1[2] - coordinate2[2]
+  local direction = nil
+  if math.abs(dx) > math.abs(dy) then
+    direction = {dx / math.abs(dx), 0 }
+  elseif math.abs(dx) < math.abs(dy) then
+    direction = {0, dy / math.abs(dy), }
+  else -- equal
+    direction = {0, 0}
+  end
+  local x = coordinate2[1] + direction[1]
+  local y = coordinate2[2] + direction[2]
+
+
+  local color = nil
+  if board[y][x] == 1 then
+    color = {0, 1, 0}
+  elseif board[y][x] == 2 then
+    color = {1, 0, 0}
+  elseif board[y][x] == 3 then
+    color = {0, 0, 1}
+  end
+  if color ~= nil then
+    local pos1 = board_get_position_relative(coordinate1[1], coordinate1[2])
+    local pos2 = board_get_position_relative(coordinate2[1], coordinate2[2])
+    los_add_line(pos1, pos2, color)
+  end
+end
+
+function los_add_line_comlex(list_point, color, thickness)
+  if thickness == nil then
+    thickness = 0.005
+  end
+  list_line[#list_line + 1] = {
+    points = list_point,
+    color = color,
+    thickness = thickness,
+    rotation = {0, 0, 0},
+  }
+end
+
+function los_empty_line()
+  list_line = {}
+  self.setVectorLines(list_line)
+end
+
+function los_add_line(pos1, pos2, color, thickness)
+  los_add_line_comlex({pos1, pos2}, color, thickness)
+end
+
+function los_draw_lines()
+  self.setVectorLines(list_line)
+end
+
+
+function los_draw_line(pos1, pos2)
+  self.setVectorLines({{
+    points = { pos1, pos2 },
+    color = {0, 1, 0},
+    thickness = 0.005,
+    rotation = {0, 0, 0},
+  }})
+end
+
+function draw_cone(x, y, orientation, angle, distance, step)
+  -- clean up all other line
+  los_empty_line()
+
+  -- get the center of the cone
+  local pos_center = board_get_position_relative(x, y)
+  -- store all cone line end point to be able to draw the circle
+  local list_end_point = {}
+
+  local fill_thickness = 0.08
+  local fill_color = {1, 0, 0, 0.5}
+  local border_thickness = 0.005
+  local border_color = {1, 0, 0, 1}
+
+  -- this will help reduce effect of thickness
+  -- the / 2 should theorically be applied to the thickness to get the radius but faster to do once here
+  local scale = self.getScale()[1] / 2
+
+  for current_angle = orientation - angle, orientation + angle, step do
+    -- reduce the distance for the filling line
+    local fill_distance = distance
+    -- by default use the fill settings
+    local color = fill_color
+    local thickness = fill_thickness
+
+    -- lower the thickness of the 2 border lines to the same thickness than the circle line
+    if current_angle <= orientation - angle or current_angle >= orientation + angle then
+      thickness = border_thickness
+      color = border_color
+    end
+
+    fill_distance = fill_distance - thickness * scale -- it's related to the object scale
+
+    -- this will help generate the 2 needed points faster, by avoiding doing sin and cos multiple time
+    local normalized_coordinate = {math.sin(current_angle * degree_to_radian), math.cos(current_angle * degree_to_radian)}
+    -- this set of coordinate store the end point for the circle part
+    local border_coordinate = {normalized_coordinate[1] * distance, normalized_coordinate[2] * distance}
+    -- this set of coordinate store the end point for the thick line fill
+    local fill_coordinate = {normalized_coordinate[1] * fill_distance, normalized_coordinate[2] * fill_distance}
+    -- we need to convert these coordinate in positions
+    local pos = board_get_position_relative(border_coordinate[1] + x, border_coordinate[2] + y)
+    local fill_pos = board_get_position_relative(fill_coordinate[1] + x, fill_coordinate[2] + y)
+    -- store the end point to be able to draw a single line later
+    list_end_point[#list_end_point + 1] = pos
+
+    los_add_line(pos_center, fill_pos, color, thickness)
+  end
+  -- This create the circle line
+  los_add_line_comlex(list_end_point, border_color, border_thickness)
+  los_draw_lines()
+end
+
+
+
+function onFixedUpdate()
+  if is_cone_displayed then
+    display_cone()
+  end
+end
+
+function display_cone()
+  local position = Player["White"].getPointerPosition()
+  local coordinate = board_get_coordinate(position, false)
+  -- make sure it has changed since last frame to avoid recalculating
+  if coordinate[1] ~= cone["old_coordinate"][1] or coordinate[2] ~= cone["old_coordinate"][2] then
+    local center_coordinate = dic_miniature_position[cone["guid"]]
+
+    -- store the new coordinate
+    cone["old_coordinate"] = coordinate
+
+    cone["pointing_angle"] = angle_coordinate(center_coordinate, coordinate)
+
+    draw_cone(center_coordinate[1], center_coordinate[2], cone["pointing_angle"], cone["angle"], cone["distance"], 5)
+    check_all_miniature_in_cone(angle)
+  end
+end
+
+function distance_coordinate(coordinate1, coordinate2)
+  local dx = coordinate1[1] - coordinate2[1]
+  local dy = coordinate1[2] - coordinate2[2]
+  return math.sqrt(dx * dx + dy * dy)
+end
+
+function angle_coordinate(coordinate1, coordinate2)
+  -- for now 0 is looking down
+  local angle = math.atan((coordinate1[1] - coordinate2[1]) / (coordinate1[2] - coordinate2[2])) / degree_to_radian
+  if coordinate1[2] - coordinate2[2] >= 0 then
+    angle = angle + 180.0
+  end
+  return angle
+end
+
+function angle_between_2_angles(angle, min_angle, max_angle)
+  -- make sure all angle are module 360
+  angle = angle % 360
+  min_angle = min_angle % 360
+  max_angle = max_angle % 360
+  if min_angle < max_angle then
+    return min_angle <= angle and angle <= max_angle
+  else
+    return min_angle <= angle or angle <= max_angle
+  end
+end
+
+function check_all_miniature_in_cone()
+  local center_coordinate = dic_miniature_position[cone["guid"]]
+
+  for guid, coordinate in pairs(dic_miniature_position) do
+    -- donc check if itself is inside the cone
+    if guid ~= cone["guid"] then
+      -- get the object, make sure it exist
+      local object = getObjectFromGUID(guid)
+      if object ~= nil then
+        -- fight turn off the hightlight
+        object.highlightOff({1, 0, 0})
+        -- first find distance
+        local distance = distance_coordinate(center_coordinate, coordinate)
+        -- if the distance is good, then check the angle
+        if distance < cone["distance"] + 0.3 then -- add a small value to help get partial tile
+          -- calculate the angle
+          local guid_angle = angle_coordinate(center_coordinate, coordinate)
+          -- make sure it's inside the cone
+          if angle_between_2_angles(guid_angle, cone["pointing_angle"] - cone["angle"], cone["pointing_angle"] + cone["angle"]) then
+            -- hightlight on
+            object.highlightOn({1, 0, 0})
+          end
+        end
+      end
+    end
+  end
+end

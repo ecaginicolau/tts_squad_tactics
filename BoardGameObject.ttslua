@@ -1,5 +1,6 @@
 #include Board
 #include LineOfSight
+#include PathFinding
 #include utils
 
 load_disabled = false
@@ -43,7 +44,7 @@ end
 function reset_miniature()
   board_show_miniature_cover()
   for guid,_ in pairs(dic_miniature_position) do
-    board_miniature_update_pathfinding(guid)
+    pathfindind_miniature_update(guid)
   end
 end
 
@@ -79,7 +80,7 @@ function onObjectDrop(player_color, object)
     -- Hide the miniature panel and recalculate it
     -- miniature_board_hide(object.getGUID())
     -- Update pathfinding
-    -- board_miniature_update_pathfinding(guid)
+    pathfindind_miniature_update(object.getGUID())
 
     -- update all miniature line of sight
     los_miniature_single(object.getGUID())
