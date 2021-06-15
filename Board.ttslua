@@ -27,6 +27,14 @@ dic_color = {
   "#5050FF", -- SemiCover
 }
 
+dic_color_vector = {
+  {0, 0, 0, 0}, -- HIDDEN
+  {0, 1, 0}, -- WALKABLE
+  {1, 0, 0}, -- Blocked
+  {0, 0, 1}, -- SemiCover
+}
+
+
 board = {}
 board_panel = {}
 
@@ -46,6 +54,8 @@ direction = {
 
 -- this store the current position of every miniature, should be changed to a more complex structure later
 dic_miniature_position = {}
+
+dic_miniature_move_line = {}
 
 -- the panel under every miniature, it's a portion of the board panel
 miniature_panel_x = tile_size_x * (nb_move * 2 + 1)
@@ -241,14 +251,13 @@ function miniature_board_hide(guid)
   -- Update the miniature panel position while hidden
   local position = pos_x .. " " .. pos_y .. " 0"
   self.UI.setAttribute("panel_" .. guid, "position", position)
+
   -- Create a local subfunction to make a coroutine with a parameter
-  local ref = "board_update_tiles_miniature_"..guid
-  _G[ref] = function ()
-    local coordinate = dic_miniature_position[guid]
+  function miniature_board_hide_coroutine()
     local nb_changed = 0
     for y = 1, nb_move * 2 + 1, 1 do
       for x = 1, nb_move * 2 + 1, 1 do
-        local changed = miniature_board_update_tile(coordinate[1], coordinate[2], x, y, guid)
+        local changed = miniature_board_update_tile(coordinate[1], coordinate[2], x, y, guid, dic_move)
         if changed then
           nb_changed = nb_changed + 1
           if nb_changed % 10 == 0 then
@@ -257,15 +266,138 @@ function miniature_board_hide(guid)
         end
       end
     end
-    print("Changed tiles: " .. nb_changed)
+    -- print("Changed tiles: " .. nb_changed)
     return 1
   end
-  startLuaCoroutine(self, ref)
+  startLuaCoroutine(self, "miniature_board_hide_coroutine")
 end
 
-function miniature_board_show(guid)
-  self.UI.setAttribute("panel_" .. guid, "active", "true")
+function board_miniature_update_pathfinding(guid)
+  local coordinate = dic_miniature_position[guid]
+  -- Calculate the path  finding
+  local dic_move = miniature_board_path_finding(coordinate[1], coordinate[2], nb_move)
+  -- draw contour line
+  local list_line_move = {}
+  for y = 1, size_y, 1 do
+    for x = 1, size_x, 1 do
+      -- board_tile_display(x, y, dic_move[y][x] ~= 99)
+      if dic_move[y][x] ~= 99 then
+        create_line_move(x,y, dic_move, list_line_move)
+      end
+    end
+  end
+  print("need to draw lines: " .. #list_line_move)
+
+  dic_miniature_move_line[guid] = {}
+  for _, line in ipairs(list_line_move) do
+    dic_miniature_move_line[guid][#dic_miniature_move_line[guid] + 1] = {
+      points = {line[1], line[2]},
+      color =  line[3],
+      thickness = 0.01,
+      rotation = {0, 0, 0},
+    }
+  end
 end
+
+
+function create_line_move(x, y, dic_move, list_line_move)
+  -- only draw line for walkable, if needed only
+  if board[y][x] ~= 1 then
+    return
+  end
+
+  for face= 1, 4, 1 do
+    local direction = direction[face]
+    local dx = direction[1] + x
+    local dy = direction[2] + y
+    if dx >= 1 and dx <= size_x and dy >= 1 and dy <= size_y then
+      -- only draw this side if the next tile is walkable
+      if board[dy][dx] >= 2 or dic_move[dy][dx] == 99 then
+        if face == 1 then
+          local position1 = board_get_position_relative(x - 0.5, y - 0.5)
+          local position2 = board_get_position_relative(x + 0.5, y - 0.5)
+          list_line_move[#list_line_move + 1] = {position1, position2, dic_color_vector[board[dy][dx] + 1] }
+        elseif face == 2 then
+          local position1 = board_get_position_relative(x + 0.5, y - 0.5)
+          local position2 = board_get_position_relative(x + 0.5, y + 0.5)
+          list_line_move[#list_line_move + 1] = {position1, position2, dic_color_vector[board[dy][dx] + 1]}
+        elseif face == 3 then
+          local position1 = board_get_position_relative(x - 0.5, y + 0.5)
+          local position2 = board_get_position_relative(x + 0.5, y + 0.5)
+          list_line_move[#list_line_move + 1] = {position1, position2, dic_color_vector[board[dy][dx] + 1]}
+        elseif face == 4 then
+          local position1 = board_get_position_relative(x - 0.5, y - 0.5)
+          local position2 = board_get_position_relative(x - 0.5, y + 0.5)
+          list_line_move[#list_line_move + 1] = {position1, position2, dic_color_vector[board[dy][dx] + 1]}
+        end
+      end
+    else -- this handle the external border, it's too similar, should be merged
+      if face == 1 then
+        local position1 = board_get_position_relative(x - 0.5, y - 0.5)
+        local position2 = board_get_position_relative(x + 0.5, y - 0.5)
+        list_line_move[#list_line_move + 1] = {position1, position2, dic_color_vector[board[y][x] + 1] }
+      elseif face == 2 then
+        local position1 = board_get_position_relative(x + 0.5, y - 0.5)
+        local position2 = board_get_position_relative(x + 0.5, y + 0.5)
+        list_line_move[#list_line_move + 1] = {position1, position2, dic_color_vector[board[y][x] + 1]}
+      elseif face == 3 then
+        local position1 = board_get_position_relative(x - 0.5, y + 0.5)
+        local position2 = board_get_position_relative(x + 0.5, y + 0.5)
+        list_line_move[#list_line_move + 1] = {position1, position2, dic_color_vector[board[y][x] + 1]}
+      elseif face == 4 then
+        local position1 = board_get_position_relative(x - 0.5, y - 0.5)
+        local position2 = board_get_position_relative(x - 0.5, y + 0.5)
+        list_line_move[#list_line_move + 1] = {position1, position2, dic_color_vector[board[y][x] + 1]}
+      end
+    end
+  end
+end
+
+
+
+function miniature_board_show(guid)
+  -- self.UI.setAttribute("panel_" .. guid, "active", "true")
+  self.setVectorLines(dic_miniature_move_line[guid])
+end
+
+
+function board_get_position(x, y)
+  local bounds = self.getBounds()
+  local size = bounds['size']
+  local center = bounds['center']
+  -- the initiatl position will be the top left corner
+  local pos_x = center[1] - size[1] / 2
+  local pos_y = center[2] + size[2] / 2 + 0.1
+  local pos_z = center[3] + size[3] / 2
+  -- now add the x and y
+  pos_x =  pos_x + x * (size[1] / size_x)
+  pos_z =  pos_z - y * (size[3] / size_y)
+
+  return  Vector.new(pos_x, pos_y, pos_z)
+end
+
+
+function board_get_position_relative(x, y)
+  local bounds = self.getBoundsNormalized()
+  local size = bounds['size']
+  local scale = self.getScale()
+  -- Apply scale to size because the snapoint are pure relative
+  size[1] = size[1] / scale[1]
+  size[2] = size[2] / scale[2]
+  size[3] = size[3] / scale[3]
+  -- the initiatl position will be the top left corner
+  local pos_x = -size[1] / 2
+  local pos_y = size[2] / 2 + 0.1
+  local pos_z = size[3] / 2
+  -- now add the x and y
+  -- pos_x =  pos_x + (x - 0.5) * (size[1] / size_x)
+  -- pos_z =  pos_z - (y - 0.5) * (size[3] / size_y)
+  pos_x =  pos_x + (x - 0.5) * (size[1] / size_x)
+  pos_z =  pos_z - (y - 0.5) * (size[3] / size_y)
+
+  return  Vector.new(pos_x, pos_y, pos_z)
+end
+
 
 function board_create_snap_points()
   local bounds = self.getBoundsNormalized()
@@ -374,7 +506,11 @@ function board_reset()
   end
 end
 
-function board_get_coordinate(position)
+function board_get_coordinate(position, rounded)
+  -- by default it's rounded
+  if rounded == nil then
+    rounded = true
+  end
   local bounds = self.getBounds()
   local center = bounds['center']
   local size = bounds['size']
@@ -386,13 +522,84 @@ function board_get_coordinate(position)
   pos_x = pos_x - cell_size_x / 2
   pos_y = pos_y - cell_size_y / 2
 
-  pos_x = round(pos_x / cell_size_x) + 1 -- dont' forget to add 1 to be LUA compliant
-  pos_y = round(pos_y / cell_size_y) + 1 -- dont' forget to add 1 to be LUA compliant
+  pos_x = pos_x / cell_size_x + 1 -- dont' forget to add 1 to be LUA compliant
+  pos_y = pos_y / cell_size_y + 1 -- dont' forget to add 1 to be LUA compliant
+
+  if rounded then
+    pos_x = math.tointeger(pos_x)
+    pos_y = math.tointeger(pos_y)
+  else
+    pos_x = math.round(pos_x, 2)
+    pos_y = math.round(pos_y, 2)
+  end
+
   return {pos_x, pos_y}
 end
 
+function miniature_board_path_finding(x, y, nb_move)
+  local dic_move= {}
+  for i = 1, size_y , 1 do
+    dic_move[i] = {}
+    for j = 1, size_x , 1 do
+      dic_move[i][j] = 99 -- a number bigger than nb_move
+    end
+  end
+  local list_direction = {
+    {0, 1 , false}, -- x, y, cost
+    {1, 0 , false}, -- x, y, cost
+    {0, -1 , false}, -- x, y, cost
+    {-1, 0 , false}, -- x, y, cost
+    {1, 1 , true}, -- x, y, cost
+    {1, -1 , true}, -- x, y, cost
+    {-1, 1 , true}, -- x, y, cost
+    {-1, -1 , true}, -- x, y, cost
+  }
 
-function miniature_board_update_tile(pos_x, pos_y, x, y, guid)
+  function miniature_board_path_finding_rec(x, y, cost, diagonal)
+    -- print("x: " .. x)
+    -- print("y: " .. y)
+    -- exit condition, out of the board, out of move
+    if x < 1 or x > size_x or y < 1 or y > size_y then
+      return
+    end
+
+    local tile_value = board[y][x]
+
+    -- exit condition, can't walk on this tile
+    if tile_value == 0 or tile_value == 2 then
+      return
+    end
+
+    local current_cost = 1
+    if tile_value == 3 then
+      current_cost =  2 -- 2 for semi cover
+    end
+    if diagonal then
+      current_cost = current_cost * 1.5 -- 1.5 for the diagonal
+    end
+
+    cost = cost + current_cost
+
+    -- another exit condition, the cost is greater than the available move nb
+    if cost > nb_move then
+      return
+    end
+
+    if dic_move[y][x] > cost then
+      dic_move[y][x] = cost
+      for _, direction in ipairs(list_direction) do
+        miniature_board_path_finding_rec(x + direction[1], y + direction[2],  cost, direction[3])
+      end
+    end
+  end
+
+  miniature_board_path_finding_rec(x, y, -1, false)
+  -- print(JSON.encode(dic_move))
+  return dic_move
+end
+
+
+function miniature_board_update_tile(pos_x, pos_y, x, y, guid, dic_move)
   local tile_id = board_get_tile_id(x, y)
   -- Use the position of the miniature  + the local x/y to find the coordinate in the board
   local tile_x = pos_x - nb_move - 1 + x
@@ -401,8 +608,14 @@ function miniature_board_update_tile(pos_x, pos_y, x, y, guid)
   local tile_value = 0
   -- since it's a square around the miniature we need to make sure the coordinate are not outisde of bounds
   if tile_x >= 1 and tile_x <= size_x and tile_y >= 1 and tile_y <= size_y then
-    tile_value = board[tile_y][tile_x]
+    -- if the nb of move needed to go there is too big no need to display_cone
+    if dic_move[tile_y][tile_x] == 99 then
+      tile_value = 0
+    else
+      tile_value = board[tile_y][tile_x]
+    end
   end
+
   -- Get the color of the tile
   local color = dic_color[tile_value + 1]
   -- Check if the color has changed, no need to make an update if it didn't change.

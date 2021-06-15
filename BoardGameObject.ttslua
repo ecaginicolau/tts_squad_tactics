@@ -1,4 +1,5 @@
 #include Board
+#include LineOfSight
 #include utils
 
 load_disabled = false
@@ -41,6 +42,9 @@ end
 -- Show covers for all miniatures
 function reset_miniature()
   board_show_miniature_cover()
+  for guid,_ in pairs(dic_miniature_position) do
+    board_miniature_update_pathfinding(guid)
+  end
 end
 
 function updateSave()
@@ -61,15 +65,24 @@ end
 function onObjectDrop(player_color, object)
   -- only continue if it's a miniature
   if object.hasTag("miniature") then
+    -- first hide starting position
+    local coordinate = dic_miniature_position[object.getGUID()]
+    board_tile_display(coordinate[1], coordinate[2], false)
     -- get the miniature coordinate on the board
-    local coordinate = board_get_coordinate(object.getPosition())
+    coordinate = board_get_coordinate(object.getPosition())
     -- store the miniature position in a dictionary for now
     dic_miniature_position[object.getGUID()] = coordinate
     -- hide every tiles
     board_show_miniature_cover()
     -- send the new position to the miniature
     object.call("update_position", coordinate)
-    miniature_board_hide(object.getGUID())
+    -- Hide the miniature panel and recalculate it
+    -- miniature_board_hide(object.getGUID())
+    -- Update pathfinding
+    -- board_miniature_update_pathfinding(guid)
+
+    -- update all miniature line of sight
+    los_miniature_single(object.getGUID())
   end
 end
 
@@ -79,8 +92,9 @@ function onObjectPickUp(player_color, object)
     -- get the miniature coordinate on the board
     local coordinate = board_get_coordinate(object.getPosition())
     -- Hide the starting position
-    board_tile_display(coordinate[1], coordinate[2], false)
+    -- board_tile_display(coordinate[1], coordinate[2], false)
     -- Display the miniature panel
     miniature_board_show(object.getGUID())
+
   end
 end

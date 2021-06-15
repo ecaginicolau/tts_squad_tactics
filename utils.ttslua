@@ -9,10 +9,21 @@ function split (inputstr, sep)
   return t
 end
 
-function round(float)
-    return math.floor(float + .5)
+function math.tointeger(float)
+  return math.floor(float + .5)
 end
 
+
+function math.round(float, precision)
+  local multi = 1
+  for i = 1, precision, 1 do
+    multi = multi * 10
+  end
+  float = float * multi
+  float = math.floor(float + .5)
+  float = float / multi
+  return float
+end
 
 function table.clone(org)
   return {table.unpack(org)}
