@@ -265,8 +265,7 @@ end
 
 
 function miniature_board_show(guid)
-  -- self.UI.setAttribute("panel_" .. guid, "active", "true")
-  pathfinding_show(guid)
+  self.UI.setAttribute("panel_" .. guid, "active", "true")
 end
 
 
@@ -279,8 +278,8 @@ function board_get_position(x, y)
   local pos_y = center[2] + size[2] / 2 + 0.1
   local pos_z = center[3] + size[3] / 2
   -- now add the x and y
-  pos_x = pos_x + x * (size[1] / size_x)
-  pos_z = pos_z - y * (size[3] / size_y)
+  pos_x = pos_x + (x - 0.5) * (size[1] / size_x)
+  pos_z = pos_z - (y - 0.5) * (size[3] / size_y)
 
   return Vector.new(pos_x, pos_y, pos_z)
 end

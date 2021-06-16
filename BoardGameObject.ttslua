@@ -1,10 +1,16 @@
 #include Board
 #include LineOfSight
 #include PathFinding
+#include Cone
+#include LineDrawer
 #include utils
 
 load_disabled = false
-
+picked_up_guid = nil
+picked_up_color = nil
+old_coordinate = {0,0}
+wait_in_tile = 0
+los_calculated = false
 --Runs when game is loaded.
 function onLoad(saved_data)
   if load_disabled == false and saved_data ~= "" then
@@ -21,6 +27,7 @@ function onLoad(saved_data)
       -- if the store size is invalid reset it.
       board_reset()
     end
+    self.setVectorLines({})
   end
 
   -- First get the position of all miniature, the number of miniature will change the board
@@ -38,7 +45,11 @@ function onLoad(saved_data)
 
   -- We can't edit an UI created in the same frame, so update it a bit later
   Wait.frames(reset_miniature, 10)
+
+  -- Setup the line helper
+  Wait.frames(line_helper_setup, 20)
 end
+
 
 -- Show covers for all miniatures
 function reset_miniature()
@@ -58,7 +69,8 @@ function get_all_miniature()
   local list_miniature = getObjectsWithTag("miniature")
   dic_miniature_position = {}
   for _, miniature in ipairs(list_miniature) do
-    dic_miniature_position[miniature.getGUID()] = board_get_coordinate(miniature.getPosition())
+    local coordinate = board_get_coordinate(miniature.getPosition())
+    dic_miniature_position[miniature.getGUID()] = coordinate
   end
 end
 
@@ -66,6 +78,8 @@ end
 function onObjectDrop(player_color, object)
   -- only continue if it's a miniature
   if object.hasTag("miniature") then
+    picked_up_guid =  nil
+    picked_up_color = nil
     -- first hide starting position
     local coordinate = dic_miniature_position[object.getGUID()]
     board_tile_display(coordinate[1], coordinate[2], false)
@@ -79,23 +93,65 @@ function onObjectDrop(player_color, object)
     object.call("update_position", coordinate)
     -- Hide the miniature panel and recalculate it
     -- miniature_board_hide(object.getGUID())
+
+    -- hide the pathfinding of the miniature to the player that droped it
+    pathfinding_hide(object.getGUID(), player_color)
+
     -- Update pathfinding
     pathfindind_miniature_update(object.getGUID())
 
     -- update all miniature line of sight
-    los_miniature_single(object.getGUID())
+    los_miniature_single(object.getGUID(), coordinate, player_color)
+
+    -- test cone
+    is_cone_displayed = true
+    cone["guid"] = object.getGUID()
+    cone["player_color"] = player_color
   end
 end
 
 function onObjectPickUp(player_color, object)
   -- only continue if it's a miniature
   if object.hasTag("miniature") then
+    picked_up_guid = object.getGUID()
+    picked_up_color =  player_color
     -- get the miniature coordinate on the board
     local coordinate = board_get_coordinate(object.getPosition())
+    -- store the starting coordindate as old_coordinate
+    old_coordinate = coordinate
+
     -- Hide the starting position
     -- board_tile_display(coordinate[1], coordinate[2], false)
     -- Display the miniature panel
-    miniature_board_show(object.getGUID())
+    -- miniature_board_show(object.getGUID())
 
+    -- Show the pathfinding of the miniature to the player that pick it up
+    pathfinding_show(picked_up_guid, player_color)
+
+    -- test cone
+    is_cone_displayed = false
+    line_drawer_remove_visibility("cone_".. player_color, player_color )
+  end
+end
+
+function onFixedUpdate()
+  if is_cone_displayed then
+    cone_display()
+  end
+  if picked_up_guid != nil then
+    local object = getObjectFromGUID(picked_up_guid)
+    local coordinate = board_get_coordinate(object.getPosition())
+    if coordinate[1] ~= old_coordinate[1] or  coordinate[2] ~= old_coordinate[2] then
+      old_coordinate = coordinate
+      wait_in_tile = 0
+      line_drawer_remove_visibility("los_"..picked_up_guid, picked_up_color)
+    else
+      if wait_in_tile < 15 then -- at frame 30 draw, only this one
+        wait_in_tile = wait_in_tile + 1
+        if wait_in_tile == 15 then
+          los_miniature_single(object.getGUID(), coordinate, picked_up_color)
+        end
+      end
+    end
   end
 end

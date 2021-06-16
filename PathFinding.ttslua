@@ -78,17 +78,21 @@ function pathfindind_miniature_update(guid)
       end
     end
   end
-  print("need to draw lines: " .. #list_line_move)
+  -- print("need to draw lines: " .. #list_line_move)
 
-  dic_miniature_move_line[guid] = {}
+  local list_lines = {}
+  -- dic_miniature_move_line[guid] = {}
   for _, line in ipairs(list_line_move) do
-    dic_miniature_move_line[guid][#dic_miniature_move_line[guid] + 1] = {
+    -- dic_miniature_move_line[guid][#dic_miniature_move_line[guid] + 1] = {
+    list_lines[#list_lines + 1] = {
       points = {line[1], line[2]},
       color = line[3],
-      thickness = 0.01,
+      -- thickness = 0.01,
+      thickness = 0.1,
       rotation = {0, 0, 0},
     }
   end
+  line_drawer_add_lines("move_"..guid, list_lines, {})
 end
 
 
@@ -100,10 +104,10 @@ function pathfindind_create_line(x, y, dic_move, list_line_move)
 
   local dic_color_vector = {
     {0, 0, 0, 0}, -- HIDDEN
-    {1, 1, 0}, -- WALKABLE 4+
-    {1, 0, 0}, -- Blocked
-    {0, 0, 1}, -- SemiCover
-    {0, 1, 0}, -- WALKABLE 4-
+    {0.8, 0.8, 0, 0.9}, -- WALKABLE 4+
+    {0.8, 0, 0, 0.9}, -- Blocked
+    {0, 0, 0.8, 0.9}, -- SemiCover
+    {0, 0.8, 0, 0.9}, -- WALKABLE 4-
   }
   local face_delta = {
     { - 0.5, - 0.5}, -- face 1
@@ -135,13 +139,22 @@ function pathfindind_create_line(x, y, dic_move, list_line_move)
       -- delta position for end point, the point after the start point, so face + 1
       local de = face_delta[(face % 4) + 1] -- weird module in lua table
 
-      local position1 = board_get_position_relative(x + ds[1], y + ds[2])
-      local position2 = board_get_position_relative(x + de[1], y + de[2])
+      local position1 = board_get_position(x + ds[1], y + ds[2])
+      local position2 = board_get_position(x + de[1], y + de[2])
+      -- local position1 = board_get_position_relative(x + ds[1], y + ds[2])
+      -- local position2 = board_get_position_relative(x + de[1], y + de[2])
       list_line_move[#list_line_move + 1] = {position1, position2, color}
     end
   end
 end
 
-function pathfinding_show(guid)
-  self.setVectorLines(dic_miniature_move_line[guid])
+function pathfinding_show(guid, player_color)
+  -- self.setVectorLines(dic_miniature_move_line[guid])
+  line_drawer_add_visibility("move_"..guid, player_color)
+end
+
+
+function pathfinding_hide(guid, player_color)
+  -- self.setVectorLines(dic_miniature_move_line[guid])
+  line_drawer_remove_visibility("move_"..guid, player_color)
 end

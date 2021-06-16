@@ -1,18 +1,3 @@
--- for debug
-local list_line = {}
-
-local is_cone_displayed =  false
--- avoid calculating this every single time
-degree_to_radian = math.pi / 180.0
-
--- debug/dev
-local cone = {
-  guid = "1787b5",
-  pointing_angle = 0,
-  angle = 45, -- degree angle should be easier to understand by the player
-  distance = 6.5, -- add 0.5 because it start from a center of a tile
-  old_coordinate = { - 999, - 999}
-}
 
 
 function raytrace(x0, y0, x1, y1)
@@ -80,23 +65,20 @@ function los_miniature_all()
   end
 end
 
-function los_miniature_single(guid1)
-  list_line = {}
-  self.setVectorLines({})
-
-  coordinate1 = dic_miniature_position[guid1]
+function los_miniature_single(guid1, coordinate1, player_color)
+  local list_line = {}
+  -- self.setVectorLines({})
   function los_miniature_single_coroutine()
     for guid2, coordinate2 in pairs(dic_miniature_position) do
       if guid1 ~= guid2 then
         local visible = los_coordinate(coordinate1, coordinate2)
         -- coroutine.yield(0)
         if visible then
-          los_couverture(coordinate1, coordinate2)
+          los_couverture(coordinate1, coordinate2, list_line)
         end
       end
     end
-
-    los_draw_lines()
+    line_drawer_add_lines("los_"..player_color, list_line, player_color)
     return 1
   end
   startLuaCoroutine(self, "los_miniature_single_coroutine")
@@ -150,7 +132,7 @@ function los_coordinate(coordinate1, coordinate2)
   return false
 end
 
-function los_couverture(coordinate1, coordinate2)
+function los_couverture(coordinate1, coordinate2,list_line)
   local dx = coordinate1[1] - coordinate2[1]
   local dy = coordinate1[2] - coordinate2[2]
   local direction = nil
@@ -174,175 +156,13 @@ function los_couverture(coordinate1, coordinate2)
     color = {0, 0, 1}
   end
   if color ~= nil then
-    local pos1 = board_get_position_relative(coordinate1[1], coordinate1[2])
-    local pos2 = board_get_position_relative(coordinate2[1], coordinate2[2])
-    los_add_line(pos1, pos2, color)
-  end
-end
-
-function los_add_line_comlex(list_point, color, thickness)
-  if thickness == nil then
-    thickness = 0.005
-  end
-  list_line[#list_line + 1] = {
-    points = list_point,
-    color = color,
-    thickness = thickness,
-    rotation = {0, 0, 0},
-  }
-end
-
-function los_empty_line()
-  list_line = {}
-  self.setVectorLines(list_line)
-end
-
-function los_add_line(pos1, pos2, color, thickness)
-  los_add_line_comlex({pos1, pos2}, color, thickness)
-end
-
-function los_draw_lines()
-  self.setVectorLines(list_line)
-end
-
-
-function los_draw_line(pos1, pos2)
-  self.setVectorLines({{
-    points = { pos1, pos2 },
-    color = {0, 1, 0},
-    thickness = 0.005,
-    rotation = {0, 0, 0},
-  }})
-end
-
-function draw_cone(x, y, orientation, angle, distance, step)
-  -- clean up all other line
-  los_empty_line()
-
-  -- get the center of the cone
-  local pos_center = board_get_position_relative(x, y)
-  -- store all cone line end point to be able to draw the circle
-  local list_end_point = {}
-
-  local fill_thickness = 0.08
-  local fill_color = {1, 0, 0, 0.5}
-  local border_thickness = 0.005
-  local border_color = {1, 0, 0, 1}
-
-  -- this will help reduce effect of thickness
-  -- the / 2 should theorically be applied to the thickness to get the radius but faster to do once here
-  local scale = self.getScale()[1] / 2
-
-  for current_angle = orientation - angle, orientation + angle, step do
-    -- reduce the distance for the filling line
-    local fill_distance = distance
-    -- by default use the fill settings
-    local color = fill_color
-    local thickness = fill_thickness
-
-    -- lower the thickness of the 2 border lines to the same thickness than the circle line
-    if current_angle <= orientation - angle or current_angle >= orientation + angle then
-      thickness = border_thickness
-      color = border_color
-    end
-
-    fill_distance = fill_distance - thickness * scale -- it's related to the object scale
-
-    -- this will help generate the 2 needed points faster, by avoiding doing sin and cos multiple time
-    local normalized_coordinate = {math.sin(current_angle * degree_to_radian), math.cos(current_angle * degree_to_radian)}
-    -- this set of coordinate store the end point for the circle part
-    local border_coordinate = {normalized_coordinate[1] * distance, normalized_coordinate[2] * distance}
-    -- this set of coordinate store the end point for the thick line fill
-    local fill_coordinate = {normalized_coordinate[1] * fill_distance, normalized_coordinate[2] * fill_distance}
-    -- we need to convert these coordinate in positions
-    local pos = board_get_position_relative(border_coordinate[1] + x, border_coordinate[2] + y)
-    local fill_pos = board_get_position_relative(fill_coordinate[1] + x, fill_coordinate[2] + y)
-    -- store the end point to be able to draw a single line later
-    list_end_point[#list_end_point + 1] = pos
-
-    los_add_line(pos_center, fill_pos, color, thickness)
-  end
-  -- This create the circle line
-  los_add_line_comlex(list_end_point, border_color, border_thickness)
-  los_draw_lines()
-end
-
-
-
-function onFixedUpdate()
-  if is_cone_displayed then
-    display_cone()
-  end
-end
-
-function display_cone()
-  local position = Player["White"].getPointerPosition()
-  local coordinate = board_get_coordinate(position, false)
-  -- make sure it has changed since last frame to avoid recalculating
-  if coordinate[1] ~= cone["old_coordinate"][1] or coordinate[2] ~= cone["old_coordinate"][2] then
-    local center_coordinate = dic_miniature_position[cone["guid"]]
-
-    -- store the new coordinate
-    cone["old_coordinate"] = coordinate
-
-    cone["pointing_angle"] = angle_coordinate(center_coordinate, coordinate)
-
-    draw_cone(center_coordinate[1], center_coordinate[2], cone["pointing_angle"], cone["angle"], cone["distance"], 5)
-    check_all_miniature_in_cone(angle)
-  end
-end
-
-function distance_coordinate(coordinate1, coordinate2)
-  local dx = coordinate1[1] - coordinate2[1]
-  local dy = coordinate1[2] - coordinate2[2]
-  return math.sqrt(dx * dx + dy * dy)
-end
-
-function angle_coordinate(coordinate1, coordinate2)
-  -- for now 0 is looking down
-  local angle = math.atan((coordinate1[1] - coordinate2[1]) / (coordinate1[2] - coordinate2[2])) / degree_to_radian
-  if coordinate1[2] - coordinate2[2] >= 0 then
-    angle = angle + 180.0
-  end
-  return angle
-end
-
-function angle_between_2_angles(angle, min_angle, max_angle)
-  -- make sure all angle are module 360
-  angle = angle % 360
-  min_angle = min_angle % 360
-  max_angle = max_angle % 360
-  if min_angle < max_angle then
-    return min_angle <= angle and angle <= max_angle
-  else
-    return min_angle <= angle or angle <= max_angle
-  end
-end
-
-function check_all_miniature_in_cone()
-  local center_coordinate = dic_miniature_position[cone["guid"]]
-
-  for guid, coordinate in pairs(dic_miniature_position) do
-    -- donc check if itself is inside the cone
-    if guid ~= cone["guid"] then
-      -- get the object, make sure it exist
-      local object = getObjectFromGUID(guid)
-      if object ~= nil then
-        -- fight turn off the hightlight
-        object.highlightOff({1, 0, 0})
-        -- first find distance
-        local distance = distance_coordinate(center_coordinate, coordinate)
-        -- if the distance is good, then check the angle
-        if distance < cone["distance"] + 0.3 then -- add a small value to help get partial tile
-          -- calculate the angle
-          local guid_angle = angle_coordinate(center_coordinate, coordinate)
-          -- make sure it's inside the cone
-          if angle_between_2_angles(guid_angle, cone["pointing_angle"] - cone["angle"], cone["pointing_angle"] + cone["angle"]) then
-            -- hightlight on
-            object.highlightOn({1, 0, 0})
-          end
-        end
-      end
-    end
+    local pos1 = board_get_position(coordinate1[1], coordinate1[2])
+    local pos2 = board_get_position(coordinate2[1], coordinate2[2])
+    list_line[#list_line + 1] = {
+      points = {pos1, pos2},
+      color = color,
+      thickness = 0.05,
+      rotation = {0, 0, 0},
+    }
   end
 end
