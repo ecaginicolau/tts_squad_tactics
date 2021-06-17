@@ -111,13 +111,14 @@ end
 
 function los_coordinate(coordinate1, coordinate2)
   -- raytracing from slightly inside AND slightly outside the tile seems to remove most of the LoS issue, but double the nb of checks...
-  list_dx = { - 0.01, 0.01, 0.99, 1.01}
-  -- Thats 256 rays in totals ... it may be too much. Hopefully it's only done locally.
-  for _, dx1 in ipairs(list_dx) do
+  local list_d1 = { - 0.01, 0.01, 0.99, 1.01} -- giggle around for the origin
+  local list_d2 = { 0, 1} -- only use the real corner for the destination, it should divide by 4 the nb of ray
+  -- Thats 64 rays in totals ... if we use list_d1 twice that would be 256 rays
+  for _, dx1 in ipairs(list_d1) do
     coroutine.yield(0) -- this limite the nb of ray calculated per frame to 64
-    for _, dy1 in ipairs(list_dx) do
-      for _, dx2 in ipairs(list_dx) do
-        for _, dy2 in ipairs(list_dx) do
+    for _, dy1 in ipairs(list_d1) do
+      for _, dx2 in ipairs(list_d2) do
+        for _, dy2 in ipairs(list_d2) do
           local list_visted_tile = raytrace(coordinate1[1] + dx1, coordinate1[2] + dy1, coordinate2[1] + dx2, coordinate2[2] + dy2)
           local line_visible = los_check_visted_tiled(list_visted_tile)
           if line_visible then

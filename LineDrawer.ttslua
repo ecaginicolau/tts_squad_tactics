@@ -18,6 +18,10 @@ function line_helper_setup()
     line_drawer.setInvisibleTo(line_drawer_find_other_color(color))
     line_drawer.setLock(true)
     line_drawer.interactable = false
+    -- Get the BoxCollider Component of the block's GameObject
+    local boxCollider = line_drawer.getComponent("BoxCollider")
+    -- Disable the BoxCollider Component
+    boxCollider.set("enabled", false)
     -- debug
     -- n = n + 2
     -- helper_position[1] = n
