@@ -72,10 +72,14 @@ function line_drawer_add_visibility(key, visibility)
 
   -- check if it was not already Visible
   local found = false
-  for _, color in ipairs(dic_line[key]["visibility"]) do
-    if color == visibility then
-      found = true
+  if dic_line[key] ~= nil then
+    for _, color in ipairs(dic_line[key]["visibility"]) do
+      if color == visibility then
+        found = true
+      end
     end
+  else
+      return -- there is nothing here, so no need to continue
   end
   if not found then
     dic_line[key]["visibility"][#dic_line[key]["visibility"] + 1] = visibility

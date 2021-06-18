@@ -82,7 +82,9 @@ function onObjectDrop(player_color, object)
     picked_up_color = nil
     -- first hide starting position
     local coordinate = dic_miniature_position[object.getGUID()]
-    board_tile_display(coordinate[1], coordinate[2], false)
+    if coordinate ~= nil then
+      board_tile_display(coordinate[1], coordinate[2], false)
+    end
     -- get the miniature coordinate on the board
     coordinate = board_get_coordinate(object.getPosition())
     -- store the miniature position in a dictionary for now
@@ -117,20 +119,22 @@ function onObjectPickUp(player_color, object)
     picked_up_color =  player_color
     -- get the miniature coordinate on the board
     local coordinate = board_get_coordinate(object.getPosition())
-    -- store the starting coordindate as old_coordinate
-    old_coordinate = coordinate
+    if coordinate ~= nil then
+      -- store the starting coordindate as old_coordinate
+      old_coordinate = coordinate
 
-    -- Hide the starting position
-    -- board_tile_display(coordinate[1], coordinate[2], false)
-    -- Display the miniature panel
-    -- miniature_board_show(object.getGUID())
+      -- Hide the starting position
+      -- board_tile_display(coordinate[1], coordinate[2], false)
+      -- Display the miniature panel
+      -- miniature_board_show(object.getGUID())
 
-    -- Show the pathfinding of the miniature to the player that pick it up
-    pathfinding_show(picked_up_guid, player_color)
+      -- Show the pathfinding of the miniature to the player that pick it up
+      pathfinding_show(picked_up_guid, player_color)
 
-    -- test cone
-    is_cone_displayed = false
-    line_drawer_remove_visibility("cone_".. player_color, player_color )
+      -- test cone
+      is_cone_displayed = false
+      line_drawer_remove_visibility("cone_".. player_color, player_color )
+    end
   end
 end
 
