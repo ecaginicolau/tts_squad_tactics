@@ -8,3 +8,7 @@ local BLOCK_SHADE_DARK = "\u{2593}"
 -- U+2591 	░ 	Light shade
 -- U+2592 	▒ 	Medium shade
 -- U+2593 	▓ 	Dark shade
+
+function block_char(char, rep, color)
+    return "<color="..color..">"..string.rep(char, rep).."</color>"
+end
