@@ -1,0 +1,368 @@
+initiative_line_height = 60
+initiative_width = 600
+
+
+function UI_initiative_panel()
+  character_panel_open = {}
+  initiative_list_create()
+
+  local count = 0.5
+  for initiative, list_char in pairs(list_initiative) do
+    count = count + 0.5 + table.count(list_char)
+  end
+  --
+  local height = count * initiative_line_height
+
+  local panel = {
+    tag = "Panel",
+    attributes =
+    {
+      id = "panel_initiative",
+      height = initiative_line_height,
+      width = initiative_width,
+      allowDragging = "true",
+      returnToOriginalPositionWhenReleased = "false",
+      rectAlignment = "UpperLeft",
+      offsetXY = "80 0",
+      scale = "0.5 0.5 0.5",
+      active = "True",
+    },
+    children = {}
+  }
+  -- remove identation warning, it bugs me
+  panel["children"][#panel["children"] + 1] =
+  {
+    tag = "Button",
+    attributes =
+    {
+      id = "button_new_round",
+      width = (initiative_width * 7) / 10,
+      height = initiative_line_height,
+      fontSize = 30,
+      position = (-initiative_width * 3 / 20) .. " 0 0",
+      color = "#CCCCCC",
+      textColor = "black",
+      onClick = "UI_initiative_round_new()",
+      text = "Nouveau Tour",
+    }
+  }
+  panel["children"][#panel["children"] + 1] =
+  {
+    tag = "Button",
+    attributes =
+    {
+      id = "button_close_round",
+      width = initiative_width * 2 / 10,
+      height = initiative_line_height,
+      fontSize = 30,
+      position = (initiative_width * 4 / 10) .. " 0 0",
+      color = "#000000",
+      textColor = "white",
+      onClick = "UI_initiative_round_close()",
+      text = "Fin",
+    }
+  }
+  panel["children"][#panel["children"] + 1] =
+  {
+    tag = "Button",
+    attributes =
+    {
+      id = "button_refresh_round",
+      width = initiative_width / 10,
+      height = initiative_line_height,
+      fontSize = 30,
+      position = (initiative_width * 5 / 20) .. " 0 0",
+      color = "#000000",
+      textColor = "white",
+      onClick = "UI_initiative_round_refresh()",
+      icon = "refresh",
+      iconColor = "White",
+    }
+  }
+
+  -- if the game is not playing no need to continue
+  if not is_playing then
+    return panel
+  end
+
+  -- store the initiative value of all playing characters
+  local list_initiative_value = {}
+  -- populate the table that holds the keys
+  for initiative, value in pairs(list_initiative) do
+    table.insert(list_initiative_value, initiative)
+  end
+  -- sort the keys
+  table.sort(list_initiative_value, function(a, b) return tonumber(a) > tonumber(b) end)
+
+  -- since we position them manually we need to count the nb of line
+  local line_nb = 1
+  for _, initiative in ipairs(list_initiative_value) do
+    -- get the list of character for this initiative value
+    local list_char = list_initiative[initiative]
+    -- first add the initiative header
+    panel["children"][#panel["children"] + 1] = UI_initiative_header_create(line_nb, initiative)
+    line_nb = line_nb + 0.75
+    -- check if it's a waited initiative ( < 0)
+    local waiting = false
+    if tonumber(initiative) < 0 then
+      waiting = true
+    end
+    -- loop through all character to insert them
+    for i, character in pairs(list_char) do
+      local line = UI_initiative_character_create(line_nb, character, waiting)
+      for _, item in ipairs(line) do
+        panel["children"][#panel["children"] + 1] = item
+      end
+      -- increment line nb for each character
+      line_nb = line_nb + 1
+    end
+  end
+
+  return panel
+end
+
+
+function UI_initiative_header_create(line_nb, initiative)
+  -- create the initiative header bar
+  local line = {
+    tag = "Button",
+    attributes =
+    {
+      width = initiative_width,
+      height = initiative_line_height * 0.75,
+      fontSize = 25,
+      position = "0 ".. - ((line_nb - 0.125) * initiative_line_height) .. " 0",
+      color = "#000000",
+      textColor = "white",
+      onClick = "",
+      text = "Initiative: " .. initiative,
+    }
+  }
+  return line
+end
+
+
+function UI_initiative_character_create(line_nb, character, waiting)
+  -- create a character line, name, hp, actions buttons ...
+
+  -- change the background color if the character has played or is currently waiting
+  if character["played"] or (character["waited"] and not waiting)then
+    color = "#AAAAAA"
+  else
+    color = "#FFFFFF"
+  end
+  -- Create the line
+  local line = {
+    {
+      tag = "Button",
+      attributes =
+      {
+        width = initiative_width * 7 / 10,
+        height = initiative_line_height,
+        fontSize = 25,
+        position = -(initiative_width * 3 / 20) .. " ".. - (line_nb * initiative_line_height) .. " 0",
+        color = color,
+        textColor = "Black",
+        onClick = "UI_initiative_character_play("..character["guid"]..")",
+        -- This will highlight the character
+        onMouseEnter = "UI_initiative_character_mouse_enter("..character["guid"]..")",
+        onMouseExit = "UI_initiative_character_mouse_exit("..character["guid"]..")",
+      }
+    }
+  }
+  -- The name
+  line[#line + 1] =
+  {
+    tag = "Text",
+    attributes =
+    {
+      width = initiative_width * 6 / 10,
+      height = initiative_line_height,
+      fontSize = 30,
+      position = -(initiative_width * 2 / 10) .. " ".. - (line_nb * initiative_line_height) .. " 0",
+      color = "Black",
+      text = "  " .. character["nom"],
+      alignment = "MiddleLeft",
+    }
+  }
+
+  -- Current hp
+  local percentage = (character["current_hp"] * 100) / character["max_hp"]
+  local current_hp = math.tointeger(percentage) .. "%"
+  if character["identified"] or character["player"] then
+    current_hp = character["current_hp"] .. " / " .. character["max_hp"]
+  end
+
+  line[#line + 1] =
+  {
+    tag = "Text",
+    attributes =
+    {
+      width = initiative_width * 2 / 10,
+      height = initiative_line_height,
+      fontSize = 28,
+      position = (initiative_width * 1.5 / 20) .. " ".. - ((line_nb - 0.23) * initiative_line_height) .. " 0",
+      color = "Black",
+      text = current_hp
+    }
+  }
+
+  line[#line + 1] =
+  {
+    tag = "ProgressBar",
+    attributes =
+    {
+      width = initiative_width * 2 / 10,
+      height = initiative_line_height / 3,
+      percentage = percentage,
+      showPercentageText = false,
+      position = (initiative_width * 1.5 / 20) .. " ".. - ((line_nb + 0.25) * initiative_line_height) .. " 0",
+      fillImageColor = "#801212",
+      color = "#444444",
+    }
+  }
+  -- Attack button
+  line[#line + 1] =
+  {
+    tag = "Button",
+    attributes =
+    {
+      id = character["guid"],
+      width = initiative_width / 10,
+      height = initiative_line_height,
+      fontSize = 35,
+      position = (5 * initiative_width / 20) .. " ".. - (line_nb * initiative_line_height) .. " 0",
+      color = "White",
+      textColor = "Black",
+      onClick = "UI_damage_character("..character["guid"]..")",
+      icon = "Attack",
+      iconColor = "#444444",
+    }
+  }
+
+  -- Detail button
+  line[#line + 1] =
+  {
+    tag = "Button",
+    attributes =
+    {
+      id = character["guid"],
+      width = initiative_width / 10,
+      height = initiative_line_height,
+      fontSize = 35,
+      position = (7 * initiative_width / 20) .. " ".. - (line_nb * initiative_line_height) .. " 0",
+      color = "white",
+      textColor = "Black",
+      onClick = "UI_detail_switch("..character["guid"]..")",
+      icon = "Loupe",
+      iconColor = "#444444",
+    }
+  }
+
+  -- Wait button
+  -- only display the wait button it the player has not played and is not waiting
+  if not character["played"] and (not character["waited"] or waiting) then
+    line[#line + 1] = {
+      tag = "Button",
+      attributes =
+      {
+        width = initiative_width / 10,
+        height = initiative_line_height,
+        fontSize = 20,
+        position = (9 * initiative_width / 20) .. " ".. - (line_nb * initiative_line_height) .. " 0",
+        color = "white",
+        textColor = "Black",
+        onClick = "UI_initiative_character_wait("..character["guid"]..")",
+        icon = "Wait",
+        iconColor = "#444444",
+      }
+    }
+  end
+  return line
+end
+
+
+function UI_initiative_character_wait(player, guid)
+  list_character[guid]["waited"] = not list_character[guid]["waited"]
+  UI_refresh()
+end
+
+function UI_initiative_character_play(player, guid)
+  list_character[guid]["played"] = not list_character[guid]["played"]
+  UI_refresh()
+end
+
+function UI_initiative_character_mouse_enter(player, guid)
+  local object = getObjectFromGUID(guid)
+  if object ~= nil then
+    -- Still make a duration, if the exit event doesn't work
+    object.highlightOn(player.color, 2)
+  end
+end
+
+function UI_initiative_character_mouse_exit(player, guid)
+  local object = getObjectFromGUID(guid)
+  if object ~= nil then
+    object.highlightOff(player.color)
+  end
+end
+
+
+function UI_initiative_round_close()
+  is_playing = false
+  UI_refresh()
+end
+
+function UI_initiative_round_refresh()
+  -- since dragged positin is lost, no need to keep track of opened panels
+  detail_reset()
+  -- reset damage panel also
+  damage_reset_round()
+  -- refresh the complete UI
+  UI_refresh()
+end
+
+
+function UI_initiative_round_new()
+  -- make sure the game is curreny playing
+  is_playing = true
+  -- make sure every character has both played and waited flag turned off
+  for guid, character in pairs(list_character) do
+    character["played"] = false
+    character["waited"] = false
+  end
+  -- refresh the UI
+  UI_initiative_round_refresh()
+end
+
+function initiative_add_character(init, character)
+  local tab = list_initiative[init]
+  -- make sure the sub list of character at this initiative exist, create it otherwise
+  if tab == nil then
+    tab = {}
+  end
+  -- Add the current character to this initiative value
+  tab[#tab + 1] = character
+  list_initiative[init] = tab
+end
+
+function initiative_list_create()
+  -- This will store all character indexed by initiative
+  -- for each initiative, there is a sub list of characters
+  -- right now it doesn't differenciate player and monster, it should one day
+  list_initiative = {}
+  -- loop through all characters
+  for guid, character in pairs(list_character) do
+    -- Get the initiative as a string, because otherwise it would make a list
+    local init = tostring(character["initiative"])
+    -- add the character at this initiative
+    initiative_add_character(init, character)
+
+    -- Handle character that are waiting twice, once at the base initiative, once at the negative initiative
+    if character["waited"] then
+      local init = tostring(-character["initiative"])
+      -- add the character at this initiative
+      initiative_add_character(init, character)
+    end
+  end
+end
