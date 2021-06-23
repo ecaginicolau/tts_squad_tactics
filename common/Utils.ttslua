@@ -1,0 +1,44 @@
+function split (input_str, sep)
+    if sep == nil then
+        sep = "%s"
+    end
+    local t = {}
+    for str in string.gmatch(input_str, "([^" .. sep .. "]+)") do
+        table.insert(t, str)
+    end
+    return t
+end
+
+function math.tointeger(float)
+    return math.floor(float + .5)
+end
+
+function math.round(float, precision)
+    local multi = 1
+    for _ = 1, precision, 1 do
+        multi = multi * 10
+    end
+    float = float * multi
+    float = math.floor(float + .5)
+    float = float / multi
+    return float
+end
+
+function table.clone(org)
+    return { table.unpack(org) }
+end
+
+function table.extend(table1, table2)
+    for _, obj in ipairs(table2) do
+        table.insert(table1, obj)
+    end
+    return table1
+end
+
+function table.count(tab)
+    local count = 1
+    for _, _ in ipairs(tab) do
+        count = count + 1
+    end
+    return count
+end

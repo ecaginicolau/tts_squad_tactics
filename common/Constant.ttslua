@@ -1,0 +1,177 @@
+------------------------------------------
+--- Multiple Constants that should be useful in many places
+
+
+Constant = {
+
+    -- Terrains type
+    HIDDEN = {
+        color = "#00000000", -- the tile color, both in the editor or the player panel
+        value = "HIDDEN", -- the value stored inside the board array (must be unique)
+        stoppable = false, -- can a character finish it's move on the tile
+        cover = 0, -- can be 0, no cover, 1 semi cover, 2 full cover
+        move_cost = 0, -- how much does it cost to enter this tile, 0 means it can be walked into
+        character = "\u{2612}", -- The character displayed in the Text Panel
+    },
+    BLOCKED = {
+        color = "#FF5050", -- the tile color, both in the editor or the player panel
+        value = "BLOCKED", -- the value stored inside the board array (must be unique)
+        stoppable = false, -- can a character finish it's move on the tile
+        cover = 2, -- can be 0, no cover, 1 semi cover, 2 full cover
+        move_cost = 0, -- how much does it cost to enter this tile, 0 means it can be walked into
+        character = "\u{2612}", -- The character displayed in the Text Panel
+    },
+    SWITCHABLE = {
+        color = "#5050FF", -- the tile color, both in the editor or the player panel
+        value = "SWITCHABLE", -- the value stored inside the board array (must be unique)
+        stoppable = false, -- can a character finish it's move on the tile
+        cover = 2, -- can be 0, no cover, 1 semi cover, 2 full cover
+        move_cost = 0, -- how much does it cost to enter this tile, 0 means it can be walked into
+        character = "\u{2612}", -- The character displayed in the Text Panel
+    },
+    SWITCHABLE_HIDDEN = {
+        color = "#FF5050", -- the tile color, both in the editor or the player panel
+        value = "SWITCHABLE_HIDDEN", -- the value stored inside the board array (must be unique)
+        stoppable = false, -- can a character finish it's move on the tile
+        cover = 2, -- can be 0, no cover, 1 semi cover, 2 full cover
+        move_cost = 0, -- how much does it cost to enter this tile, 0 means it can be walked into
+        character = "\u{2612}", -- The character displayed in the Text Panel
+    },
+    IMPASSABLE_COVER = {
+        color = "#FF9020", -- the tile color, both in the editor or the player panel
+        value = "IMPASSABLE_COVER", -- the value stored inside the board array (must be unique)
+        stoppable = false, -- can a character finish it's move on the tile
+        cover = 1, -- can be 0, no cover, 1 semi cover, 2 full cover
+        move_cost = 0, -- how much does it cost to enter this tile, 0 means it can be walked into
+        character = "\u{2612}", -- The character displayed in the Text Panel
+    },
+    PASSABLE_COVER = {
+        color = "#FFFF50", -- the tile color, both in the editor or the player panel
+        value = "PASSABLE_COVER", -- the value stored inside the board array (must be unique)
+        stoppable = false, -- can a character finish it's move on the tile
+        cover = 1, -- can be 0, no cover, 1 semi cover, 2 full cover
+        move_cost = 2, -- how much does it cost to enter this tile, 0 means it can be walked into
+        character = "\u{2612}", -- The character displayed in the Text Panel
+    },
+    WALKABLE = {
+        color = "#50FF50", -- the tile color, both in the editor or the player panel
+        value = "WALKABLE", -- the value stored inside the board array (must be unique)
+        stoppable = true, -- can a character finish it's move on the tile
+        cover = 0, -- can be 0, no cover, 1 semi cover, 2 full cover
+        move_cost = 1, -- how much does it cost to enter this tile, 0 means it can be walked into
+        character = "\u{2610}", -- The character displayed in the Text Panel
+    },
+
+    -- for simple iteration
+    TERRAINS = { "WALKABLE", "BLOCKED", "IMPASSABLE_COVER", "PASSABLE_COVER", "SWITCHABLE", "SWITCHABLE_HIDDEN", "HIDDEN" },
+    NB_TERRAINS = 7, -- could be recalculated
+
+    MAX_MOVE = 10, -- the maximum move a character will ever be able to make at once
+
+    -- cardinal direction for simple iterator
+    DIRECTION = {
+        { 0, -1 }, -- 1 up
+        { 1, 0 }, -- 2 right
+        { 0, 1 }, -- 3 down
+        { -1, 0 }, -- 4 left
+    },
+    -- Miniature Stats
+    EVASION = {
+        color = "#000000", -- the color, both in the editor or the player panel
+        text = "Evasion", -- the text displayed when needed
+        image = "evasion", -- the icon
+        value = "EVASION", -- UNIQUE ID
+    },
+    HATE = {
+        color = "#000000", -- the color, both in the editor or the player panel
+        text = "Haine", -- the text displayed when needed
+        image = "hate", -- the icon
+        value = "HATE", -- UNIQUE ID
+    },
+    INITIATIVE = {
+        color = "#000000", -- the color, both in the editor or the player panel
+        text = "Initiative", -- the text displayed when needed
+        image = "initiative", -- the icon
+        value = "INITIATIVE", -- UNIQUE ID
+    },
+    IDENTIFICATION = {
+        color = "#000000", -- the color, both in the editor or the player panel
+        text = "Identification", -- the text displayed when needed
+        image = "identification", -- the icon
+        value = "IDENTIFICATION", -- UNIQUE ID
+    },
+
+    -- Defenses and Damages Types
+    IMPACT = {
+        color = "#121212", -- the color, both in the editor or the player panel
+        text = "Impact", -- the text displayed when needed
+        image = "impact", -- the icon
+        value = "IMPACT", -- UNIQUE ID
+    },
+    FIRE = {
+        color = "#801212", -- the color, both in the editor or the player panel
+        text = "Feu", -- the text displayed when needed
+        image = "fire", -- the icon
+        value = "FIRE", -- UNIQUE ID
+    },
+    COLD = {
+        color = "#121280", -- the color, both in the editor or the player panel
+        text = "Froid", -- the text displayed when needed
+        image = "cold", -- the icon
+        value = "COLD", -- UNIQUE ID
+    },
+    ELECTRIC = {
+        color = "#AAAA12", -- the color, both in the editor or the player panel
+        text = "Electrique", -- the text displayed when needed
+        image = "electric", -- the icon
+        value = "ELECTRIC", -- UNIQUE ID
+    },
+    BLIGHT = {
+        color = "#128012", -- the color, both in the editor or the player panel
+        text = "Fléau", -- the text displayed when needed
+        image = "blight", -- the icon
+        value = "BLIGHT", -- UNIQUE ID
+    },
+    DIRECT = {
+        color = "#000000", -- the color, both in the editor or the player panel
+        text = "Direct", -- the text displayed when needed
+        image = "direct", -- the icon
+        value = "DIRECT", -- UNIQUE ID
+    },
+
+    -- The list of stats, for easier iteration
+    STATS = { "EVASION", "HATE", "INITIATIVE", "IDENTIFICATION" },
+
+    -- The list of defenses, for easier iteration
+    DEFENSES = { "IMPACT", "FIRE", "ELECTRIC", "BLIGHT", "COLD" },
+    -- The list of damages, for easier iteration
+    DAMAGES = { "IMPACT", "FIRE", "ELECTRIC", "BLIGHT", "COLD", "DIRECT" },
+
+    DEFENSE_NEUTRAL_COLOR = "#121212",
+    DEFENSE_POSITIVE_COLOR = "#801212",
+    DEFENSE_NEGATIVE_COLOR = "#128012",
+}
+
+-- Recreate the keys outside faster text input
+-- DEFENSE
+IMPACT = "IMPACT"
+FIRE = "FIRE"
+COLD = "COLD"
+ELECTRIC = "ELECTRIC"
+BLIGHT = "BLIGHT"
+-- only exist in attack
+DIRECT = "DIRECT"
+
+-- STATS
+EVASION = "EVASION"
+HATE = "HATE"
+INITIATIVE = "INITIATIVE"
+IDENTIFICATION = "IDENTIFICATION"
+
+
+-- add an index for faster lookup
+for i, TERRAIN in ipairs(Constant.TERRAINS) do
+    Constant[TERRAIN].index = i
+end
+
+return Constant

@@ -1,0 +1,136 @@
+LineDrawer = {
+    lines = {},
+    drawers = {},
+}
+
+LineDrawer.drawers = {}
+
+local list_all_color = { "Black", "Blue", "Green", "White", "Pink", "Red", "Orange", "Yellow", "Purple" }
+
+-- {0, 0, 0} seems to be under the table, it's an interesting hack
+-- because relative coordinate == absolute coordinate as long as the scale is {1,1,1}
+local helper_position = { 0, 0, 0 }
+
+function LineDrawer.setup()
+    list_object = getObjectsWithTag("LineDrawer")
+
+    for _, line_drawer in ipairs(list_object) do
+        local color = line_drawer.getGMNotes()
+        -- still get the color from the gm note
+        LineDrawer.drawers[color] = line_drawer
+        line_drawer.setInvisibleTo(LineDrawer.find_other_color(color))
+        line_drawer.setLock(true)
+        line_drawer.interactable = false
+        -- Get the BoxCollider Component of the block's GameObject
+        local boxCollider = line_drawer.getComponent("BoxCollider")
+        -- Disable the BoxCollider Component
+        boxCollider.set("enabled", false)
+        --helper_position[1] = helper_position[1] + 1
+        line_drawer.setPosition(helper_position)
+        line_drawer.setVectorLines({})
+    end
+end
+
+function LineDrawer.find_other_color(player_color)
+    -- Visible by all
+    if player_color == "All" then
+        return {}
+    end
+    local list_other_color = {}
+    for _, color in ipairs(list_all_color) do
+        -- Always add black?
+        if color ~= player_color and color ~= "Black" then
+            table.insert(list_other_color, color)
+        end
+    end
+    return list_other_color
+end
+
+function LineDrawer.add_lines(key, lines, visibility)
+    if visibility == nil or visibility == "" or visibility == "None" then
+        visibility = {}
+    end
+    if type(visibility) == "string" then
+        visibility = { visibility }
+    end
+    LineDrawer.lines[key] = {
+        lines = lines,
+        visibility = visibility
+    }
+    if visibility ~= nil and #visibility > 0 then
+        LineDrawer.refresh()
+    end
+end
+
+function LineDrawer.add_visibility(key, visibility)
+    -- If we try to show to everyone, then no need to append to a list
+    if visibility == "All" then
+        LineDrawer.lines[key]["visibility"] = list_all_color
+        LineDrawer.refresh()
+        return true
+    end
+
+    -- check if it was not already Visible
+    local found = false
+    if LineDrawer.lines[key] ~= nil then
+        for _, color in ipairs(LineDrawer.lines[key]["visibility"]) do
+            if color == visibility then
+                found = true
+            end
+        end
+    else
+        return -- there is nothing here, so no need to continue
+    end
+    if not found then
+        table.insert(LineDrawer.lines[key]["visibility"], visibility)
+        LineDrawer.refresh()
+    end
+end
+
+function LineDrawer.remove_visibility(key, visibility)
+    -- If we try to show to everyone, then no need to append to a list
+    if visibility == "All" then
+        local data = LineDrawer.lines[key]
+        if data ~= nil then
+            data["visibility"] = {}
+            LineDrawer.refresh()
+        end
+        return true
+    end
+
+    -- check if it was not already Visible
+    local index
+    local data = LineDrawer.lines[key]
+    if data ~= nil then
+
+        for i, color in ipairs(data["visibility"]) do
+            if color == visibility then
+                -- store the index it has been found
+                index = i
+            end
+        end
+        if index ~= nil then
+            -- remove from the table at the found index
+            table.remove(LineDrawer.lines[key]["visibility"], index)
+            LineDrawer.refresh()
+        end
+    end
+end
+
+function LineDrawer.refresh()
+    local lines_color = {}
+    for _, color in ipairs(list_all_color) do
+        lines_color[color] = {}
+    end
+    for _, data in pairs(LineDrawer.lines) do
+        for _, color in ipairs(data["visibility"]) do
+            table.extend(lines_color[color], data["lines"])
+        end
+    end
+
+    for color, lines in pairs(lines_color) do
+        LineDrawer.drawers[color].setVectorLines(lines)
+    end
+end
+
+return LineDrawer

@@ -1,0 +1,81 @@
+--------------------------------------
+--- Store and calculate the Pathfinding for every miniature
+
+-- No local, make it a global
+PathFinding = {
+    cache = {}
+}
+
+function PathFinding.calculate(guid)
+
+    -- This store the move cost for every tile
+    local current_pathfinding = {}
+
+    -- initialise it to 99, unreachable
+    for i = 1, Board.size_y, 1 do
+        current_pathfinding[i] = {}
+        for j = 1, Board.size_x, 1 do
+            current_pathfinding[i][j] = 99 -- a number bigger than Constant.MAX_MOVE, because nil delete the tab index in LUA ...
+        end
+    end
+
+    -- this help loops through all directions
+    local list_direction = {
+        { 0, 1, false }, -- x, y, diagonal
+        { 1, 0, false }, -- x, y, diagonal
+        { 0, -1, false }, -- x, y, diagonal
+        { -1, 0, false }, -- x, y, diagonal
+        { 1, 1, true }, -- x, y, diagonal
+        { 1, -1, true }, -- x, y, diagonal
+        { -1, 1, true }, -- x, y, diagonal
+        { -1, -1, true }, -- x, y, diagonal
+    }
+
+    -- should try to make a coroutine somehow (not sure both recursive and coroutine)
+    function calculate_rec(tile_x, tile_y, cost, diagonal)
+        -- exit condition, out of the board, out of move
+        if tile_x < 1 or tile_x > Board.size_x or tile_y < 1 or tile_y > Board.size_y then
+            return
+        end
+
+        local tile_value = Board.data[tile_y][tile_x]
+
+        -- exit condition, can't walk on this tile
+        if Constant[tile_value].move_cost == 0 then -- no move_cost = not walkable
+            return
+        end
+
+        -- Get the cost for this tile
+        local current_cost = Constant[tile_value].move_cost
+
+        -- Multiply it if it's a diagonal
+        if diagonal then
+            current_cost = current_cost * 1.4 -- 1.4 for the diagonal
+        end
+
+        cost = cost + current_cost
+
+        -- another exit condition, the cost is greater than the available move nb
+        if cost > Constant.MAX_MOVE then
+            return
+        end
+
+        -- If this path is faster than previously calculated path
+        if current_pathfinding[tile_y][tile_x] > cost then
+            -- Store the new path cost
+            current_pathfinding[tile_y][tile_x] = cost
+            -- Continue this path in every directions
+            for _, direction in ipairs(list_direction) do
+                calculate_rec(tile_x + direction[1], tile_y + direction[2], cost, direction[3])
+            end
+        end
+    end
+
+    -- Call the pathfinding at the starting position
+    local coordinate = Board.miniatures[guid]
+    calculate_rec(coordinate[1], coordinate[2], -1, false)
+
+    PathFinding.cache[guid] = current_pathfinding
+end
+
+return PathFinding

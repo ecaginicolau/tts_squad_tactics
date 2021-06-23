@@ -1,0 +1,95 @@
+--------------------------------------
+--- Handle the players GUI Panel for the Board
+--- Create and handle one panel for each player seated
+
+-- No local, make it a global
+PlayerPanel = {}
+
+function PlayerPanel.create(player_color)
+    -- at creation no need to make complex coordinate
+    local player_panel = {
+        tag = "Panel",
+        attributes = {
+            scale = "1 1 1",
+            id = "PlayerPanel_" .. player_color,
+            -- +1 should be enough but we need to take some padding with font size
+            height = BoardPanel.tile_size_x * (Constant.MAX_MOVE * 2 + 2),
+            width = BoardPanel.tile_size_x * (Constant.MAX_MOVE * 2 + 2),
+            position = "0 0 -14",
+            rotation = "0 0 0",
+            active = "false",
+            visibility = player_color,
+        },
+        children = {
+            {
+                tag = "Text",
+                attributes = {
+                    id = "Text_" .. player_color,
+                    -- resizeTextForBestFit = true,
+                    -- resizeTextMaxSize = 240,
+                    lineSpacing = 0.87,
+                    text = "",
+                    fontSize = BoardPanel.tile_size_x,
+                }
+            }
+        }
+    }
+
+    return player_panel
+end
+
+function PlayerPanel.start_move(player_color, guid, nb_move)
+    local coordinate = Board.miniatures[guid]
+    local pos_x = BoardPanel.tile_size_x * (coordinate[1] - 0.5) - BoardPanel.panel_x / 2
+    local pos_y = BoardPanel.panel_y / 2 - BoardPanel.tile_size_y * (coordinate[2] - 0.5)
+    local position = pos_x .. " " .. pos_y .. " -12"
+    UI.setAttribute("PlayerPanel_" .. player_color, "position", position)
+    -- update the text
+    PlayerPanel.update_text(player_color, guid, nb_move, coordinate)
+end
+
+function PlayerPanel.display(player_color, active)
+    UI.setAttribute("PlayerPanel_" .. player_color, "active", active)
+end
+
+function PlayerPanel.update_text(player_color, guid, nb_move, coordinate)
+    -- the future text
+    local new_text = ""
+    local min_y = coordinate[2] - Constant.MAX_MOVE
+    local max_y = coordinate[2] + Constant.MAX_MOVE
+    local min_x = coordinate[1] - Constant.MAX_MOVE
+    local max_x = coordinate[1] + Constant.MAX_MOVE
+
+    -- Could use some optimizations
+    for y = min_y, max_y, 1 do
+        local line = ""
+        for x = min_x, max_x, 1 do
+            line = line .. PlayerPanel.tile_character(x, y, guid, nb_move)
+        end
+        new_text = new_text .. line .. "\n"
+    end
+    UI.setAttribute("Text_" .. player_color, "text", new_text)
+end
+
+function PlayerPanel.tile_character(x, y, guid, nb_move)
+    -- out of bounds, no need to draw
+    if x < 1 or x > Board.size_x or y < 1 or y > Board.size_y then
+        return block_char(Constant.HIDDEN.character, 1, Constant.HIDDEN.color)
+    end
+
+    -- we can't stop there, no need to draw
+    local tile_value = Board.data[y][x]
+
+    if not Constant[tile_value].stoppable then
+        return block_char(Constant.HIDDEN.character, 1, Constant.HIDDEN.color)
+    end
+
+    -- out of reach , no need to draw
+    if PathFinding.cache[guid][y][x] > nb_move then
+        return block_char(Constant.HIDDEN.character, 1, Constant.HIDDEN.color)
+    end
+
+    return block_char(Constant[tile_value].character, 1, Constant[tile_value].color)
+end
+
+return PlayerPanel

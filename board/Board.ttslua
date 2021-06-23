@@ -1,0 +1,179 @@
+--------------------------------------
+--- Package that represents the Board's data itself
+--- Contains few utilities functions
+--- ex: convert position to coordinate and the other way around
+
+
+-- No local, make it a global
+Board = {}
+
+function Board.setup(size_x, size_y, data)
+    Board.size_x = size_x
+    Board.size_y = size_y
+    Board.data = data
+    Board.miniatures = {}
+    return Board
+end
+
+function Board.get_position(x, y)
+    local bounds = self.getBounds()
+    local size = bounds['size']
+    local center = bounds['center']
+    -- the initial position will be the top left corner
+    local pos_x = center[1] - size[1] / 2
+    local pos_y = center[2] + size[2] / 2 + 0.1
+    local pos_z = center[3] + size[3] / 2
+    -- now add the x and y
+    pos_x = pos_x + (x - 0.5) * (size[1] / Board.size_x)
+    pos_z = pos_z - (y - 0.5) * (size[3] / Board.size_y)
+
+    return Vector.new(pos_x, pos_y, pos_z)
+end
+
+function Board.get_position_relative(x, y)
+    local scale = self.getScale()
+    local size = self.getBoundsNormalized()['size']
+    -- Apply scale to size because the snap point are pure relative
+    size[1] = size[1] / scale[1]
+    size[2] = size[2] / scale[2]
+    size[3] = size[3] / scale[3]
+    -- the initial position will be the top left corner
+    local pos_x = -size[1] / 2
+    local pos_y = size[2] / 2 + 0.1
+    local pos_z = size[3] / 2
+    -- now add the x and y
+    pos_x = pos_x + (x - 0.5) * (size[1] / Board.size_x)
+    pos_z = pos_z - (y - 0.5) * (size[3] / Board.size_y)
+
+    return Vector.new(pos_x, pos_y, pos_z)
+end
+
+function Board.get_cover_status_face(x, y, face)
+    local direction = Constant.DIRECTION[face]
+    local dx = direction[1] + x
+    local dy = direction[2] + y
+    return Board.get_cover_status(x, y, dx, dy)
+end
+
+-- this function return an integer, 0 : no cover, 1 semi cover, 2 full cover
+function Board.get_cover_status(x1, y1, x2, y2)
+    -- make sure both coordinate are inside the board
+    if 1 > x1 or x1 > Board.size_x or 1 > y1 or y1 > Board.size_y then
+        return 0
+    end
+
+    if 1 > x2 or x2 > Board.size_x or 1 > y2 or y2 > Board.size_y then
+        return 0
+    end
+    -- they are in the board, handle value
+    -- We only need the value of the 2nd tile
+    local tile_value = Board.data[y2][x2]
+    return Constant[tile_value].cover
+end
+
+function Board.reset()
+    Board.data = {}
+    for y = 1, Board.size_y, 1 do
+        Board.data[y] = {}
+        for x = 1, Board.size_x, 1 do
+            Board.data[y][x] = Constant.WALKABLE.value
+        end
+    end
+end
+
+function Board.get_coordinate(position, rounded)
+    -- by default it's rounded
+    if rounded == nil then
+        rounded = false
+    end
+    local bounds = self.getBounds()
+    local center = bounds['center']
+    local size = bounds['size']
+    local pos_x = -center[1] + position[1] + size[1] / 2.0
+    local pos_y = center[3] - position[3] + size[3] / 2.0
+
+    local cell_size_x = size[1] / Board.size_x
+    local cell_size_y = size[3] / Board.size_y
+
+    pos_x = pos_x - cell_size_x / 2
+    pos_y = pos_y - cell_size_y / 2
+
+    pos_x = pos_x / cell_size_x + 1 -- don't forget to add 1 to be LUA compliant
+    pos_y = pos_y / cell_size_y + 1 -- don't forget to add 1 to be LUA compliant
+
+    if not rounded then
+        pos_x = math.tointeger(pos_x)
+        pos_y = math.tointeger(pos_y)
+    else
+        pos_x = math.round(pos_x, 2)
+        pos_y = math.round(pos_y, 2)
+    end
+
+    return { pos_x, pos_y }
+end
+
+function Board.create_snap_points()
+    local bounds = self.getBoundsNormalized()
+    local size = bounds['size']
+    -- The list of all snap points of this objects, this will overwrite any old snap points
+    local list_snap_points = {}
+    local scale = self.getScale()
+    -- Apply scale to size because the snap point are pure relative
+    size[1] = size[1] / scale[1]
+    size[2] = size[2] / scale[2]
+    size[3] = size[3] / scale[3]
+
+    -- Always put on top of the board
+    local pos_y = size[2] / 2
+
+    for y = 1, Board.size_y, 1 do
+        for x = 1, Board.size_x, 1 do
+            local pos_x = -size[1] / 2 + ((x - 0.5) / Board.size_x) * size[1]
+            local pos_z = -size[3] / 2 + ((y - 0.5) / Board.size_y) * size[3]
+            local snap_position = { pos_x, pos_y, pos_z }
+            list_snap_points[#list_snap_points + 1] = { position = snap_position }
+        end
+    end
+    self.setSnapPoints(list_snap_points)
+end
+
+function Board.next_value(value)
+    -- Weird LUA modulo code , since any table starts at 1 ...
+    local new_index = Constant[value].index % Constant.NB_TERRAINS + 1
+    return Constant[Constant.TERRAINS[new_index]].value
+end
+
+-- Find all miniatures in the current board
+function Board.find_miniature()
+    local list_miniature = getObjectsWithTag("miniature")
+    Board.miniatures = {}
+    for _, miniature in ipairs(list_miniature) do
+        Board.set_miniature_position(miniature)
+    end
+end
+
+function Board.set_miniature_position(miniature)
+    -- get the coordinate on the board for this miniature
+    local coordinate = Board.get_coordinate(miniature.getPosition())
+    -- store the position of this miniature
+    Board.miniatures[miniature.getGUID()] = coordinate
+    -- show the new tile
+    BoardPanel.display(coordinate[1], coordinate[2], true)
+
+    -- call a debug function on this miniature, should do better later
+    miniature.call("update_position", coordinate)
+end
+
+function Board.move_miniature(miniature)
+    -- get the old coordinate of this miniature
+    local coordinate = Board.miniatures[miniature.getGUID()]
+    if coordinate ~= nil then
+        -- hide the old tile
+        BoardPanel.display(coordinate[1], coordinate[2], false)
+    end
+    -- move the miniature in its final position
+    Board.set_miniature_position(miniature)
+
+end
+
+return Board

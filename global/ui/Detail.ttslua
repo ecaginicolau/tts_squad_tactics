@@ -1,0 +1,357 @@
+-- Store which player has an open panel
+Detail = {
+    player = {}
+}
+
+function Detail.create(player_color)
+    Detail.player[player_color] = nil
+    -- empty data, just to be able to create the panel
+    local empty_data = {
+        NAME = "???",
+        LEVEL = "?",
+        TAGS = { "", "", "", "" },
+        max_hp = 100,
+        current_hp = 100,
+        identified = false,
+        guid = "FAKE_GUID",
+    }
+
+    for _, defense in ipairs(Constant.DEFENSES) do
+        empty_data[defense] = 0
+    end
+    for _, stat in ipairs(Constant.STATS) do
+        empty_data[stat] = 0
+    end
+
+    -- calculate life percentage
+    local percentage = math.tointeger((empty_data["current_hp"] * 100.0) / empty_data["max_hp"])
+    -- hp display
+    local hp_display = tostring(percentage) .. "%"
+    if empty_data["identified"] then
+        hp_display = empty_data["current_hp"] .. " / " .. empty_data["max_hp"]
+    end
+
+    local def_color = {}
+
+    local def_value = {}
+
+    if not empty_data["identified"] then
+        for _, defense in ipairs(Constant.DEFENSES) do
+            def_color[defense] = Constant.DEFENSE_NEUTRAL_COLOR
+            def_value[defense] = "?"
+        end
+    else
+        for _, defense in ipairs(Constant.DEFENSES) do
+            if empty_data[defense] < 0 then
+                def_color[defense] = Constant.DEFENSE_NEGATIVE_COLOR
+            elseif empty_data[defense] > 0 then
+                def_color[defense] = Constant.DEFENSE_POSITIVE_COLOR
+            else
+                def_color[defense] = Constant.DEFENSE_NEUTRAL_COLOR
+            end
+            def_value[defense] = empty_data[defense]
+        end
+    end
+
+    local panel = {
+        tag = "Panel",
+        attributes = {
+            id = "panel_detail_" .. player_color,
+            active = false,
+            width = 793,
+            height = 473,
+            -- position = "0 0 0",
+            offsetXY = "400 -100",
+            rectAlignment = "UpperLeft",
+            scale = "0.5 0.5 0.5",
+            rotation = "0 0 0",
+            showAnimation = "FadeIn",
+            hideAnimation = "FadeOut",
+            color = "#AAAAAA",
+            allowDragging = true,
+            returnToOriginalPositionWhenReleased = false,
+            restrictDraggingToParentBounds = false,
+            visibility = player_color,
+        },
+        children = {
+            -- The panel background
+            {
+                tag = "Image",
+                attributes = {
+                    active = true,
+                    image = "monster_detail",
+                    position = "0 0 0",
+                    rotation = "0 0 0",
+                    raycastTarget = true,
+                },
+                children = {}
+            },
+            -- The close button at the top right
+            {
+                tag = "Button",
+                attributes = {
+                    fontSize = 40,
+                    color = "#AAAAAA",
+                    width = 60,
+                    height = 60,
+                    position = "400 236 0",
+                    onclick = "Detail_hide()",
+                    text = "X",
+                }
+            }
+        }
+    }
+
+    -- make a shortcut, faster
+    local background = panel["children"][1]["children"]
+
+    -- NAME
+    table.insert(background, {
+        tag = "Text",
+        attributes = {
+            id = "NAME_" .. player_color,
+            text = empty_data["NAME"],
+            fontSize = 70,
+            color = "#FFFFFF",
+            position = "-66 170 0",
+        }
+    })
+    -- LEVEL
+    table.insert(background, {
+        tag = "Text",
+        attributes = {
+            id = "LEVEL_" .. player_color,
+            text = empty_data["LEVEL"],
+            fontSize = 70,
+            color = "#000000",
+            position = "300 170 0",
+        },
+    })
+
+    -- All tags
+    local list_pos_x = { -300, -100, 100, 300 }
+    for i, tag in ipairs(empty_data.TAGS) do
+        table.insert(background, {
+            tag = "Text",
+            attributes = {
+                id = "tag" .. i .. "_" .. player_color,
+                text = tag,
+                fontSize = 36,
+                color = "#000000",
+                position = list_pos_x[i] .. " 85 0",
+            },
+        })
+
+    end
+
+    -- hp progressbar
+    table.insert(background, {
+        tag = "ProgressBar",
+        attributes = {
+            id = "percentage_" .. player_color,
+            color = "#121212",
+            width = "700",
+            height = "70",
+            position = "0 0 0",
+            percentage = percentage,
+            percentageTextFormat = "0",
+            textColor = "#BBBBBB",
+            fontSize = 50,
+            fillImageColor = "#AA1212",
+            showPercentageText = false,
+        },
+    })
+    -- hp text
+    table.insert(background, {
+        tag = "Text",
+        attributes = {
+            id = "hp_display_" .. player_color,
+            text = percentage,
+            fontSize = 50,
+            color = "#BBBBBB",
+            position = "0 0 0",
+        },
+    })
+
+
+    -- Display all defenses
+    local pos_y = -115
+    list_pos_x = {
+        { -190, -140 }, -- 1st item
+        { -70, -20 }, -- 2nd item
+        { 50, 100 }, -- 3rd item
+        { 170, 220 }, -- 4th item
+        { 290, 340 }, -- 5th item
+    }
+    for i, defense in ipairs(Constant.DEFENSES) do
+        -- the Image of this defense
+        table.insert(background, {
+            tag = "Image",
+            attributes = {
+                tooltip = Constant[defense].text,
+                image = Constant[defense].image,
+                color = Constant[defense].color,
+                position = list_pos_x[i][1] .. " " .. pos_y .. " 0",
+                width = 50,
+                height = 50,
+                preserveAspect = true,
+            }
+        })
+        -- The text of this defense
+        table.insert(background, {
+            tag = "Text",
+            attributes = {
+                id = defense .. "_" .. player_color,
+                text = def_value[defense],
+                color = def_color[defense],
+                fontSize = 40,
+                position = list_pos_x[i][2] .. " " .. pos_y .. " 0",
+            }
+        })
+    end
+
+    -- Display all stats
+    pos_y = -200
+    for i, stat in ipairs(Constant.STATS) do
+        -- The text of this defense
+        table.insert(background, {
+            tag = "Image",
+            attributes = {
+                tooltip = Constant[stat].text,
+                image = Constant[stat].image,
+                color = Constant[stat].color,
+                position = list_pos_x[i][1] .. " " .. pos_y .. " 0",
+                width = 50,
+                height = 50,
+                preserveAspect = true,
+            }
+        })
+        -- the Image of this defense
+        table.insert(background, {
+            tag = "Text",
+            attributes = {
+                id = stat .. "_" .. player_color,
+                text = empty_data[stat],
+                fontSize = 40,
+                color = "#000000",
+                position = list_pos_x[i][2] .. " " .. pos_y .. " 0",
+            },
+        })
+    end
+
+    -- Add the button to identify the character
+    table.insert(background, {
+        tag = "Button",
+        attributes = {
+            text = "Identifier",
+            fontSize = 25,
+            textColor = "#000000",
+            color = "#AAAAAA",
+            width = 120,
+            height = 60,
+            position = "320 -200 0",
+            onclick = "Detail_identify(" .. empty_data["guid"] .. ")" -- no quote nothing, juste the guid...
+        }
+    })
+
+    return panel
+end
+
+function Detail.update(player_color, guid)
+    local character = UI.characters[guid]
+
+    local percentage = math.tointeger((character["current_hp"] * 100.0) / character["max_hp"])
+    -- hp display
+    local hp_display = tostring(percentage) .. "%"
+    if character["identified"] then
+        hp_display = character["current_hp"] .. " / " .. character["max_hp"]
+    end
+
+    local def_color = {}
+    local def_value = {}
+
+    if not character["identified"] then
+        for _, defense in ipairs(Constant.DEFENSES) do
+            def_color[defense] = Constant.DEFENSE_NEUTRAL_COLOR
+            def_value[defense] = '?'
+        end
+    else
+        for _, defense in ipairs(Constant.DEFENSES) do
+            if character[defense] < 0 then
+                def_color[defense] = Constant.DEFENSE_NEGATIVE_COLOR
+            elseif character[defense] > 0 then
+                def_color[defense] = Constant.DEFENSE_POSITIVE_COLOR
+            else
+                -- == 0
+                def_color[defense] = Constant.DEFENSE_NEUTRAL_COLOR
+            end
+            def_value[defense] = character[defense]
+        end
+    end
+    for _, defense in ipairs(Constant.DEFENSES) do
+        local attributes = {
+            text = def_value[defense],
+            color = def_color[defense]
+        }
+        self.UI.setAttributes(defense .. "_" .. player_color, attributes)
+    end
+
+    local list_text_change = { "NAME", "LEVEL" }
+
+    for _, text_change in ipairs(list_text_change) do
+        self.UI.setAttribute(text_change .. "_" .. player_color, "text", character[text_change])
+    end
+
+    for i, tag in ipairs(character.TAGS) do
+        self.UI.setAttribute("tag" .. i .. "_" .. player_color, "text", tag)
+    end
+
+    for _, text_change in ipairs(Constant.STATS) do
+        self.UI.setAttribute(text_change .. "_" .. player_color, "text", character[text_change])
+    end
+
+    self.UI.setAttribute("percentage_" .. player_color, "percentage", percentage)
+    self.UI.setAttribute("hp_display_" .. player_color, "text", hp_display)
+end
+
+function Detail.switch(player, guid)
+    if Detail.player[player.color] == nil then
+        Detail.player[player.color] = guid
+        Detail.update(player.color, guid)
+        self.UI.setAttribute("panel_detail_" .. player.color, "active", true)
+    elseif Detail.player[player.color] == guid then
+        Detail.player[player.color] = nil
+        self.UI.setAttribute("panel_detail_" .. player.color, "active", false)
+    else
+        Detail.player[player.color] = guid
+        Detail.update(player.color, guid)
+    end
+end
+
+function Detail.hide(player)
+    Detail.player[player.color] = nil
+    self.UI.setAttribute("panel_detail_" .. player.color, "active", false)
+end
+
+function Detail.identify(player)
+    local guid = Detail.player[player.color]
+    UI.characters[guid]["identified"] = not UI.characters[guid]["identified"]
+    Detail.update(player.color, guid)
+end
+
+function Detail.reset()
+    Detail.player = {}
+end
+
+-- Events function for Detail panel
+function Detail_switch(player, guid)
+    Detail.switch(player, guid)
+end
+
+function Detail_identify(player, guid)
+    Detail.identify(player, guid)
+end
+
+function Detail_hide(player, guid)
+    Detail.hide(player, guid)
+end

@@ -1,0 +1,191 @@
+--------------------------------------
+--- This is the main file for the board object type
+--- Contains GameObjects event and functions that needs to be called by externally
+
+require("tts_squad_tactics.common.Constant")
+require("tts_squad_tactics.common.Utils")
+require("tts_squad_tactics.common.TextUtils")
+require("tts_squad_tactics.board.Board")
+require("tts_squad_tactics.board.PlayerPanel")
+require("tts_squad_tactics.board.BoardPanel")
+require("tts_squad_tactics.board.PathFinding")
+require("tts_squad_tactics.board.LineOfSight")
+require("tts_squad_tactics.board.LineDrawer")
+
+-- require("tts_squad_tactics.Cone")
+
+-- size of the current board
+-- will need a way to edit it easily (GM Notes? small UI ?)
+local size_x = 40
+local size_y = 24
+
+-- disable save, for dev/debug purpose
+local load_disabled = false
+
+-- debug, need to be replaced by something better
+local picked_up_guid
+local picked_up_color
+local old_coordinate = { 99, 99 }
+local wait_in_tile = 0
+
+
+--Runs when game is loaded.
+function onLoad(saved_data)
+    local data = {}
+    if load_disabled == false and saved_data ~= "" then
+        data = JSON.decode(saved_data)
+    end
+
+    -- Create Context
+    self.addContextMenuItem("Edit Board", board_edit)
+    self.addContextMenuItem("Save Board", board_save)
+    self.addContextMenuItem("Reset Board", board_reset)
+
+    -- give some time to load the ui asset, not sure if there is a better way
+    Wait.time(
+            function()
+                board_initialization(data)
+            end
+    , 0.5)
+end
+
+function board_initialization(data)
+    -- Initialise the Board
+    Board.setup(size_x, size_y, data)
+
+    -- create the snap points
+    Board.create_snap_points()
+
+    -- Setup the LineDrawer
+    LineDrawer.setup()
+
+    -- create the board panel etc
+    BoardPanel.create()
+
+    local line = {
+        points = { { 0, 0, 0 }, { 4, 0, 4 } },
+        color = { 1, 0, 0 },
+        thickness = 0.5,
+        rotation = { 0, 0, 0 },
+    }
+
+    LineDrawer.add_lines("test", { line }, "Red")
+    LineDrawer.refresh()
+
+    -- find all miniature can't be called the same frame the board ui is created
+    Wait.frames(find_miniature, 2)
+end
+
+function find_miniature()
+    Board.find_miniature()
+    for guid, coordinate in pairs(Board.miniatures) do
+        PathFinding.calculate(guid)
+        BoardPanel.display(coordinate[1], coordinate[2], true)
+    end
+end
+
+function board_edit()
+    BoardPanel.create("edit")
+end
+
+function board_reset()
+    Board.reset()
+end
+
+function board_save()
+    saved_data = JSON.encode_pretty(Board.data)
+    --print(saved_data)
+    self.script_state = saved_data
+    BoardPanel.create()
+end
+
+function onObjectDrop(player_color, object)
+    -- only continue if it's a miniature
+    if object.hasTag("miniature") then
+        -- get the guid, faster since it will be used  few times
+        local guid = object.getGUID()
+
+        -- test debug
+        picked_up_guid = nil
+        old_coordinate = { 99, 99 }
+        picked_up_color = nil
+
+        -- move the miniature on the board
+        Board.move_miniature(object)
+        -- Hide the PlayerPanel
+        PlayerPanel.display(player_color, false)
+        -- Calculate the Pathfinding of this miniature for next move
+        PathFinding.calculate(guid)
+
+        ---- send the new position to the miniature object.call("update_position", Board.miniatures[object.getGUID()])
+
+        -- update the miniature LoS
+        LoS.calculate(guid, Board.miniatures[object.getGUID()], player_color)
+
+        --picked_up_guid = nil
+        --picked_up_color = nil
+
+        ---- test cone
+        --is_cone_displayed = true
+        --cone["guid"] = object.getGUID()
+        --cone["player_color"] = player_color
+    end
+end
+
+function onObjectPickUp(player_color, object)
+    -- only continue if it's a miniature
+    if object.hasTag("miniature") then
+        -- test/debug
+        picked_up_guid = object.getGUID()
+        picked_up_color = player_color
+
+        -- Show the pathfinding, at least for now
+        PlayerPanel.start_move(player_color, picked_up_guid, 6)
+
+    end
+end
+
+function start_move(params)
+    player_color = params["player_color"]
+    guid = params["guid"]
+    nb_move = tonumber(params["nb_move"])
+    PlayerPanel.start_move(player_color, guid, nb_move)
+    PlayerPanel.display(player_color, true)
+end
+
+
+-- Click events can't call a package function so make it an external function
+function change_tile(_, param)
+    local t = split(param, "x")
+    local x = tonumber(t[1])
+    local y = tonumber(t[2])
+    BoardPanel.change_tile(x, y)
+end
+
+
+function onFixedUpdate()
+    if picked_up_guid ~= nil then
+        local object = getObjectFromGUID(picked_up_guid)
+        local coordinate = Board.get_coordinate(object.getPosition(), false)
+        if old_coordinate[1] ~= coordinate[1] or old_coordinate[2] ~= coordinate[2] then
+            if old_coordinate ~= nil then
+                BoardPanel.display(old_coordinate[1], old_coordinate[2], false)
+            end
+            BoardPanel.display(coordinate[1], coordinate[2], true)
+            old_coordinate = coordinate
+            wait_in_tile = 0
+            LineDrawer.remove_visibility("los_" .. picked_up_guid, picked_up_color)
+        else
+            if wait_in_tile < 15 then
+                -- at frame 30 draw, only this one
+                wait_in_tile = wait_in_tile + 1
+                if wait_in_tile == 15 then
+                    LoS.calculate(picked_up_guid, coordinate, picked_up_color)
+                end
+            end
+        end
+    end
+    --if is_cone_displayed then
+    --    cone_display()
+    --end
+end

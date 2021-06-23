@@ -1,0 +1,26 @@
+------------------------------------------
+--- Global UI main entry point
+--- Store the main UI status
+
+UI = {
+    is_in_turn = false,
+    characters = {}
+}
+
+-- debug
+require("tts_squad_tactics.CharacterDebug")
+
+UI.characters[data["guid"]] = data
+UI.characters[data2["guid"]] = data2
+
+function UI.refresh()
+    local list_panel = {}
+    table.insert(list_panel, Initiative.create())
+
+    for _, player in ipairs(Player.getPlayers()) do
+        table.insert(list_panel, Detail.create(player.color))
+        table.insert(list_panel, Attack.create(player.color))
+    end
+
+    self.UI.setXmlTable(list_panel)
+end

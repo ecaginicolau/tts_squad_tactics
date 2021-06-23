@@ -1,0 +1,112 @@
+--------------------------------------
+--- Handle UI Custom Asset
+---
+
+-- TODO: One day, other package should be able to register their own assets and ask this package to load them
+
+function update_asset()
+    local assets = self.UI.getCustomAssets()
+    local floating_assets = {
+        -- terrain
+        {
+            name = "walkable",
+            url = "http://cloud-3.steamusercontent.com/ugc/1746814371000155331/9FD8D8D7658B61A0ECCC94385DF405DD5BC83B47/",
+        },
+        -- cover
+        {
+            name = "cover",
+            url = "http://cloud-3.steamusercontent.com/ugc/1746814370999663575/5BDED6B3BE6DF23310098E637B3FAB22E1E7DE59/",
+        },
+        {
+            name = "semicover",
+            url = "http://cloud-3.steamusercontent.com/ugc/1709661083127777275/C650AC1C7F7C223C56636AB055124562DAC8F576/",
+        },
+        -- defense
+        {
+            name = Constant.IMPACT.image,
+            url = "http://cloud-3.steamusercontent.com/ugc/1709660756466081734/405EA7D6F496D4106227E7EF9A686EA4F179496F/",
+        },
+        {
+            name = Constant.FIRE.image,
+            url = "http://cloud-3.steamusercontent.com/ugc/1709660756465705371/98CC8509299803119B65BEAA7D6DC5CB33905DF6/",
+        },
+        {
+            name = Constant.COLD.image,
+            url = "http://cloud-3.steamusercontent.com/ugc/1709660756465706537/9FE78362C86E77A792DF0D70D15615F263513DE8/",
+        },
+        {
+            name = Constant.ELECTRIC.image,
+            url = "http://cloud-3.steamusercontent.com/ugc/1709660756465707839/520FAB4DE07780185F3602FE620EA4F6262D8A3A/",
+        },
+        {
+            name = Constant.BLIGHT.image,
+            url = "http://cloud-3.steamusercontent.com/ugc/1709660756465707150/4370CC37EF6645E6D8A9FD1A96163CA6E6BF8117/",
+        },
+        {
+            name = Constant.DIRECT.image,
+            url = "http://cloud-3.steamusercontent.com/ugc/1709660756466217763/D67996745AC468954BA4BBECA5753EB83412B33B/",
+        },
+        -- stats
+        {
+            name = Constant.EVASION.image,
+            url = "http://cloud-3.steamusercontent.com/ugc/1687143149116995350/FD2084D5FA39C1BD36F9D022EB898BF9416145FD/",
+        },
+        {
+            name = Constant.HATE.image,
+            url = "http://cloud-3.steamusercontent.com/ugc/1709660756465877646/04F0BCE616A8B199B188C451CED46A8B52C4C0C6/",
+        },
+        {
+            name = Constant.INITIATIVE.image,
+            url = "http://cloud-3.steamusercontent.com/ugc/1709660756465789224/68A8F3C7CFFFA6C532EECC87A80012ADC45C1EC4/",
+        },
+        {
+            name = Constant.IDENTIFICATION.image,
+            url = "http://cloud-3.steamusercontent.com/ugc/1709660756465790378/A3D9380E171F4B7C6DEC31F3DD357DC2F43DD976/",
+        },
+        -- buttons
+        {
+            name = "refresh",
+            url = "http://cloud-3.steamusercontent.com/ugc/1709660756468847776/F236F562613CCE493715D7DDDC688FB773125DAB/",
+        },
+        {
+            name = "attack",
+            url = "http://cloud-3.steamusercontent.com/ugc/1709660756468708478/3AB4F38A4601E56525E07DA8B5BDE3E9E46C33ED/",
+        },
+        {
+            name = "detail",
+            url = "http://cloud-3.steamusercontent.com/ugc/1709660756464801522/9C83BD25EAD8689EAB341E72D70B8B1F45AE3732/",
+        },
+        {
+            name = "wait",
+            url = "http://cloud-3.steamusercontent.com/ugc/1709660756464797837/C9469EFF30527C33F710F177812A5ED0044548AB/",
+        },
+        --background detail
+        {
+            name = "monster_detail",
+            url = "http://cloud-3.steamusercontent.com/ugc/1709660756465799627/DCE015A67697B87FFB51FA66037FC4242D50EE61/",
+        },
+
+
+    }
+
+    local new_asset = table.clone(assets)
+    local modified = false
+    for _, floating_asset in ipairs(floating_assets) do
+        local found = false
+        for _, asset in ipairs(assets) do
+            if asset["name"] == floating_asset["name"] then
+                found = true
+
+            end
+        end
+        if not found then
+            print("Asset not found: " .. floating_asset["name"])
+            new_asset[#new_asset + 1] = floating_asset
+            modified = true
+        end
+    end
+    print("Imported new Custom ui Asset")
+    if modified then
+        self.UI.setCustomAssets(new_asset)
+    end
+end

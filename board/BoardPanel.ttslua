@@ -1,0 +1,194 @@
+--------------------------------------
+--- Handle the main GUI Panel for the Board
+--- This panel is to be seen by every player
+
+
+-- Constant that should only be used in this file
+local COVER_HORIZONTAL = "270 0 0"
+local COVER_VERTICAL = "0 90 270"
+local COVER_WIDTH = 90 -- this doesn't scale correctly if the tile is scaled
+local COVER_HEIGHT = 120 -- this doesn't scale correctly if the tile is scaled
+local COVER_Z = -COVER_WIDTH / 1.3
+local TILE_IMAGE = "walkable"
+local COVER_IMAGE = "cover"
+local SEMI_COVER_IMAGE = "semicover"
+
+-- No local, make it a global
+BoardPanel = {}
+
+-- This function recreate the whole board panel
+-- it should only been called once when playing and from time to time when editing
+function BoardPanel.create(mode)
+    -- the panel size depends on the Board size
+    if Board.size_x == Board.size_y then
+        BoardPanel.panel_x = 3750
+        BoardPanel.panel_y = 3750
+    else
+        BoardPanel.panel_x = 4840
+        BoardPanel.panel_y = 2900
+    end
+    -- precalculate the tile_size, it will be useful
+    BoardPanel.tile_size_x = BoardPanel.panel_x / Board.size_x
+    BoardPanel.tile_size_y = BoardPanel.panel_y / Board.size_y
+
+    local scale = self.getScale()
+    local panel = {
+        tag = "Panel",
+        attributes = {
+            scale = "0.1 0.1 " .. scale[1] / 10,
+            id = "panel_board",
+            height = BoardPanel.panel_y,
+            width = BoardPanel.panel_x,
+            position = "0 0 -11", -- the z value depends on token thickness, this is a correct value for 0.2 thickness
+            rotation = "0 0 0",
+        },
+        children = {}
+    }
+
+    local list_panel = { panel }
+
+    for y = 1, Board.size_y, 1 do
+        for x = 1, Board.size_x, 1 do
+            panel["children"][#panel["children"] + 1] = BoardPanel.create_tile(x, y, mode)
+        end
+    end
+
+    for _, player in ipairs(Player.getPlayers()) do
+        local player_panel = PlayerPanel.create(player.color)
+        table.insert(panel["children"], player_panel)
+    end
+    self.UI.setXmlTable(list_panel)
+end
+
+function BoardPanel.get_tile_id(x, y)
+    return "tile_" .. x .. "x" .. y
+end
+
+function BoardPanel.create_tile(x, y, mode)
+    -- Create a single tile for the main board
+    -- it has 2 mode, run or edit. In run the tile is hidden by default and in edit it's shown + has a button
+    local tile_id = BoardPanel.get_tile_id(x, y)
+    local tile_value = Board.data[y][x]
+    local color = Constant.HIDDEN.color
+    if mode == "edit" then
+        color = Constant[tile_value].color
+    end
+    local pos_x = (BoardPanel.panel_x / Board.size_x) * (x - 0.5) - BoardPanel.panel_x / 2
+    local pos_y = BoardPanel.panel_y / 2 - (BoardPanel.panel_y / Board.size_y) * (y - 0.5)
+    local active = "false"
+    if mode == "edit" then
+        active = "true"
+    end
+
+    local tile = {
+        tag = "Image",
+        attributes = {
+            id = tile_id,
+            active = active,
+            color = color,
+            image = TILE_IMAGE,
+            width = BoardPanel.tile_size_x,
+            height = BoardPanel.tile_size_y,
+            position = pos_x .. " " .. pos_y .. " 0",
+        },
+        children = {},
+    }
+
+    if mode == "edit" then
+        tile["children"] = {
+            {
+                tag = "Button",
+                attributes = {
+                    active = "true",
+                    id = "button" .. tile_id,
+                    color = "#000000BB",
+                    onClick = "change_tile(" .. x .. "x" .. y .. ")",
+                },
+                children = {}
+            }
+        }
+    else
+        -- only need cover on stoppable tile
+        if Constant[tile_value].stoppable then
+            for face = 1, 4, 1 do
+                local cover = BoardPanel.create_cover(x, y, face)
+                if cover ~= nil then
+                    tile["children"][#tile["children"] + 1] = cover
+                end
+            end
+        end
+    end
+    return tile
+end
+
+function BoardPanel.change_tile(x, y)
+    local tile_id = BoardPanel.get_tile_id(x, y)
+    local tile_value = Board.data[y][x]
+    local next_value = Board.next_value(tile_value)
+    Board.data[y][x] = next_value
+    self.UI.setAttribute(tile_id, "color", Constant[next_value].color)
+
+end
+
+function BoardPanel.create_cover(x, y, face)
+    -- face 1 = top
+    -- face 2 = right
+    -- face 3 = bottom
+    -- face 4 = left
+
+    -- we need to make sure there needs to be a cover in this tile + face
+    local cover_status = Board.get_cover_status_face(x, y, face)
+    -- if cover_status == 0 : no cover, 1: semi cover, 2 full cover
+    if cover_status == 0 then
+        -- if it's not needed, no need to continue
+        return nil
+    end
+
+    -- depending on the face we need to rotate the cover image, it's a bit complex rotation so hard code it
+    local rotation = COVER_HORIZONTAL
+    if (face % 2 == 0) then
+        rotation = COVER_VERTICAL
+    end
+
+    -- depending on the face we need to move the cover image a little bit from the center of the tile
+    local pos_x = 0
+    local pos_y = 0
+    if face == 1 then
+        pos_y = BoardPanel.tile_size_y / 2
+    elseif face == 2 then
+        pos_x = BoardPanel.tile_size_x / 2
+    elseif face == 3 then
+        pos_y = -BoardPanel.tile_size_y / 2
+    elseif face == 4 then
+        pos_x = -BoardPanel.tile_size_x / 2
+    end
+
+    -- the Z position is always the same, hard coded
+    local pos_z = COVER_Z
+    -- create the position attribute
+    local position = tostring(pos_x) .. " " .. tostring(pos_y) .. " " .. tostring(pos_z)
+
+    local image = COVER_IMAGE
+    if cover_status == 1 then
+        image = SEMI_COVER_IMAGE
+    end
+
+    local cover = {
+        tag = "Image",
+        attributes = {
+            rotation = rotation,
+            position = position,
+            height = COVER_HEIGHT,
+            width = COVER_WIDTH,
+            image = image,
+        }
+    }
+
+    return cover
+end
+
+function BoardPanel.display(x, y, display)
+    self.UI.setAttribute(BoardPanel.get_tile_id(x, y), "active", display)
+end
+
+return BoardPanel

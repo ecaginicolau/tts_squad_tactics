@@ -1,0 +1,150 @@
+selected_part = {}
+root_gameobject = "CustomCharacter(Clone)"
+root = nil
+right_hand = nil
+
+list_part = {
+    backpack = {
+        "", -- this means don't use any!
+        "", -- this means don't use any!
+        "", -- this means don't use any!
+        "", -- this means don't use any!
+        "", -- this means don't use any!
+        "", -- this means don't use any!
+        "", -- this means don't use any!
+        "", -- this means don't use any!
+        "", -- this means don't use any!
+        "Backpack_Mesh_01",
+        "Backpack_Mesh_02",
+        "Backpack_Mesh_03",
+        "Backpack_Mesh_04",
+        "Backpack_Mesh_05",
+    },
+    body = {
+        "Body_Cloth_Mesh_01",
+        "Body_Cloth_Mesh_02",
+        "Body_Cloth_Mesh_03",
+        "Body_Cloth_Mesh_04",
+        "Body_Cloth_Mesh_05",
+    },
+    glasses = {
+        "",
+        "",
+        "",
+        "",
+        "Glasses_Mesh_01",
+        "Glasses_Mesh_02",
+    },
+    hat = {
+        "",
+        "",
+        "",
+        "Hat_Mesh_01",
+        "Hat_Mesh_02",
+        "Hat_Mesh_03",
+        "Hat_Mesh_04",
+    },
+    head = {
+        "Head_Mesh_01",
+        "Head_Mesh_02",
+        "Head_Mesh_03",
+    },
+    head = {
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "Mask_Mesh_01",
+        "Mask_Mesh_02",
+        "Mask_Mesh_03",
+        "Mask_Mesh_04",
+        "Mask_Mesh_05",
+        "Mask_Mesh_06",
+        "Mask_Mesh_07",
+        "Mask_Mesh_08",
+        "Mask_Mesh_10",
+        "Mask_Mesh_11",
+        "Mask_Mesh_12",
+        "Mask_Mesh_13",
+    },
+    accessories = {
+        "",
+        "",
+        "",
+        "",
+        "",
+        "Pants_balloon_Mesh",
+    },
+    pants = {
+        "Pants_Mesh_01",
+        "Pants_Mesh_02",
+        "Pants_Mesh_03",
+        "Pants_Mesh_04",
+        "Pants_Mesh_05",
+    },
+    shoes = {
+        "Shoes_Mesh_01",
+        "Shoes_Mesh_02",
+        "Shoes_Mesh_03",
+    },
+
+
+}
+
+list_weapons = {
+    "Bita",
+    "Star_Axe",
+    "Knife",
+    "Ice_Axe",
+}
+
+function onLoad(saved_data)
+    if load_disabled == false and saved_data ~= "" then
+        local loaded_data = JSON.decode(saved_data)
+        selected_part = loaded_data
+    end
+
+    root = self.getChild(root_gameobject)
+    -- ugly but will do the trick in debug
+    right_hand = root.getChild("root").getChild("Hips").getChild("Spine").getChild("Chest").getChild("UpperChest").getChild("RightShoulder").getChild("RightUpperArm").getChild("RightLowerArm").getChild("RightHand")
+    random_part()
+    self.addContextMenuItem("Randomize", random_part)
+end
+
+function random_part()
+    for _, list_subpart in pairs(list_part) do
+        local index = math.random(1, #list_subpart)
+        -- first disable all other
+        for i, subpart_name in ipairs(list_subpart) do
+            if i ~= index and subpart_name ~= "" then
+                local child = root.getChild(subpart_name)
+                child.getComponent("SkinnedMeshRenderer").set("enabled", false)
+            end
+        end
+        -- then enable this child
+        if list_subpart[index] ~= "" then
+            local child = root.getChild(list_subpart[index])
+            child.getComponent("SkinnedMeshRenderer").set("enabled", true)
+        end
+    end
+    random_weapon()
+end
+
+function random_weapon()
+    local index = math.random(1, #list_weapons)
+    for i, weapon in ipairs(list_weapons) do
+        if i ~= index and weapon ~= "" then
+            local child = right_hand.getChild(weapon)
+            child.getComponent("MeshRenderer").set("enabled", false)
+        end
+    end
+    -- then enable this child
+    if list_weapons[index] ~= "" then
+        local child = right_hand.getChild(list_weapons[index])
+        child.getComponent("MeshRenderer").set("enabled", true)
+    end
+end
