@@ -139,8 +139,8 @@ function onObjectPickUp(player_color, object)
         picked_up_guid = object.getGUID()
         picked_up_color = player_color
 
-        -- Show the pathfinding, at least for now
-        PlayerPanel.start_move(player_color, picked_up_guid, 6)
+        -- Show the pathfinding, at least for now until the buttons
+        PlayerPanel.start_move(player_color, picked_up_guid, 8)
 
     end
 end

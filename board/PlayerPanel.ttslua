@@ -43,13 +43,15 @@ function PlayerPanel.start_move(player_color, guid, nb_move)
     local pos_x = BoardPanel.tile_size_x * (coordinate[1] - 0.5) - BoardPanel.panel_x / 2
     local pos_y = BoardPanel.panel_y / 2 - BoardPanel.tile_size_y * (coordinate[2] - 0.5)
     local position = pos_x .. " " .. pos_y .. " -12"
-    UI.setAttribute("PlayerPanel_" .. player_color, "position", position)
+    self.UI.setAttribute("PlayerPanel_" .. player_color, "position", position)
     -- update the text
     PlayerPanel.update_text(player_color, guid, nb_move, coordinate)
+    --
+    PlayerPanel.display(player_color, true)
 end
 
 function PlayerPanel.display(player_color, active)
-    UI.setAttribute("PlayerPanel_" .. player_color, "active", active)
+    self.UI.setAttribute("PlayerPanel_" .. player_color, "active", active)
 end
 
 function PlayerPanel.update_text(player_color, guid, nb_move, coordinate)
@@ -68,7 +70,8 @@ function PlayerPanel.update_text(player_color, guid, nb_move, coordinate)
         end
         new_text = new_text .. line .. "\n"
     end
-    UI.setAttribute("Text_" .. player_color, "text", new_text)
+    print(new_text)
+    self.UI.setAttribute("Text_" .. player_color, "text", new_text)
 end
 
 function PlayerPanel.tile_character(x, y, guid, nb_move)
@@ -80,9 +83,6 @@ function PlayerPanel.tile_character(x, y, guid, nb_move)
     -- we can't stop there, no need to draw
     local tile_value = Board.data[y][x]
 
-    if not Constant[tile_value].stoppable then
-        return block_char(Constant.HIDDEN.character, 1, Constant.HIDDEN.color)
-    end
 
     -- out of reach , no need to draw
     if PathFinding.cache[guid][y][x] > nb_move then
