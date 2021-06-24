@@ -15,11 +15,16 @@ UI.characters[data2["guid"]] = data2
 
 function UI.refresh()
     local list_panel = {}
+    -- global UI for all player
     table.insert(list_panel, Initiative.create())
 
-    for _, player in ipairs(Player.getPlayers()) do
-        table.insert(list_panel, Detail.create(player.color))
-        table.insert(list_panel, Attack.create(player.color))
+    if is_in_turn then
+        -- player UI
+        for _, player in ipairs(Player.getPlayers()) do
+            table.insert(list_panel, Detail.create(player.color))
+            table.insert(list_panel, Attack.create(player.color))
+            table.insert(list_panel, Action.create(player.color))
+        end
     end
 
     self.UI.setXmlTable(list_panel)

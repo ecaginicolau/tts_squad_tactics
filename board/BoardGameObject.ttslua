@@ -66,6 +66,11 @@ function board_initialization(data)
     Wait.frames(find_miniature, 2)
 end
 
+function onPlayerChangeColor()
+    BoardPanel.create()
+    LineDrawer.setup()
+end
+
 function find_miniature()
     Board.find_miniatures()
     for guid, miniature in pairs(Board.miniatures) do
@@ -124,27 +129,63 @@ function onObjectPickUp(player_color, object)
         picked_up_guid = object.getGUID()
         picked_up_color = player_color
 
-        local miniature = Board.miniatures[picked_up_guid]
+        --local miniature = Board.miniatures[picked_up_guid]
 
         -- calculate the pathfinding
-        PathFinding.calculate(picked_up_guid, 8)
+        --PathFinding.calculate(picked_up_guid, 8)
 
         -- Show the pathfinding, at least for now until the buttons
-        PlayerPanel.start_move(player_color, picked_up_guid, 8)
+        --PlayerPanel.start_move(player_color, picked_up_guid, 8)
 
-        print("Moving miniature: " .. tostring(miniature["name"]) .."  owner: ".. tostring(miniature["owner"]))
+        --print("Moving miniature: " .. tostring(miniature["name"]) .. "  owner: " .. tostring(miniature["owner"]))
 
     end
 end
 
+-- function called by Global UI
 function start_move(params)
-    player_color = params["player_color"]
-    guid = params["guid"]
-    nb_move = tonumber(params["nb_move"])
+    local player_color = params["player_color"]
+    local guid = params["guid"]
+    local nb_move = tonumber(params["nb_move"])
+
+    -- calculate the pathfinding
+    PathFinding.calculate(guid, nb_move)
+
+    -- Display the Player panel under the miniature
     PlayerPanel.start_move(player_color, guid, nb_move)
-    PlayerPanel.display(player_color, true)
 end
 
+function send_action(params)
+    local player_color = params[1]
+    local guid = params[2]
+    local action = params[3]
+    local value = params[4]
+    print("player_color: " .. player_color)
+    print("guid: " .. guid)
+    print("value: " .. value)
+    if action == "MOVE" then
+        local nb_move = tonumber(value)
+        -- calculate the pathfinding
+        PathFinding.calculate(guid, nb_move, false)
+
+        -- Display the Player panel under the miniature
+        PlayerPanel.start_move(player_color, guid, nb_move)
+    end
+    if action == "SAFE_MOVE" then
+        local nb_move = tonumber(value)
+
+        -- calculate the pathfinding
+        PathFinding.calculate(guid, nb_move,true)
+
+        -- Display the Player panel under the miniature
+        PlayerPanel.start_move(player_color, guid, nb_move)
+    end
+end
+
+function PlayerPanel_hide(params)
+    player_color = params[1]
+    PlayerPanel.display(player_color, false)
+end
 
 -- Click events can't call a package function so make it an external function
 function change_tile(_, param)
@@ -153,7 +194,6 @@ function change_tile(_, param)
     local y = tonumber(t[2])
     BoardPanel.change_tile(x, y)
 end
-
 
 function onFixedUpdate()
     if picked_up_guid ~= nil then

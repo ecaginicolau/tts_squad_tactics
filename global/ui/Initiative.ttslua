@@ -292,6 +292,13 @@ function Initiative.init()
     end
 end
 
+function Initiative.reset()
+    -- since dragged position is lost, no need to keep track of opened panels
+    Detail.reset()
+    -- reset damage panel also
+    Attack.reset_round()
+end
+
 
 -- Events
 function Initiative_mouse_enter(player, guid)
@@ -319,11 +326,8 @@ function Initiative_close()
     UI.refresh()
 end
 
-function Initiative_refresh()
-    -- since dragged position is lost, no need to keep track of opened panels
-    Detail.reset()
-    -- reset damage panel also
-    Attack.reset_round()
+function Initiative_refresh(new_round)
+    Initiative.reset()
     -- refresh the complete ui
     UI.refresh()
 end
@@ -336,9 +340,12 @@ function Initiative_new_round()
         character["played"] = false
         character["waited"] = false
     end
+    -- refresh the complete ui
+    UI.refresh()
     -- refresh the ui
-    Initiative_refresh()
+    Wait.frames(Initiative.reset,2)
 end
+
 
 function Initiative_play(player, guid)
     UI.characters[guid]["played"] = not UI.characters[guid]["played"]

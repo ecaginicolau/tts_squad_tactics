@@ -15,7 +15,8 @@ function PlayerPanel.create(player_color)
             -- +1 should be enough but we need to take some padding with font size
             height = BoardPanel.tile_size_x * (Constant.MAX_MOVE * 2 + 2),
             width = BoardPanel.tile_size_x * (Constant.MAX_MOVE * 2 + 2),
-            position = "0 0 -14",
+            position = "0 0 0",
+            --position = "0 0 -14",
             rotation = "0 0 0",
             active = "false",
             visibility = player_color,

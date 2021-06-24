@@ -35,11 +35,13 @@ function PathFinding.check_hinder(guid, x, y)
     return false
 end
 
-function PathFinding.calculate(guid, nb_move)
-    if  nb_move == nil then
+function PathFinding.calculate(guid, nb_move, safe)
+    if safe == nil then
+        safe = false
+    end
+    if nb_move == nil then
         nb_move = Constant.MAX_MOVE
     end
-
     -- This store the move cost for every tile
     local current_pathfinding = {}
 
@@ -81,12 +83,14 @@ function PathFinding.calculate(guid, nb_move)
             return
         end
 
-        -- make sure there is no other miniature hindering
-        if PathFinding.check_hinder(guid, tile_x, tile_y) then
-            -- set this as the last possible tile we can go
-            current_pathfinding[tile_y][tile_x] = nb_move
-            -- no need to continue from this tile
-            return
+        if not safe then
+            -- make sure there is no other miniature hindering
+            if PathFinding.check_hinder(guid, tile_x, tile_y) then
+                -- set this as the last possible tile we can go
+                current_pathfinding[tile_y][tile_x] = nb_move
+                -- no need to continue from this tile
+                return
+            end
         end
 
 

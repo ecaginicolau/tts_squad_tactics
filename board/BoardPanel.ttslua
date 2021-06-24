@@ -39,7 +39,7 @@ function BoardPanel.create(mode)
             id = "panel_board",
             height = BoardPanel.panel_y,
             width = BoardPanel.panel_x,
-            position = "0 0 -11", -- the z value depends on token thickness, this is a correct value for 0.2 thickness
+            position = "0 0 -6", -- the z value depends on token thickness, this is a correct value for 0.2 thickness
             rotation = "0 0 0",
         },
         children = {}

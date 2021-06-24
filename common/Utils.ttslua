@@ -36,8 +36,8 @@ function table.extend(table1, table2)
 end
 
 function table.count(tab)
-    local count = 1
-    for _, _ in ipairs(tab) do
+    local count = 0
+    for _, _ in pairs(tab) do
         count = count + 1
     end
     return count

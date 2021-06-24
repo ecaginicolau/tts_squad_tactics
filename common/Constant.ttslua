@@ -162,13 +162,13 @@ Constant = {
 HINDER_COLOR = "#FFFF50"
 
 -- Recreate the keys outside faster text input
--- DEFENSE
+-- ATTACK/DEFENSE
 IMPACT = "IMPACT"
 FIRE = "FIRE"
 COLD = "COLD"
 ELECTRIC = "ELECTRIC"
 BLIGHT = "BLIGHT"
--- only exist in attack
+-- only exist in ATTACK
 DIRECT = "DIRECT"
 
 -- STATS

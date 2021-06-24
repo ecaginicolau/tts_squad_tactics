@@ -1,0 +1,339 @@
+-- Store which player has an open panel
+Action = {
+    player = {},
+    miniatures = {},
+    selected_miniature = {},
+}
+
+local BUTTON_WIDTH = 100
+local BUTTON_HEIGHT = 100
+local BUTTON_SPACING = 10
+
+local SELECTED_COLOR = "#808080"
+local NOT_SELECTED_COLOR = "#FFFFFF"
+
+local ACTION_DEFINITION = {
+    SAFE_MOVE = {
+        icon = "safe_move",
+        id = "safe_move_",
+        text = nil,
+        onclick = "Action_toggle(SAFE_MOVE)",
+        values = { 2, 4, 6 },
+    },
+    MOVE = {
+        icon = "move",
+        id = "move_",
+        text = nil,
+        onclick = "Action_toggle(MOVE)",
+        values = { 2, 4, 6, 8, 10 },
+    },
+    ATTACK = {
+        icon = "attack",
+        id = "attack_",
+        text = nil,
+        onclick = "Action_toggle(ATTACK)",
+        values = { "melee", "attack", "cone" },
+    },
+}
+
+-- give the order of the actions + easier loop
+local ACTIONS = { "SAFE_MOVE", "MOVE", "ATTACK" }
+
+for i, action in ipairs(ACTIONS) do
+    ACTION_DEFINITION[action].index = i
+end
+
+local SELECT_TEXT = " Selectionner"
+local SELECT_ICON = "select"
+
+function Action.create(player_color)
+    Action.board_object = getObjectsWithTag("board")[1] -- for now let's suppose there is always one board
+
+    Action.player[player_color] = nil
+
+    -- get the list of miniature for this player in the board
+    Action.miniatures[player_color] = {}
+    -- Get the list of miniature for this color in the board
+    local list_miniatures = Action.board_object.call("Board_miniatures_color", { player_color })
+    -- convert to dictionary
+    for _, miniature in ipairs(list_miniatures) do
+        Action.miniatures[player_color][miniature["guid"]] = miniature
+    end
+    -- no miniature selected by default
+    Action.selected_miniature[player_color] = nil
+    -- if there is only one miniature for this player, select it by default
+    if #list_miniatures == 1 then
+        Action.selected_miniature[player_color] = list_miniatures[1]
+    end
+
+    local panel = {
+        tag = "Panel",
+        attributes = {
+            id = "panel_action_" .. player_color,
+            active = true,
+            width = BUTTON_WIDTH,
+            height = BUTTON_HEIGHT,
+            rectAlignment = "LowerCenter",
+            scale = "0.5 0.5 0.5",
+            offsetXY = "0 20",
+            allowDragging = true,
+            returnToOriginalPositionWhenReleased = false,
+            restrictDraggingToParentBounds = false,
+            visibility = player_color,
+
+        },
+        children = {}
+    }
+
+    table.insert(panel["children"], Action.miniature_select(player_color))
+
+    for _, action in ipairs(ACTIONS) do
+        table.insert(panel["children"], Action.button_action(player_color, action))
+        for _, value in ipairs(ACTION_DEFINITION[action].values) do
+            table.insert(panel["children"], Action.button_value(player_color, action, value))
+        end
+    end
+    return panel
+end
+
+function Action.miniature_select(player_color)
+    local nb_actions = #ACTIONS
+    local pos_x = -150 - (BUTTON_WIDTH + BUTTON_SPACING) * nb_actions / 2
+    local text = SELECT_TEXT
+    local pos_y = 0
+    local onclick = "Action_miniature_select()"
+    local active = true
+    -- Specific if there is a selected miniature, or a single one
+    if Action.selected_miniature[player_color] ~= nil then
+        text = " " .. Action.selected_miniature[player_color].name
+        if table.count(Action.miniatures[player_color]) == 1 then
+            onclick = ""
+            active = false
+        end
+    end
+
+    local button = {
+        tag = "Button",
+        attributes = {
+            id = "selected_" .. player_color,
+            color = NOT_SELECTED_COLOR,
+            textAlignment = "MiddleLeft",
+            width = 400,
+            height = BUTTON_HEIGHT,
+            text = text,
+            fontSize = 40,
+            onclick = onclick,
+            position = pos_x .. " " .. pos_y .. " 0",
+            active = true,
+        },
+        children = {
+            {
+                tag = "Image",
+                attributes = {
+                    id = "select_" .. player_color,
+                    image = SELECT_ICON,
+                    color = "#000000",
+                    width = BUTTON_HEIGHT / 2,
+                    height = BUTTON_HEIGHT / 2,
+                    position = (pos_x + 475) .. " " .. pos_y .. " 0",
+                    active = active,
+                }
+            }
+        },
+    }
+    pos_y = pos_y + BUTTON_HEIGHT / 4
+    if table.count(Action.miniatures[player_color]) > 1 then
+        for guid, miniature in pairs(Action.miniatures[player_color]) do
+            pos_y = pos_y + BUTTON_HEIGHT / 2 + BUTTON_SPACING
+            table.insert(button["children"], {
+                tag = "Button",
+                attributes = {
+                    id = "selection_" .. guid,
+                    color = NOT_SELECTED_COLOR,
+                    textAlignment = "MiddleLeft",
+                    width = 400,
+                    height = BUTTON_HEIGHT / 2,
+                    text = " " .. miniature["name"],
+                    fontSize = 40,
+                    onclick = "Action_miniature_click(" .. guid .. ")",
+                    position = "0 " .. pos_y .. " 0",
+                    active = false,
+                    onMouseEnter = "Action_miniature_enter(" .. guid .. ")",
+                    onMouseExit = "Action_miniature_exit(" .. guid .. ")",
+                }
+            })
+        end
+    end
+
+    return button
+end
+
+function Action.selection_update(player_color)
+    -- first, the main selection
+    local id = "selected_" .. player_color
+    -- if a miniature is selected, changed it's name
+    local text = SELECT_TEXT
+    if Action.selected_miniature[player_color] ~= nil then
+        text = Action.selected_miniature[player_color].name
+    end
+    self.UI.setAttribute(id, "text", " " .. text)
+    -- turn off list of miniature if one is selected
+    for guid, _ in pairs(Action.miniatures[player_color]) do
+        id = "selection_" .. guid
+        self.UI.setAttribute(id, "active", Action.selected_miniature[player_color] == nil)
+    end
+    -- turn on the action button is one is selected
+    for _, action in ipairs(ACTIONS) do
+        id = ACTION_DEFINITION[action].id .. player_color
+        self.UI.setAttribute(id, "active", Action.selected_miniature[player_color] ~= nil)
+    end
+end
+
+function Action.button_action(player_color, action)
+    local pos_y = 0
+    local index = ACTION_DEFINITION[action].index
+    local nb_actions = #ACTIONS
+    local pos_x = (BUTTON_WIDTH + BUTTON_SPACING) * index - (BUTTON_WIDTH + BUTTON_SPACING) * nb_actions / 2
+    local active = false
+    if Action.selected_miniature[player_color] ~= nil then
+        active = true
+    end
+    local button = {
+        tag = "Button",
+        attributes = {
+            id = ACTION_DEFINITION[action].id .. player_color,
+            icon = ACTION_DEFINITION[action].icon,
+            iconColor = "#000000",
+            color = NOT_SELECTED_COLOR,
+            width = BUTTON_WIDTH,
+            height = BUTTON_HEIGHT,
+            text = ACTION_DEFINITION[action].text,
+            fontSize = 40,
+            onclick = ACTION_DEFINITION[action].onclick,
+            position = pos_x .. " " .. pos_y .. " 0",
+            active = active,
+        },
+    }
+    return button
+end
+
+function Action.button_value(player_color, action, value)
+    local pos_y = BUTTON_HEIGHT + BUTTON_SPACING
+    local values = ACTION_DEFINITION[action].values
+    local index
+    for i, other_value in ipairs(values) do
+        if other_value == value then
+            index = i
+        end
+    end
+
+    local nb_actions = #values
+    local pos_x = (BUTTON_WIDTH + BUTTON_SPACING) * index - (BUTTON_WIDTH + BUTTON_SPACING) * nb_actions / 2
+    -- Hack: int = text, string = icon
+    local icon = nil
+    local text = value
+    if type(value) == "string" then
+        icon = value
+        text = nil
+    end
+    local button = {
+        tag = "Button",
+        attributes = {
+            id = ACTION_DEFINITION[action].id .. value .. "_" .. player_color,
+            icon = icon,
+            iconColor = "#000000",
+            color = NOT_SELECTED_COLOR,
+            width = BUTTON_WIDTH,
+            height = BUTTON_HEIGHT,
+            text = text,
+            fontSize = 40,
+            onclick = "Action_value(" .. value .. ")",
+            position = pos_x .. " " .. pos_y .. " 0",
+            active = false,
+        },
+    }
+    return button
+end
+
+function Action.hide(player_color)
+    local action = Action.player[player_color]
+    if action ~= nil then
+        Action.player[player_color] = nil
+        self.UI.setAttribute(action .. "_" .. player_color, "color", NOT_SELECTED_COLOR)
+        Action.display_value(player_color, action, false)
+    end
+end
+
+function Action.display_actions(player, active)
+    for _, action in ipairs(ACTIONS) do
+        local id = ACTION_DEFINITION[action].id .. player.color
+        self.UI.setAttribute(id, "active", active)
+    end
+end
+
+function Action.display_value(player_color, action, active)
+    for _, value in ipairs(ACTION_DEFINITION[action].values) do
+        local id = ACTION_DEFINITION[action].id .. value .. "_" .. player_color
+        self.UI.setAttribute(id, "active", active)
+    end
+end
+
+-- Event
+function Action_toggle(player, action)
+    local old_action = Action.player[player.color]
+    if old_action ~= nil then
+        self.UI.setAttribute(ACTION_DEFINITION[old_action].id .. player.color, "color", NOT_SELECTED_COLOR)
+        Action.display_value(player.color, old_action, false)
+    end
+    if old_action ~= action then
+        Action.player[player.color] = action
+        self.UI.setAttribute(ACTION_DEFINITION[action].id .. player.color, "color", SELECTED_COLOR)
+        Action.display_value(player.color, action, true)
+    else
+        Action.player[player.color] = nil
+        Action.display_value(player.color, action, false)
+    end
+    Action.board_object.call("PlayerPanel_hide", { player.color })
+end
+
+function Action_miniature_select(player)
+    Action.selected_miniature[player.color] = nil
+    Action.hide(player.color)
+    Action.selection_update(player.color)
+    Action.board_object.call("PlayerPanel_hide", { player.color })
+end
+
+function Action_miniature_enter(player, guid)
+    local object = getObjectFromGUID(guid)
+    if object ~= nil then
+        object.highlightOn(player.color, 2)
+    end
+end
+
+function Action_miniature_exit(player, guid)
+    local object = getObjectFromGUID(guid)
+    if object ~= nil then
+        object.highlightOff(player.color)
+    end
+end
+
+function Action_miniature_click(player, guid)
+    print("selecting miniature: " .. guid)
+    Action.selected_miniature[player.color] = Action.miniatures[player.color][guid]
+    Action.selection_update(player.color)
+    Action.board_object.call("PlayerPanel_hide", { player.color })
+end
+
+function Action_value(player, value)
+    local action = Action.player[player.color]
+    if action == nil then
+        -- should not happen, error
+        print("ERROR no main action selected")
+    end
+    Action.hide(player.color)
+    local guid = Action.selected_miniature[player.color]["guid"]
+    print("Launch action: " .. action .. " with value: " .. value .. " for miniature: " .. guid)
+    Action.board_object.call("send_action", { player.color, guid, action, value })
+end
+
+return Action

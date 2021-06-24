@@ -80,6 +80,26 @@ function update_asset()
             name = "wait",
             url = "http://cloud-3.steamusercontent.com/ugc/1709660756464797837/C9469EFF30527C33F710F177812A5ED0044548AB/",
         },
+        {
+            name = "move",
+            url = "http://cloud-3.steamusercontent.com/ugc/1687143182119719173/40BD9D0FAFCC977D25FDA6426A9747A02E77C2A2/",
+        },
+        {
+            name = "safe_move",
+            url = "http://cloud-3.steamusercontent.com/ugc/1687143182119756010/058DF415FF2A4BD1A1AE18C44AF0C7E0D13A8940/",
+        },
+        {
+            name = "select",
+            url = "http://cloud-3.steamusercontent.com/ugc/1687143182120861091/A7475733CB84B74223635EA3278509090B2B00F2/",
+        },
+        {
+            name = "cone",
+            url = "http://cloud-3.steamusercontent.com/ugc/1687143182121660559/68E82E0E21B4DBDDCF9C39377448B0D067605418/",
+        },
+        {
+            name = "melee",
+            url = "http://cloud-3.steamusercontent.com/ugc/1687143182121667754/38B0D8AA27004259D33667A6996B3207682420D5/",
+        },
         --background detail
         {
             name = "monster_detail",
