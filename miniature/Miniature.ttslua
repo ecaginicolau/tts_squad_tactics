@@ -1,3 +1,5 @@
+require("tts_squad_tactics.common.Utils")
+
 local data = {
     x = 20,
     y = 20,
@@ -5,6 +7,11 @@ local data = {
 }
 
 local load_disabled = false
+
+-- Basic miniature data for the board, should containes much more
+owner = "Black"
+team = "Enemies"
+
 
 function onLoad(saved_data)
     if load_disabled == false and saved_data ~= "" then
@@ -31,6 +38,23 @@ function onLoad(saved_data)
         }
     }
     self.UI.setXmlTable({ position_panel })
+
+    -- we need to find the team and player that owns this miniature
+    -- try to read in GM Notes
+    local notes = self.getGMNotes()
+    if notes ~= nil and notes ~= "" then
+        local tab = split(notes, "|")
+        owner = tab[1]
+        -- if not set, set to Black by default
+        if owner == nil or owner == "" then
+            owner = "Black"
+        end
+        team = tab[2]
+        -- If not set, set to Enemies by default
+        if team == nil or team == "" then
+            team = "Enemies"
+        end
+    end
 end
 
 function updateSave()

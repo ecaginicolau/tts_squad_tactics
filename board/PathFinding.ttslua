@@ -6,7 +6,39 @@ PathFinding = {
     cache = {}
 }
 
-function PathFinding.calculate(guid)
+-- this help loops through all directions
+local list_direction = {
+    { 0, 1, false }, -- x, y, diagonal
+    { 1, 0, false }, -- x, y, diagonal
+    { 0, -1, false }, -- x, y, diagonal
+    { -1, 0, false }, -- x, y, diagonal
+    { 1, 1, true }, -- x, y, diagonal
+    { 1, -1, true }, -- x, y, diagonal
+    { -1, 1, true }, -- x, y, diagonal
+    { -1, -1, true }, -- x, y, diagonal
+}
+
+function PathFinding.check_hinder(guid, x, y)
+
+    -- if no team at this tile no need to go further
+    if #(Board.coordinate_team[y][x]) == 0 then
+        return false
+    end
+    local team = Board.miniatures[guid]["team"]
+    -- check if another team than this one if found in this tile
+    for _, other_team in ipairs(Board.coordinate_team[y][x]) do
+        if other_team ~= team then
+            return true
+        end
+    end
+    -- if nothing up to here it means only allies have been found
+    return false
+end
+
+function PathFinding.calculate(guid, nb_move)
+    if  nb_move == nil then
+        nb_move = Constant.MAX_MOVE
+    end
 
     -- This store the move cost for every tile
     local current_pathfinding = {}
@@ -19,18 +51,6 @@ function PathFinding.calculate(guid)
         end
     end
 
-    -- this help loops through all directions
-    local list_direction = {
-        { 0, 1, false }, -- x, y, diagonal
-        { 1, 0, false }, -- x, y, diagonal
-        { 0, -1, false }, -- x, y, diagonal
-        { -1, 0, false }, -- x, y, diagonal
-        { 1, 1, true }, -- x, y, diagonal
-        { 1, -1, true }, -- x, y, diagonal
-        { -1, 1, true }, -- x, y, diagonal
-        { -1, -1, true }, -- x, y, diagonal
-    }
-
     -- should try to make a coroutine somehow (not sure both recursive and coroutine)
     function calculate_rec(tile_x, tile_y, cost, diagonal)
         -- exit condition, out of the board, out of move
@@ -41,7 +61,8 @@ function PathFinding.calculate(guid)
         local tile_value = Board.data[tile_y][tile_x]
 
         -- exit condition, can't walk on this tile
-        if Constant[tile_value].move_cost == 0 then -- no move_cost = not walkable
+        if Constant[tile_value].move_cost == 0 then
+            -- no move_cost = not walkable
             return
         end
 
@@ -56,9 +77,18 @@ function PathFinding.calculate(guid)
         cost = cost + current_cost
 
         -- another exit condition, the cost is greater than the available move nb
-        if cost > Constant.MAX_MOVE then
+        if cost > nb_move then
             return
         end
+
+        -- make sure there is no other miniature hindering
+        if PathFinding.check_hinder(guid, tile_x, tile_y) then
+            -- set this as the last possible tile we can go
+            current_pathfinding[tile_y][tile_x] = nb_move
+            -- no need to continue from this tile
+            return
+        end
+
 
         -- If this path is faster than previously calculated path
         if current_pathfinding[tile_y][tile_x] > cost then
@@ -72,7 +102,7 @@ function PathFinding.calculate(guid)
     end
 
     -- Call the pathfinding at the starting position
-    local coordinate = Board.miniatures[guid]
+    local coordinate = Board.miniatures[guid]["coordinate"]
     calculate_rec(coordinate[1], coordinate[2], -1, false)
 
     PathFinding.cache[guid] = current_pathfinding

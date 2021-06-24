@@ -62,23 +62,14 @@ function board_initialization(data)
     -- create the board panel etc
     BoardPanel.create()
 
-    local line = {
-        points = { { 0, 0, 0 }, { 4, 0, 4 } },
-        color = { 1, 0, 0 },
-        thickness = 0.5,
-        rotation = { 0, 0, 0 },
-    }
-
-    LineDrawer.add_lines("test", { line }, "Red")
-    LineDrawer.refresh()
-
     -- find all miniature can't be called the same frame the board ui is created
     Wait.frames(find_miniature, 2)
 end
 
 function find_miniature()
-    Board.find_miniature()
-    for guid, coordinate in pairs(Board.miniatures) do
+    Board.find_miniatures()
+    for guid, miniature in pairs(Board.miniatures) do
+        local coordinate = miniature["coordinate"]
         PathFinding.calculate(guid)
         BoardPanel.display(coordinate[1], coordinate[2], true)
     end
@@ -93,9 +84,8 @@ function board_reset()
 end
 
 function board_save()
-    saved_data = JSON.encode_pretty(Board.data)
-    --print(saved_data)
-    self.script_state = saved_data
+    --self.script_state = JSON.encode_pretty(Board.data)
+    self.script_state = JSON.encode(Board.data)
     BoardPanel.create()
 end
 
@@ -105,25 +95,20 @@ function onObjectDrop(player_color, object)
         -- get the guid, faster since it will be used  few times
         local guid = object.getGUID()
 
-        -- test debug
+        -- test/debug
         picked_up_guid = nil
-        old_coordinate = { 99, 99 }
         picked_up_color = nil
+        old_coordinate = { 99, 99 }
 
         -- move the miniature on the board
         Board.move_miniature(object)
         -- Hide the PlayerPanel
         PlayerPanel.display(player_color, false)
         -- Calculate the Pathfinding of this miniature for next move
-        PathFinding.calculate(guid)
-
-        ---- send the new position to the miniature object.call("update_position", Board.miniatures[object.getGUID()])
+        --PathFinding.calculate(guid)
 
         -- update the miniature LoS
-        LoS.calculate(guid, Board.miniatures[object.getGUID()], player_color)
-
-        --picked_up_guid = nil
-        --picked_up_color = nil
+        LoS.calculate(guid, Board.miniatures[object.getGUID()]["coordinate"], player_color)
 
         ---- test cone
         --is_cone_displayed = true
@@ -139,8 +124,15 @@ function onObjectPickUp(player_color, object)
         picked_up_guid = object.getGUID()
         picked_up_color = player_color
 
+        local miniature = Board.miniatures[picked_up_guid]
+
+        -- calculate the pathfinding
+        PathFinding.calculate(picked_up_guid, 8)
+
         -- Show the pathfinding, at least for now until the buttons
         PlayerPanel.start_move(player_color, picked_up_guid, 8)
+
+        print("Moving miniature: " .. tostring(miniature["name"]) .."  owner: ".. tostring(miniature["owner"]))
 
     end
 end

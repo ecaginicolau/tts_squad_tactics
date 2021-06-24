@@ -7,12 +7,48 @@
 -- No local, make it a global
 Board = {}
 
+-- this help loops through all directions
+local hinder_direction = {
+    { 0, 0 },
+    { 0, 1 },
+    { 1, 0 },
+    { 0, -1 },
+    { -1, 0 },
+    { 1, 1 },
+    { 1, -1 },
+    { -1, 1 },
+    { -1, -1 },
+}
+
 function Board.setup(size_x, size_y, data)
     Board.size_x = size_x
     Board.size_y = size_y
     Board.data = data
     Board.miniatures = {}
+
+    Board.calculate_team()
     return Board
+end
+
+function Board.calculate_team()
+
+    Board.coordinate_team = {}
+    for y = 1, Board.size_y, 1 do
+        Board.coordinate_team[y] = {}
+        for x = 1, Board.size_x, 1 do
+            -- store a list of team
+            Board.coordinate_team[y][x] = {  }
+        end
+    end
+    for _, miniature in pairs(Board.miniatures) do
+        local coordinate = miniature["coordinate"]
+        for _, direction in ipairs(hinder_direction) do
+            local dx = coordinate[1] + direction[1]
+            local dy = coordinate[2] + direction[2]
+            -- insert in the list of team
+            table.insert(Board.coordinate_team[dy][dx], miniature["team"])
+        end
+    end
 end
 
 function Board.get_position(x, y)
@@ -144,19 +180,54 @@ function Board.next_value(value)
 end
 
 -- Find all miniatures in the current board
-function Board.find_miniature()
+function Board.find_miniatures()
     local list_miniature = getObjectsWithTag("miniature")
     Board.miniatures = {}
     for _, miniature in ipairs(list_miniature) do
-        Board.set_miniature_position(miniature)
+        Board.add_new_miniature(miniature)
     end
+    -- at the end calculate team influence
+    Board.calculate_team()
+end
+
+function Board.add_new_miniature(miniature)
+    local guid = miniature.getGUID()
+    -- get the miniature coordinate
+    local coordinate = Board.get_coordinate(miniature.getPosition())
+    -- get the miniature name
+    local name = miniature.getName()
+    -- get the miniature owner
+    local owner = miniature.getVar("owner")
+    -- get the miniature team
+    local team = miniature.getVar("team")
+    -- store the miniature inside the table
+    Board.miniatures[guid] = {
+        coordinate = coordinate,
+        guid = guid,
+        owner = owner,
+        team = team,
+        name = name,
+    }
+
 end
 
 function Board.set_miniature_position(miniature)
     -- get the coordinate on the board for this miniature
     local coordinate = Board.get_coordinate(miniature.getPosition())
+
     -- store the position of this miniature
-    Board.miniatures[miniature.getGUID()] = coordinate
+    local miniature_data = Board.miniatures[miniature.getGUID()]
+    if miniature_data == nil then
+        -- if it's the first time the miniature enter the board, add it to the board
+        Board.add_new_miniature(miniature)
+    else
+        -- update its coordinate
+        Board.miniatures[miniature.getGUID()]["coordinate"] = coordinate
+    end
+
+    -- Calculate new team hindering
+    Board.calculate_team()
+
     -- show the new tile
     BoardPanel.display(coordinate[1], coordinate[2], true)
 
@@ -166,7 +237,7 @@ end
 
 function Board.move_miniature(miniature)
     -- get the old coordinate of this miniature
-    local coordinate = Board.miniatures[miniature.getGUID()]
+    local coordinate = Board.miniatures[miniature.getGUID()]["coordinate"]
     if coordinate ~= nil then
         -- hide the old tile
         BoardPanel.display(coordinate[1], coordinate[2], false)

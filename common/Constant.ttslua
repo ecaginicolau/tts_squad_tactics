@@ -3,6 +3,13 @@
 
 
 Constant = {
+    -- not really a terrain but same structure
+    HINDER = {
+        color = "#FF9020", -- the tile color, both in the editor or the player panel
+        value = "HINDER", -- the value stored inside the board array (must be unique)
+        stoppable = true, -- can a character finish it's move on the tile
+        character = "\u{2610}", -- The character displayed in the Text Panel
+    },
 
     -- Terrains type
     HIDDEN = {
@@ -151,6 +158,8 @@ Constant = {
     DEFENSE_POSITIVE_COLOR = "#801212",
     DEFENSE_NEGATIVE_COLOR = "#128012",
 }
+
+HINDER_COLOR = "#FFFF50"
 
 -- Recreate the keys outside faster text input
 -- DEFENSE

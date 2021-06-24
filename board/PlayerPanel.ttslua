@@ -39,7 +39,7 @@ function PlayerPanel.create(player_color)
 end
 
 function PlayerPanel.start_move(player_color, guid, nb_move)
-    local coordinate = Board.miniatures[guid]
+    local coordinate = Board.miniatures[guid]["coordinate"]
     local pos_x = BoardPanel.tile_size_x * (coordinate[1] - 0.5) - BoardPanel.panel_x / 2
     local pos_y = BoardPanel.panel_y / 2 - BoardPanel.tile_size_y * (coordinate[2] - 0.5)
     local position = pos_x .. " " .. pos_y .. " -12"
@@ -70,7 +70,6 @@ function PlayerPanel.update_text(player_color, guid, nb_move, coordinate)
         end
         new_text = new_text .. line .. "\n"
     end
-    print(new_text)
     self.UI.setAttribute("Text_" .. player_color, "text", new_text)
 end
 
@@ -87,6 +86,16 @@ function PlayerPanel.tile_character(x, y, guid, nb_move)
     -- out of reach , no need to draw
     if PathFinding.cache[guid][y][x] > nb_move then
         return block_char(Constant.HIDDEN.character, 1, Constant.HIDDEN.color)
+    end
+
+    -- if the player can't stop there, display it's tile information
+    if not Constant[tile_value].stoppable then
+        return block_char(Constant[tile_value].character, 1, Constant[tile_value].color)
+    end
+
+    -- the player can move there, will it be hindered?
+    if PathFinding.check_hinder(guid, x, y) then
+        return block_char(Constant.HINDER.character, 1, Constant.HINDER.color)
     end
 
     return block_char(Constant[tile_value].character, 1, Constant[tile_value].color)

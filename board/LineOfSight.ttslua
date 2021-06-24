@@ -67,7 +67,8 @@ end
 function LoS.calculate(guid1, coordinate1, player_color)
     local list_line = {}
     function calculate_coroutine()
-        for guid2, coordinate2 in pairs(Board.miniatures) do
+        for guid2, miniature2 in pairs(Board.miniatures) do
+            local coordinate2 = miniature2["coordinate"]
             if guid1 ~= guid2 then
                 local visible = LoS.coordinate(coordinate1, coordinate2)
                 -- coroutine.yield(0)
