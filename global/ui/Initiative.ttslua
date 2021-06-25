@@ -324,6 +324,7 @@ end
 function Initiative_close()
     is_in_turn = false
     UI.refresh()
+    UI.board_object.call("Board_end_turn")
 end
 
 function Initiative_refresh(new_round)
@@ -344,6 +345,7 @@ function Initiative_new_round()
     UI.refresh()
     -- refresh the ui
     Wait.frames(Initiative.reset,2)
+    UI.board_object.call("Board_start_turn")
 end
 
 

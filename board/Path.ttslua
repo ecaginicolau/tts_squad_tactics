@@ -1,0 +1,114 @@
+local THRESHOLD = 0.01
+
+--- Package to move a miniature(or anything) along a path
+
+
+Path = {
+    miniatures = {}
+}
+
+function Path.start_path(guid, path, arrival_function)
+    -- try to get the speed from the miniature
+    local miniature = getObjectFromGUID(guid)
+    local speed = miniature.getVar("move_speed")
+    if speed == nil then
+        speed = 2
+    end
+
+    Path.miniatures[guid] = {
+        guid = guid,
+        path = path,
+        speed = speed,
+        arrival_function = arrival_function,
+    }
+    -- call the move animation if any
+    if #path <= 4 then
+        miniature.call("walk_start")
+    else
+        miniature.call("run_start")
+    end
+end
+
+function Path.continue()
+    for guid, _ in pairs(Path.miniatures) do
+        Path.continue_path(guid, path)
+    end
+end
+
+function Path.continue_path(guid)
+    local path_definition = Path.miniatures[guid]
+    if path_definition == nil then
+        -- this should not happen outside of test/debug
+        return
+    end
+    -- get the miniature
+    local miniature = getObjectFromGUID(guid)
+    -- get current position
+    local position = miniature.getPosition()
+    -- get next position in the path
+    local next_position = path_definition["path"][1] -- it's the first point in the list
+    -- check if there is a still a valid point to go to
+    if next_position == nil then
+        -- no next point, we arrived!
+        Path.end_path(guid)
+        -- no need to continue
+        return
+    end
+
+    -- 1st check if it's arrived at the position
+    local distance = Vector.distance(position, next_position)
+
+    if distance <= THRESHOLD then
+        -- the distance is too small, consider it reached
+
+        -- remove the first element
+        table.remove(path_definition["path"], 1)
+        -- don't continue, we can wait a frame in this position to avoid another calculation
+        miniature.setPosition(next_position)
+
+        -- rotate the miniature to the first coordinate
+        local path_position = path_definition["path"][1]
+        if path_position ~= nil then
+            local angle = angle_coordinate(Board.get_coordinate(next_position), Board.get_coordinate(path_position))
+            miniature.setRotationSmooth({ 0, angle, 0 })
+        end
+        -- continue next frame
+        return
+    end
+
+    -- calculate a normalized direction
+    local direction = (next_position - position):normalized()
+
+    -- calculate the movement for each frame (based on 60 fps)
+    local move_distance = path_definition["speed"] / 60.0
+
+    -- if the move_distance is greater than the distance we should only move the distance
+    if move_distance > distance then
+        move_distance = distance
+    end
+    -- apply the move distance to the direction
+    direction = direction:scale(move_distance)
+    -- the next position would be the current position + the scaled direction
+    next_position = position + direction
+    -- Set the miniature position
+    miniature.setPosition(next_position)
+
+end
+
+function Path.end_path(guid)
+    -- Launch the arrival function if any
+    local arrival_function = Path.miniatures[guid]["arrival_function"]
+    if arrival_function ~= nil then
+        arrival_function()
+    end
+
+    -- remove the path of this miniature
+    Path.miniatures[guid] = nil
+
+    -- call the idle animation if any
+    local miniature = getObjectFromGUID(guid)
+    miniature.call("walk_end")
+
+end
+
+return Path

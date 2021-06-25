@@ -157,7 +157,28 @@ Constant = {
     DEFENSE_NEUTRAL_COLOR = "#121212",
     DEFENSE_POSITIVE_COLOR = "#801212",
     DEFENSE_NEGATIVE_COLOR = "#128012",
+
+    -- List possible actions
+    SAFE_MOVE = "SAFE_MOVE",
+    MOVE = "MOVE",
+    ATTACK = "ATTACK",
+    -- list for easier loop
+    ACTIONS = { "SAFE_MOVE", "MOVE", "ATTACK" },
+
+    DIRECTIONS = {
+        { 0, 1, false }, -- x, y, diagonal
+        { 1, 0, false }, -- x, y, diagonal
+        { 0, -1, false }, -- x, y, diagonal
+        { -1, 0, false }, -- x, y, diagonal
+        { 1, 1, true }, -- x, y, diagonal
+        { 1, -1, true }, -- x, y, diagonal
+        { -1, 1, true }, -- x, y, diagonal
+        { -1, -1, true }, -- x, y, diagonal
+    }
+
 }
+
+
 
 HINDER_COLOR = "#FFFF50"
 

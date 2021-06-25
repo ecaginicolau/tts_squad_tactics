@@ -6,18 +6,6 @@ PathFinding = {
     cache = {}
 }
 
--- this help loops through all directions
-local list_direction = {
-    { 0, 1, false }, -- x, y, diagonal
-    { 1, 0, false }, -- x, y, diagonal
-    { 0, -1, false }, -- x, y, diagonal
-    { -1, 0, false }, -- x, y, diagonal
-    { 1, 1, true }, -- x, y, diagonal
-    { 1, -1, true }, -- x, y, diagonal
-    { -1, 1, true }, -- x, y, diagonal
-    { -1, -1, true }, -- x, y, diagonal
-}
-
 function PathFinding.check_hinder(guid, x, y)
 
     -- if no team at this tile no need to go further
@@ -56,7 +44,7 @@ function PathFinding.calculate(guid, nb_move, safe)
     -- should try to make a coroutine somehow (not sure both recursive and coroutine)
     function calculate_rec(tile_x, tile_y, cost, diagonal)
         -- exit condition, out of the board, out of move
-        if tile_x < 1 or tile_x > Board.size_x or tile_y < 1 or tile_y > Board.size_y then
+        if not Board.is_inside({tile_x, tile_y}) then
             return
         end
 
@@ -99,7 +87,7 @@ function PathFinding.calculate(guid, nb_move, safe)
             -- Store the new path cost
             current_pathfinding[tile_y][tile_x] = cost
             -- Continue this path in every directions
-            for _, direction in ipairs(list_direction) do
+            for _, direction in ipairs(Constant.DIRECTIONS) do
                 calculate_rec(tile_x + direction[1], tile_y + direction[2], cost, direction[3])
             end
         end

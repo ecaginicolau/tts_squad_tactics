@@ -85,10 +85,7 @@ end
 
 function LoS.see_through(x, y)
     -- 0 is invisible and 2 is blocked, both block line of sight
-    if x < 1 or x > Board.size_x then
-        return false
-    end
-    if y < 1 or y > Board.size_y then
+    if not Board.is_inside({x, y}) then
         return false
     end
 

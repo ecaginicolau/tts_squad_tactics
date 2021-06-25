@@ -1,8 +1,6 @@
 -- for debug
 is_cone_displayed = false
 
--- avoid calculating this every single time
-degree_to_radian = math.pi / 180.0
 
 -- debug/dev
 cone = {
@@ -94,33 +92,6 @@ function cone_display()
 
         -- highlight miniature inside the cone
         check_all_miniature_in_cone(angle)
-    end
-end
-
-function distance_coordinate(coordinate1, coordinate2)
-    local dx = coordinate1[1] - coordinate2[1]
-    local dy = coordinate1[2] - coordinate2[2]
-    return math.sqrt(dx * dx + dy * dy)
-end
-
-function angle_coordinate(coordinate1, coordinate2)
-    -- for now 0 is looking down
-    local angle = math.atan((coordinate1[1] - coordinate2[1]) / (coordinate1[2] - coordinate2[2])) / degree_to_radian
-    if coordinate1[2] - coordinate2[2] >= 0 then
-        angle = angle + 180.0
-    end
-    return angle
-end
-
-function angle_between_2_angles(angle, min_angle, max_angle)
-    -- make sure all angle are module 360
-    angle = angle % 360
-    min_angle = min_angle % 360
-    max_angle = max_angle % 360
-    if min_angle < max_angle then
-        return min_angle <= angle and angle <= max_angle
-    else
-        return min_angle <= angle or angle <= max_angle
     end
 end
 

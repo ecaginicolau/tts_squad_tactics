@@ -14,6 +14,8 @@ UI.characters[data["guid"]] = data
 UI.characters[data2["guid"]] = data2
 
 function UI.refresh()
+    UI.board_object = getObjectsWithTag("board")[1] -- for now let's suppose there is always one board
+
     local list_panel = {}
     -- global UI for all player
     table.insert(list_panel, Initiative.create())

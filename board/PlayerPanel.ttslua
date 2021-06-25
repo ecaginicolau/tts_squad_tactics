@@ -3,7 +3,9 @@
 --- Create and handle one panel for each player seated
 
 -- No local, make it a global
-PlayerPanel = {}
+PlayerPanel = {
+
+}
 
 function PlayerPanel.create(player_color)
     -- at creation no need to make complex coordinate
@@ -32,11 +34,48 @@ function PlayerPanel.create(player_color)
                     text = "",
                     fontSize = BoardPanel.tile_size_x,
                 }
+            },
+            {
+                tag = "Button",
+                attributes = {
+                    id = "PlayerPanel_button_" .. player_color,
+                    width = BoardPanel.tile_size_x * (Constant.MAX_MOVE * 2 + 2),
+                    height = BoardPanel.tile_size_y * (Constant.MAX_MOVE * 2 + 2),
+                    color = "#80808000",
+                    onclick = "PlayerPanel_click(" .. player_color .. ")",
+                    active = false,
+                }
             }
         }
     }
 
     return player_panel
+end
+
+function PlayerPanel_click(player, player_color)
+    -- The player color can be different if another player click on someone's panel by mistake
+    if player.color ~= player_color then
+        return
+    end
+    local coordinate = Board.get_coordinate(Player[player_color].getPointerPosition())
+
+    if Board.is_inside(coordinate) then
+        -- check if it's a stoppable tile
+        local tile_value = Board.data[coordinate[2]][coordinate[1]]
+        if Constant[tile_value].stoppable then
+            -- try to find the GUID
+            local action = Board.actions[player_color]
+            if action == nil then
+                return
+            end
+            local guid = action.guid
+            -- check it's a valid path
+            if PathFinding.cache[guid][coordinate[2]][coordinate[1]] ~= 99 then
+                -- Make Board move the miniature
+                Board.move_to(player_color, coordinate)
+            end
+        end
+    end
 end
 
 function PlayerPanel.start_move(player_color, guid, nb_move)
@@ -49,6 +88,14 @@ function PlayerPanel.start_move(player_color, guid, nb_move)
     PlayerPanel.update_text(player_color, guid, nb_move, coordinate)
     --
     PlayerPanel.display(player_color, true)
+
+    -- resize and activate the button to move
+    local attributes = {
+        width = BoardPanel.tile_size_x * (nb_move * 2 + 1),
+        height = BoardPanel.tile_size_y * (nb_move * 2 + 1),
+        active = true,
+    }
+    self.UI.setAttributes("PlayerPanel_button_" .. player_color, attributes)
 end
 
 function PlayerPanel.display(player_color, active)
@@ -76,7 +123,7 @@ end
 
 function PlayerPanel.tile_character(x, y, guid, nb_move)
     -- out of bounds, no need to draw
-    if x < 1 or x > Board.size_x or y < 1 or y > Board.size_y then
+    if not Board.is_inside({ x, y }) then
         return block_char(Constant.HIDDEN.character, 1, Constant.HIDDEN.color)
     end
 

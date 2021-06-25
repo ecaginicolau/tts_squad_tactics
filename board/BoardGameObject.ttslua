@@ -11,6 +11,7 @@ require("tts_squad_tactics.board.BoardPanel")
 require("tts_squad_tactics.board.PathFinding")
 require("tts_squad_tactics.board.LineOfSight")
 require("tts_squad_tactics.board.LineDrawer")
+require("tts_squad_tactics.board.Path")
 
 -- require("tts_squad_tactics.Cone")
 
@@ -27,7 +28,7 @@ local picked_up_guid
 local picked_up_color
 local old_coordinate = { 99, 99 }
 local wait_in_tile = 0
-
+local old_hover_coordinate = {}
 
 --Runs when game is loaded.
 function onLoad(saved_data)
@@ -142,19 +143,7 @@ function onObjectPickUp(player_color, object)
     end
 end
 
--- function called by Global UI
-function start_move(params)
-    local player_color = params["player_color"]
-    local guid = params["guid"]
-    local nb_move = tonumber(params["nb_move"])
-
-    -- calculate the pathfinding
-    PathFinding.calculate(guid, nb_move)
-
-    -- Display the Player panel under the miniature
-    PlayerPanel.start_move(player_color, guid, nb_move)
-end
-
+-- The action sent by the Global UI
 function send_action(params)
     local player_color = params[1]
     local guid = params[2]
@@ -163,29 +152,10 @@ function send_action(params)
     print("player_color: " .. player_color)
     print("guid: " .. guid)
     print("value: " .. value)
-    if action == "MOVE" then
-        local nb_move = tonumber(value)
-        -- calculate the pathfinding
-        PathFinding.calculate(guid, nb_move, false)
+    Board.start_action(player_color, guid, action, value)
 
-        -- Display the Player panel under the miniature
-        PlayerPanel.start_move(player_color, guid, nb_move)
-    end
-    if action == "SAFE_MOVE" then
-        local nb_move = tonumber(value)
-
-        -- calculate the pathfinding
-        PathFinding.calculate(guid, nb_move,true)
-
-        -- Display the Player panel under the miniature
-        PlayerPanel.start_move(player_color, guid, nb_move)
-    end
 end
 
-function PlayerPanel_hide(params)
-    player_color = params[1]
-    PlayerPanel.display(player_color, false)
-end
 
 -- Click events can't call a package function so make it an external function
 function change_tile(_, param)
@@ -195,7 +165,7 @@ function change_tile(_, param)
     BoardPanel.change_tile(x, y)
 end
 
-function onFixedUpdate()
+function onFixedUpdate() -- this is called 90 times per secondes, even if it's more than fps
     if picked_up_guid ~= nil then
         local object = getObjectFromGUID(picked_up_guid)
         local coordinate = Board.get_coordinate(object.getPosition(), false)
@@ -217,7 +187,37 @@ function onFixedUpdate()
             end
         end
     end
+
+
+
     --if is_cone_displayed then
     --    cone_display()
     --end
+end
+
+function onUpdate()
+    -- Check if a cursor need to display cover
+    for player_color, action in pairs(Board.actions) do
+        if action["action"] == Constant.MOVE or action["action"] == Constant.MOVE then
+            local coordinate = Board.get_coordinate(Player[player_color].getPointerPosition())
+            if old_hover_coordinate[player_color] == nil or old_hover_coordinate[player_color][1] ~= coordinate[1] or old_hover_coordinate[player_color][2] ~= coordinate[2] then
+                if old_hover_coordinate[player_color] ~= nil then
+                    BoardPanel.display(old_hover_coordinate[player_color][1], old_hover_coordinate[player_color][2], false)
+                end
+                if Board.is_inside(coordinate) then
+                    BoardPanel.display(coordinate[1], coordinate[2], true)
+                end
+                old_hover_coordinate[player_color] = coordinate
+            end
+
+        end
+    end
+
+    -- this is fps dependent, but enough
+    Path.continue()
+end
+
+function PlayerPanel_hide(params)
+    player_color = params[1]
+    PlayerPanel.display(player_color, false)
 end

@@ -1,4 +1,5 @@
 walk_animation = 1
+-- move_speed = 2
 function onPickUp()
     self.AssetBundle.playLoopingEffect(walk_animation)
 end
@@ -8,4 +9,17 @@ function onDrop()
     self.AssetBundle.playLoopingEffect(0)
     -- launch an attack for the LOL
     self.AssetBundle.playTriggerEffect(0)
+end
+
+function walk_start()
+    self.AssetBundle.playLoopingEffect(walk_animation)
+
+end
+
+function walk_end()
+    self.AssetBundle.playLoopingEffect(0)
+end
+
+function run_start()
+    self.AssetBundle.playLoopingEffect(2)
 end
