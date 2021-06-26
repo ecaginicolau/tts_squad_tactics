@@ -1,0 +1,60 @@
+-- Handle animation if animated
+
+Animated = {
+    -- The move speed for miniature
+    move_speed = 2,
+    --
+    is_animated = true,
+    walk_animation = 1,
+}
+
+function Animated.setup()
+    if self.AssetBundle ~= nil then
+        local looping = self.AssetBundle.getLoopingEffects()
+        -- start with a very basic check
+        if #looping == 0 then
+            Animated.is_animated = false
+        end
+    else
+        Animated.is_animated = false
+    end
+end
+
+function Animated.walk()
+    if Animated.is_animated then
+        self.AssetBundle.playLoopingEffect(Animated.walk_animation)
+    end
+end
+
+function Animated.onPickUp()
+    if Animated.is_animated then
+        self.AssetBundle.playLoopingEffect(Animated.walk_animation)
+    end
+end
+
+function Animated.onDrop()
+    if Animated.is_animated then
+        --  this animation doesn't have the time to run but it because the next default loop animation
+        self.AssetBundle.playLoopingEffect(0)
+        -- launch an attack for the LOL
+        self.AssetBundle.playTriggerEffect(0)
+    end
+end
+
+function Animated.walk_start()
+    if Animated.is_animated then
+        self.AssetBundle.playLoopingEffect(Animated.walk_animation)
+    end
+end
+
+function Animated.walk_end()
+    if Animated.is_animated then
+        self.AssetBundle.playLoopingEffect(0)
+    end
+end
+
+function Animated.run_start()
+    if Animated.is_animated then
+        self.AssetBundle.playLoopingEffect(2)
+    end
+end

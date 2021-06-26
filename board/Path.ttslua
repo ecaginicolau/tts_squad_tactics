@@ -80,7 +80,7 @@ function Path.continue_path(guid)
     local direction = (next_position - position):normalized()
 
     -- calculate the movement for each frame (based on 60 fps)
-    local move_distance = path_definition["speed"] / 60.0
+    local move_distance = path_definition["speed"] * Time.delta_time
 
     -- if the move_distance is greater than the distance we should only move the distance
     if move_distance > distance then

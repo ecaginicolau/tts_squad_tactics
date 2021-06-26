@@ -110,7 +110,7 @@ function Detail.create(player_color)
         tag = "Text",
         attributes = {
             id = "NAME_" .. player_color,
-            text = empty_data["NAME"],
+            text = empty_data[NAME],
             fontSize = 70,
             color = "#FFFFFF",
             position = "-66 170 0",
@@ -296,7 +296,7 @@ function Detail.update(player_color, guid)
         self.UI.setAttributes(defense .. "_" .. player_color, attributes)
     end
 
-    local list_text_change = { "NAME", "LEVEL" }
+    local list_text_change = { NAME, LEVEL }
 
     for _, text_change in ipairs(list_text_change) do
         self.UI.setAttribute(text_change .. "_" .. player_color, "text", character[text_change])

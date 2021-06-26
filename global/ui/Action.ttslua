@@ -150,7 +150,7 @@ function Action.miniature_select(player_color)
                     textAlignment = "MiddleLeft",
                     width = 400,
                     height = BUTTON_HEIGHT / 2,
-                    text = " " .. miniature["name"],
+                    text = " " .. miniature[NAME],
                     fontSize = 40,
                     onclick = "Action_miniature_click(" .. guid .. ")",
                     position = "0 " .. pos_y .. " 0",
@@ -171,7 +171,7 @@ function Action.selection_update(player_color)
     -- if a miniature is selected, changed it's name
     local text = SELECT_TEXT
     if Action.selected_miniature[player_color] ~= nil then
-        text = Action.selected_miniature[player_color].name
+        text = Action.selected_miniature[player_color].NAME
     end
     self.UI.setAttribute(id, "text", " " .. text)
     -- turn off list of miniature if one is selected

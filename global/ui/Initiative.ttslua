@@ -169,7 +169,7 @@ function Initiative.character(line_nb, character, waiting)
             fontSize = 30,
             position = -(LINE_WIDTH * 2 / 10) .. " " .. -(line_nb * LINE_HEIGHT) .. " 0",
             color = "Black",
-            text = "  " .. character["NAME"],
+            text = "  " .. character[NAME],
             alignment = "MiddleLeft",
         }
     }
@@ -317,7 +317,9 @@ function Initiative_mouse_exit(player, guid)
 end
 
 function Initiative_wait(player, guid)
+    -- need to send to the Board
     UI.characters[guid]["waited"] = not UI.characters[guid]["waited"]
+    UI.board_object.call("Board_update_miniature_data", { guid, "waited", UI.characters[guid]["waited"] })
     UI.refresh()
 end
 
@@ -338,19 +340,19 @@ function Initiative_new_round()
     is_in_turn = true
     -- make sure every character has both played and waited flag turned off
     for _, character in pairs(UI.characters) do
-        character["played"] = false
-        character["waited"] = false
+        UI.board_object.call("Board_update_miniature_data", { guid, "waited", false })
+        UI.board_object.call("Board_update_miniature_data", { guid, "played", false })
     end
     -- refresh the complete ui
     UI.refresh()
     -- refresh the ui
-    Wait.frames(Initiative.reset,2)
+    Wait.frames(Initiative.reset, 2)
     UI.board_object.call("Board_start_turn")
 end
 
-
 function Initiative_play(player, guid)
     UI.characters[guid]["played"] = not UI.characters[guid]["played"]
+    UI.board_object.call("Board_update_miniature_data", { guid, "played", UI.characters[guid]["played"] })
     UI.refresh()
 end
 

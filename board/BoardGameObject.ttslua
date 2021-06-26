@@ -138,7 +138,6 @@ function onObjectPickUp(player_color, object)
         -- Show the pathfinding, at least for now until the buttons
         --PlayerPanel.start_move(player_color, picked_up_guid, 8)
 
-        --print("Moving miniature: " .. tostring(miniature["name"]) .. "  owner: " .. tostring(miniature["owner"]))
 
     end
 end

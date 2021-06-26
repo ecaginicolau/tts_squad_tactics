@@ -6,7 +6,9 @@
 
 -- No local, make it a global
 Board = {
-    actions = {}
+    actions = {},
+    miniatures = {},
+    coordinate_team = {},
 }
 
 -- this help loops through all directions
@@ -207,31 +209,52 @@ function Board.add_new_miniature(miniature)
     local guid = miniature.getGUID()
     -- get the miniature coordinate
     local coordinate = Board.get_coordinate(miniature.getPosition())
-    -- get the miniature name
-    local name = miniature.getName()
-    -- get the miniature owner
-    local owner = miniature.getVar("owner")
-    -- get the miniature team
-    local team = miniature.getVar("team")
-    -- store the miniature inside the table
-    Board.miniatures[guid] = {
-        coordinate = coordinate,
-        guid = guid,
-        owner = owner,
-        team = team,
-        name = name,
-    }
 
+    local miniature_data = miniature.call("get_data")
+    ---- get the miniature name
+    --local name = data["NAME"]
+    ---- get the miniature owner
+    --local owner = data["owner"]
+    ---- get the miniature team
+    --local team = data["team"]
+    --print("guid: " .. tostring(guid) .. "name: " .. tostring(name) .. " owner: " .. tostring(owner) .. " team: " .. tostring(team))
+    local data = {}
+    --local list_keys = {"NAME", "owner", "team", "INITIATIVE"}
+    local list_keys = {}
+    for key, _ in pairs(miniature_data) do
+        --print(key)
+        table.insert(list_keys, key)
+    end
+
+    for _, key in pairs(list_keys) do
+        print(key)
+        print(type(miniature_data[key]))
+        if type(miniature_data[key]) == "table" then
+            data[key] = table.clone(miniature_data[key])
+        else
+            data[key] = miniature_data[key]
+        end
+    end
+
+    -- store the miniature inside the table
+    Board.miniatures[guid] = data
+    Board.miniatures[guid].coordinate = coordinate
+
+    print("Adding : " .. Board.miniatures[guid].NAME)
 end
 
 function Board.miniatures_color(player_color)
-    print("looking for miniature for color: " .. player_color)
+    print("looking for miniature for color: " .. tostring(player_color))
     local list_miniatures = {}
     for _, miniature in pairs(Board.miniatures) do
-        if miniature["owner"] == player_color then
+        if player_color == "All" or miniature["owner"] == player_color then
             table.insert(list_miniatures, miniature)
         end
     end
+    for i, miniature in ipairs(list_miniatures) do
+        print(i.. " name: " .. miniature.NAME)
+    end
+
     return list_miniatures
 end
 
@@ -444,6 +467,16 @@ function Board_end_turn()
             object.setLock(false)
         end
     end
+end
+
+-- Called by UI to update a miniature
+function Board_update_miniature_data(params)
+    local guid =  params[1]
+    local key =  params[2]
+    local value =  params[3]
+    print(key)
+    print(type(value))
+    Board.miniatures[guid][key] = value
 end
 
 return Board
