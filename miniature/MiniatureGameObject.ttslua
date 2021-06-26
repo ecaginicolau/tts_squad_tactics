@@ -1,0 +1,210 @@
+require("tts_squad_tactics.common.Utils")
+require("tts_squad_tactics.miniature.Animated")
+require("tts_squad_tactics.miniature.Miniature")
+
+local data = {
+    -- the position, mostly for debug
+    coordinate = { 20, 20 },
+    -- will link to the board
+    board = nil,
+    -- the owner of this miniature
+    owner = "Black",
+    team = "Enemies",
+    -- miniature stats
+    NAME = "Name",
+    LEVEL = 14,
+    TAGS = { "Mob", "Boss", "Mecanique", "Humain" },
+    -- defenses
+    IMPACT = 10,
+    FIRE = 4,
+    ELECTRIC = 0,
+    BLIGHT = 0,
+    COLD = -12,
+    -- stats
+    EVASION = 14,
+    IDENTIFICATION = 12,
+    HATE = 2,
+    INITIATIVE = 14,
+    -- other
+    max_hp = 140,
+    current_hp = 40,
+    guid = "86e3b2",
+    -- some status
+    identified = false,
+    played = false,
+    waited = false,
+    -- Is this miniature a player (Calculate Hate)
+    player = false,
+
+    -- UI
+    ui_height = -150
+}
+
+-- for debug/test
+local load_disabled = true
+
+-- Toggle if the data is visible or not
+local data_visible = false
+--Color information for button text (r,g,b, values of 0-1)
+buttonFontColor = { 0, 0, 0 }
+--Color information for button background
+buttonColor = { 1, 1, 1 }
+--Change scale of button (Avoid changing if possible)
+local buttonScale = { 0.15, 0.15, 0.15 }
+-- Store the link between input count and input name
+local input_link = {}
+local spawnedInputCount = 0
+
+function updateSave()
+    local saved_data = JSON.encode(Miniature.data)
+    self.script_state = saved_data
+end
+
+-- Events
+function onLoad(saved_data)
+    if load_disabled == false and saved_data ~= "" then
+        local loaded_data = JSON.decode(saved_data)
+        data = loaded_data
+    end
+
+    -- Initialize
+    Miniature.setup(data)
+    Animated.setup()
+
+    if RandomCharacter ~= nil then
+        RandomCharacter.setup()
+    end
+    local position =  Miniature.data["coordinate"][1] .. ":" .. Miniature.data["coordinate"][2]
+    local position_panel = {
+        tag = "Panel",
+        attributes = {
+            position = "0 0 " .. Miniature.data.ui_height,
+            rotation = "90 0 180",
+            scale = "0.1 0.1 0.1"
+        },
+        children = {
+            {
+                tag = "Text",
+                attributes = {
+                    id = "position",
+                    text = position,
+                    fontSize = "300",
+                    color = "#801212",
+                },
+            }
+        }
+    }
+    self.UI.setXmlTable({ position_panel })
+
+    local value = JSON.encode_pretty(Miniature.data)
+    local funcName = "textbox" .. spawnedInputCount
+    local func = function(_, _, val, sel)
+        click_textbox("data", val, sel)
+    end
+    self.setVar(funcName, func)
+
+    self.createInput({
+        input_function = funcName,
+        function_owner = self,
+        label = "",
+        alignment = 2, -- Left
+        position = { 0.5, 0.1, 8.2 },
+        scale = { 0, 0, 0 },
+        width = 30000,
+        height = 40000,
+        font_size = 2000,
+        color = buttonColor,
+        font_color = buttonFontColor,
+        value = value,
+        interactable = false
+    })
+    input_link["data"] = spawnedInputCount
+    spawnedInputCount = spawnedInputCount + 1
+
+    -- Add the context menu for edition
+    self.addContextMenuItem("Edit", edit)
+
+end
+
+function edit()
+    data_visible = not data_visible
+    -- The input makes the miniature falls... Lock to be able to edit
+    self.setLock(data_visible)
+    local value = JSON.encode_pretty(Miniature.data)
+
+    if data_visible then
+        self.editInput({ index = input_link["data"], scale = buttonScale, value = value })
+    else
+        self.editInput({ index = input_link["data"], scale = { 0, 0, 0 }, value = value })
+    end
+end
+
+function onPickUp()
+    Animated.onPickUp()
+end
+
+function onDrop()
+    Animated.onDrop()
+end
+
+-- UI
+function create_input(name, value, pos, font_size, width)
+
+    local funcName = "textbox" .. spawnedInputCount
+    local func = function(_, _, val, sel)
+        click_textbox(name, val, sel)
+    end
+    self.setVar(funcName, func)
+
+    self.createInput({
+        input_function = funcName,
+        function_owner = self,
+        label = name,
+        alignment = 2, -- Left
+        position = pos,
+        scale = buttonScale,
+        width = width,
+        height = font_size + 24,
+        font_size = font_size,
+        color = buttonColor,
+        font_color = buttonFontColor,
+        value = value,
+    })
+    input_link[name] = spawnedInputCount
+
+    -- increase the button count
+    spawnedInputCount = spawnedInputCount + 1
+end
+
+--Updates saved value for given text box
+function click_textbox(name, value, selected)
+    if selected == false then
+        data = JSON.decode(value)
+        Miniature.data = data
+        updateSave()
+    end
+end
+
+
+-- Calls
+function update_position(coordinate)
+    Miniature.data["coordinate"] = coordinate
+    self.UI.setAttribute("position", "text", Miniature.data["coordinate"][1] .. ":" .. Miniature.data["coordinate"][2])
+    updateSave()
+end
+
+function walk_start()
+    Animated.walk_start()
+end
+
+function walk_end()
+    Animated.walk_end()
+end
+
+function run_start()
+    Animated.run_start()
+end
+
+function get_data()
+    return Miniature.data
+end

@@ -1,70 +1,49 @@
-require("tts_squad_tactics.common.Utils")
-
-local data = {
-    x = 20,
-    y = 20,
-    board_guid = "892585"
+-- Basic functions of every miniature
+Miniature = {
+    data = {}, -- should never contains Game Object, since it needs to be serialized
+    board_object = nil, -- not really useful, but add to pycharm structure
 }
 
-local load_disabled = false
+function Miniature.setup(data)
+    -- Setup from the data
+    Miniature.data = data
 
--- Basic miniature data for the board, should containes much more
-owner = "Black"
-team = "Enemies"
+    -- make sure to update the guid
+    Miniature.data.guid = self.getGUID()
 
+    -- make sure to update the guid
+    Miniature.data.NAME = self.getName()
 
-function onLoad(saved_data)
-    if load_disabled == false and saved_data ~= "" then
-        local loaded_data = JSON.decode(saved_data)
-        data = loaded_data
-    end
+    -- Find the board
+    Miniature.find_board()
 
-    local position = data["x"] .. ":" .. data["y"]
+    -- Parse the GM Notes, get the owner and the Team right now
+    Miniature.parseGMNotes()
+end
 
-    local position_panel = {
-        tag = "Panel",
-        attributes = {
-            position = "0 0 -51",
-        },
-        children = {
-            {
-                tag = "Text",
-                attributes = {
-                    id = "position",
-                    text = position,
-                    fontSize = "30",
-                },
-            }
-        }
-    }
-    self.UI.setXmlTable({ position_panel })
+function Miniature.find_board()
+    -- Quick lookup
+    Miniature.board_object = getObjectsWithTag("board")[1]
+    Miniature.data.board_guid = Miniature.board_object.getGUID()
+end
 
+function Miniature.parseGMNotes()
     -- we need to find the team and player that owns this miniature
     -- try to read in GM Notes
     local notes = self.getGMNotes()
     if notes ~= nil and notes ~= "" then
         local tab = split(notes, "|")
-        owner = tab[1]
+        Miniature.data.owner = tab[1]
         -- if not set, set to Black by default
-        if owner == nil or owner == "" then
-            owner = "Black"
+        if Miniature.data.owner == nil or Miniature.data.owner == "" then
+            Miniature.data.owner = "Black"
         end
-        team = tab[2]
+        Miniature.data.team = tab[2]
         -- If not set, set to Enemies by default
-        if team == nil or team == "" then
-            team = "Enemies"
+        if Miniature.data.team == nil or Miniature.data.team == "" then
+            Miniature.data.team = "Enemies"
         end
     end
 end
 
-function updateSave()
-    saved_data = JSON.encode(data)
-    self.script_state = saved_data
-end
-
-function update_position(param)
-    data["x"] = param[1]
-    data["y"] = param[2]
-    self.UI.setAttribute("position", "text", data["x"] .. ":" .. data["y"])
-    updateSave()
-end
+return Miniature

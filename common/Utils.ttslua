@@ -1,3 +1,6 @@
+-- avoid calculating this every single time
+degree_to_radian = math.pi / 180.0
+
 function split (input_str, sep)
     if sep == nil then
         sep = "%s"
@@ -41,4 +44,44 @@ function table.count(tab)
         count = count + 1
     end
     return count
+end
+
+function table.reverse(t)
+    local n = #t
+    local i = 1
+    while i < n do
+        t[i], t[n] = t[n], t[i]
+        i = i + 1
+        n = n - 1
+    end
+end
+
+
+
+function distance_coordinate(coordinate1, coordinate2)
+    local dx = coordinate1[1] - coordinate2[1]
+    local dy = coordinate1[2] - coordinate2[2]
+    return math.sqrt(dx * dx + dy * dy)
+end
+
+function angle_coordinate(coordinate1, coordinate2)
+    -- for now 0 is looking down
+    local angle = math.atan((coordinate1[1] - coordinate2[1]) / (coordinate1[2] - coordinate2[2])) / degree_to_radian
+    angle =  - angle
+    if coordinate1[2] - coordinate2[2] < 0 then
+        angle =  angle + 180
+    end
+    return angle
+end
+
+function angle_between_2_angles(angle, min_angle, max_angle)
+    -- make sure all angle are module 360
+    angle = angle % 360
+    min_angle = min_angle % 360
+    max_angle = max_angle % 360
+    if min_angle < max_angle then
+        return min_angle <= angle and angle <= max_angle
+    else
+        return min_angle <= angle or angle <= max_angle
+    end
 end

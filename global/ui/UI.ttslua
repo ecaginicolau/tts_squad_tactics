@@ -10,10 +10,24 @@ UI = {
 -- debug
 require("tts_squad_tactics.CharacterDebug")
 
-UI.characters[data["guid"]] = data
-UI.characters[data2["guid"]] = data2
+--UI.characters[data["guid"]] = data
+--UI.characters[data2["guid"]] = data2
 
 function UI.refresh()
+    UI.board_object = getObjectsWithTag("board")[1] -- for now let's suppose there is always one board
+
+    local list_miniatures = UI.board_object.call("Board_miniatures_color", {"All"})
+    if list_miniatures == nil then
+        list_miniatures = {}
+    end
+
+    print("received characters: " .. #list_miniatures)
+    -- need to rework in dictionary
+    UI.character = {}
+    for _, miniature in ipairs(list_miniatures) do
+        UI.characters[miniature["guid"]] = miniature
+    end
+
     local list_panel = {}
     -- global UI for all player
     table.insert(list_panel, Initiative.create())

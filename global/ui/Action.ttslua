@@ -36,10 +36,8 @@ local ACTION_DEFINITION = {
     },
 }
 
--- give the order of the actions + easier loop
-local ACTIONS = { "SAFE_MOVE", "MOVE", "ATTACK" }
 
-for i, action in ipairs(ACTIONS) do
+for i, action in ipairs(Constant.ACTIONS) do
     ACTION_DEFINITION[action].index = i
 end
 
@@ -47,14 +45,13 @@ local SELECT_TEXT = " Selectionner"
 local SELECT_ICON = "select"
 
 function Action.create(player_color)
-    Action.board_object = getObjectsWithTag("board")[1] -- for now let's suppose there is always one board
 
     Action.player[player_color] = nil
 
     -- get the list of miniature for this player in the board
     Action.miniatures[player_color] = {}
     -- Get the list of miniature for this color in the board
-    local list_miniatures = Action.board_object.call("Board_miniatures_color", { player_color })
+    local list_miniatures = UI.board_object.call("Board_miniatures_color", { player_color })
     -- convert to dictionary
     for _, miniature in ipairs(list_miniatures) do
         Action.miniatures[player_color][miniature["guid"]] = miniature
@@ -87,7 +84,7 @@ function Action.create(player_color)
 
     table.insert(panel["children"], Action.miniature_select(player_color))
 
-    for _, action in ipairs(ACTIONS) do
+    for _, action in ipairs(Constant.ACTIONS) do
         table.insert(panel["children"], Action.button_action(player_color, action))
         for _, value in ipairs(ACTION_DEFINITION[action].values) do
             table.insert(panel["children"], Action.button_value(player_color, action, value))
@@ -97,7 +94,7 @@ function Action.create(player_color)
 end
 
 function Action.miniature_select(player_color)
-    local nb_actions = #ACTIONS
+    local nb_actions = #(Constant.ACTIONS)
     local pos_x = -150 - (BUTTON_WIDTH + BUTTON_SPACING) * nb_actions / 2
     local text = SELECT_TEXT
     local pos_y = 0
@@ -153,7 +150,7 @@ function Action.miniature_select(player_color)
                     textAlignment = "MiddleLeft",
                     width = 400,
                     height = BUTTON_HEIGHT / 2,
-                    text = " " .. miniature["name"],
+                    text = " " .. miniature[NAME],
                     fontSize = 40,
                     onclick = "Action_miniature_click(" .. guid .. ")",
                     position = "0 " .. pos_y .. " 0",
@@ -174,7 +171,7 @@ function Action.selection_update(player_color)
     -- if a miniature is selected, changed it's name
     local text = SELECT_TEXT
     if Action.selected_miniature[player_color] ~= nil then
-        text = Action.selected_miniature[player_color].name
+        text = Action.selected_miniature[player_color].NAME
     end
     self.UI.setAttribute(id, "text", " " .. text)
     -- turn off list of miniature if one is selected
@@ -183,7 +180,7 @@ function Action.selection_update(player_color)
         self.UI.setAttribute(id, "active", Action.selected_miniature[player_color] == nil)
     end
     -- turn on the action button is one is selected
-    for _, action in ipairs(ACTIONS) do
+    for _, action in ipairs(Constant.ACTIONS) do
         id = ACTION_DEFINITION[action].id .. player_color
         self.UI.setAttribute(id, "active", Action.selected_miniature[player_color] ~= nil)
     end
@@ -192,7 +189,7 @@ end
 function Action.button_action(player_color, action)
     local pos_y = 0
     local index = ACTION_DEFINITION[action].index
-    local nb_actions = #ACTIONS
+    local nb_actions = #(Constant.ACTIONS)
     local pos_x = (BUTTON_WIDTH + BUTTON_SPACING) * index - (BUTTON_WIDTH + BUTTON_SPACING) * nb_actions / 2
     local active = false
     if Action.selected_miniature[player_color] ~= nil then
@@ -265,7 +262,7 @@ function Action.hide(player_color)
 end
 
 function Action.display_actions(player, active)
-    for _, action in ipairs(ACTIONS) do
+    for _, action in ipairs(Constant.ACTIONS) do
         local id = ACTION_DEFINITION[action].id .. player.color
         self.UI.setAttribute(id, "active", active)
     end
@@ -293,14 +290,14 @@ function Action_toggle(player, action)
         Action.player[player.color] = nil
         Action.display_value(player.color, action, false)
     end
-    Action.board_object.call("PlayerPanel_hide", { player.color })
+    UI.board_object.call("PlayerPanel_hide", { player.color })
 end
 
 function Action_miniature_select(player)
     Action.selected_miniature[player.color] = nil
     Action.hide(player.color)
     Action.selection_update(player.color)
-    Action.board_object.call("PlayerPanel_hide", { player.color })
+    UI.board_object.call("PlayerPanel_hide", { player.color })
 end
 
 function Action_miniature_enter(player, guid)
@@ -321,7 +318,7 @@ function Action_miniature_click(player, guid)
     print("selecting miniature: " .. guid)
     Action.selected_miniature[player.color] = Action.miniatures[player.color][guid]
     Action.selection_update(player.color)
-    Action.board_object.call("PlayerPanel_hide", { player.color })
+    UI.board_object.call("PlayerPanel_hide", { player.color })
 end
 
 function Action_value(player, value)
@@ -333,7 +330,7 @@ function Action_value(player, value)
     Action.hide(player.color)
     local guid = Action.selected_miniature[player.color]["guid"]
     print("Launch action: " .. action .. " with value: " .. value .. " for miniature: " .. guid)
-    Action.board_object.call("send_action", { player.color, guid, action, value })
+    UI.board_object.call("send_action", { player.color, guid, action, value })
 end
 
 return Action

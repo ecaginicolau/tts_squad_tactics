@@ -5,7 +5,11 @@
 
 
 -- No local, make it a global
-Board = {}
+Board = {
+    actions = {},
+    miniatures = {},
+    coordinate_team = {},
+}
 
 -- this help loops through all directions
 local hinder_direction = {
@@ -25,14 +29,17 @@ function Board.setup(size_x, size_y, data)
     Board.size_y = size_y
     Board.data = data
     Board.miniatures = {}
+    -- will store ongoing action by player_color
+    Board.actions = {}
+    Board.coordinate_team = {}
 
     Board.calculate_team()
     return Board
 end
 
 function Board.calculate_team()
-
     Board.coordinate_team = {}
+
     for y = 1, Board.size_y, 1 do
         Board.coordinate_team[y] = {}
         for x = 1, Board.size_x, 1 do
@@ -45,8 +52,10 @@ function Board.calculate_team()
         for _, direction in ipairs(hinder_direction) do
             local dx = coordinate[1] + direction[1]
             local dy = coordinate[2] + direction[2]
-            -- insert in the list of team
-            table.insert(Board.coordinate_team[dy][dx], miniature["team"])
+            if Board.is_inside({ dx, dy }) then
+                -- insert in the list of team
+                table.insert(Board.coordinate_team[dy][dx], miniature["team"])
+            end
         end
     end
 end
@@ -85,7 +94,7 @@ function Board.get_position_relative(x, y)
 end
 
 function Board.get_cover_status_face(x, y, face)
-    local direction = Constant.DIRECTION[face]
+    local direction = Constant.DIRECTIONS[face]
     local dx = direction[1] + x
     local dy = direction[2] + y
     return Board.get_cover_status(x, y, dx, dy)
@@ -94,11 +103,10 @@ end
 -- this function return an integer, 0 : no cover, 1 semi cover, 2 full cover
 function Board.get_cover_status(x1, y1, x2, y2)
     -- make sure both coordinate are inside the board
-    if 1 > x1 or x1 > Board.size_x or 1 > y1 or y1 > Board.size_y then
+    if not Board.is_inside({ x1, y1 }) then
         return 0
     end
-
-    if 1 > x2 or x2 > Board.size_x or 1 > y2 or y2 > Board.size_y then
+    if not Board.is_inside({ x2, y2 }) then
         return 0
     end
     -- they are in the board, handle value
@@ -148,6 +156,13 @@ function Board.get_coordinate(position, rounded)
     return { pos_x, pos_y }
 end
 
+function Board.is_inside(coordinate)
+    if coordinate[1] < 1 or coordinate[1] > Board.size_x or coordinate[2] < 1 or coordinate[2] > Board.size_y then
+        return false
+    end
+    return true
+end
+
 function Board.create_snap_points()
     local bounds = self.getBoundsNormalized()
     local size = bounds['size']
@@ -194,23 +209,217 @@ function Board.add_new_miniature(miniature)
     local guid = miniature.getGUID()
     -- get the miniature coordinate
     local coordinate = Board.get_coordinate(miniature.getPosition())
-    -- get the miniature name
-    local name = miniature.getName()
-    -- get the miniature owner
-    local owner = miniature.getVar("owner")
-    -- get the miniature team
-    local team = miniature.getVar("team")
+
+    local miniature_data = miniature.call("get_data")
+    ---- get the miniature name
+    --local name = data["NAME"]
+    ---- get the miniature owner
+    --local owner = data["owner"]
+    ---- get the miniature team
+    --local team = data["team"]
+    --print("guid: " .. tostring(guid) .. "name: " .. tostring(name) .. " owner: " .. tostring(owner) .. " team: " .. tostring(team))
+    local data = {}
+    --local list_keys = {"NAME", "owner", "team", "INITIATIVE"}
+    local list_keys = {}
+    for key, _ in pairs(miniature_data) do
+        --print(key)
+        table.insert(list_keys, key)
+    end
+
+    for _, key in pairs(list_keys) do
+        print(key)
+        print(type(miniature_data[key]))
+        if type(miniature_data[key]) == "table" then
+            data[key] = table.clone(miniature_data[key])
+        else
+            data[key] = miniature_data[key]
+        end
+    end
+
     -- store the miniature inside the table
-    Board.miniatures[guid] = {
-        coordinate = coordinate,
+    Board.miniatures[guid] = data
+    Board.miniatures[guid].coordinate = coordinate
+
+    print("Adding : " .. Board.miniatures[guid].NAME)
+end
+
+function Board.miniatures_color(player_color)
+    print("looking for miniature for color: " .. tostring(player_color))
+    local list_miniatures = {}
+    for _, miniature in pairs(Board.miniatures) do
+        if player_color == "All" or miniature["owner"] == player_color then
+            table.insert(list_miniatures, miniature)
+        end
+    end
+    for i, miniature in ipairs(list_miniatures) do
+        print(i.. " name: " .. miniature.NAME)
+    end
+
+    return list_miniatures
+end
+
+function Board_miniatures_color(params)
+    return Board.miniatures_color(params[1])
+end
+
+function Board.start_action(player_color, guid, action, value)
+    -- Store the current action for the player
+    Board.actions[player_color] = {
+        action = action,
         guid = guid,
-        owner = owner,
-        team = team,
-        name = name,
+        value = value,
     }
+    print(action)
+    -- Check action type, both MOVE and SAFE_MOVE are similar
+    if action == Constant.MOVE or action == Constant.SAFE_MOVE then
+        print("Start action")
+        local nb_move = tonumber(value)
+        local safe = action == Constant.SAFE_MOVE
+        Board.move_start(player_color, guid, nb_move, safe)
+    end
+end
+
+
+-- Start of the move action
+function Board.move_start(player_color, guid, nb_move, safe)
+    -- calculate the pathfinding
+    PathFinding.calculate(guid, nb_move, safe)
+
+    -- Display the Player panel under the miniature
+    PlayerPanel.start_move(player_color, guid, nb_move)
+end
+
+function Board.move_to(player_color, coordinate)
+    -- Hide the PlayerPanel
+    PlayerPanel.display(player_color, false)
+    -- We received an move to command, need to find which miniature was moving
+    local action = Board.actions[player_color]
+    if action == nil then
+        print("ERROR: no action started")
+        return
+    end
+
+    local guid = action.guid
+    local miniature = getObjectFromGUID(guid)
+    local current_position = miniature.getPosition()
+    local next_position = Board.get_position(coordinate[1], coordinate[2])
+
+    -- we need to replace the Y component
+    next_position[2] = current_position[2]
+
+    -- Get the path
+    local path_coordinates = Board.find_path(guid, coordinate)
+    if path_coordinates ~= nil then
+        -- move the miniature along the path
+        -- convert to position path
+        local path = {}
+        for _, path_coordinate in ipairs(path_coordinates) do
+            local path_position = Board.get_position(path_coordinate[1], path_coordinate[2])
+            -- make sure to always set the y position to the miniature  position
+            path_position[2] = current_position[2]
+            -- insert into the position path
+            table.insert(path, path_position)
+        end
+
+        -- rotate the miniature to the first coordinate
+        local angle = angle_coordinate(path_coordinates[1], coordinate)
+        miniature.setRotationSmooth({ 0, angle, 0 })
+
+        -- store the fact that the miniture is moving inside the action
+        action.is_moving = true
+        action.destination = coordinate
+
+        local end_move_func = function()
+            Board.move_end(player_color, guid)
+        end
+
+        Path.start_path(guid, path, end_move_func)
+    else
+        print("no valid path, teleport")
+        miniature.setPosition(next_position)
+        -- End the move
+        Board.move_end(player_color, guid)
+    end
 
 end
 
+function Board.is_moving(player_color)
+    local action = Board.actions[player_color]
+    if action == nil then
+        return false
+    end
+    if action.is_moving == nil then
+        return false
+    end
+    -- check if the miniature is moving
+    local miniature = getObjectFromGUID(action["guid"])
+    return miniature.isSmoothMoving()
+end
+
+function Board.find_path(guid, coordinate)
+    local x = coordinate[1]
+    local y = coordinate[2]
+    local cost = PathFinding.cache[guid][y][x]
+    -- if it's an impossible coordinate no need to look for a path
+    if cost == 99 then
+        return nil
+    end
+    local path = { coordinate }
+    while cost > 0 do
+        local min_cost = cost
+        local next_coordinate = { x, y }
+        -- look in every direction which tile is the cheapest to move to, for the shortest path
+        for _, direction in ipairs(Constant.DIRECTIONS) do
+            local dx = x + direction[1]
+            local dy = y + direction[2]
+            if Board.is_inside({ dx, dy }) then
+                if PathFinding.cache[guid][dy][dx] < min_cost then
+                    min_cost = PathFinding.cache[guid][dy][dx]
+                    next_coordinate = { dx, dy }
+                end
+            end
+        end
+        -- check if we moved
+        if cost == min_cost then
+            -- We didn't move! error
+            return nil
+        end
+        -- here we found the cheapest path, at it to the list
+        table.insert(path, next_coordinate)
+        -- prepare for next iteration
+        cost = min_cost
+        x = next_coordinate[1]
+        y = next_coordinate[2]
+    end
+    -- reverse the path
+    table.reverse(path)
+    -- return the path
+    return path
+end
+
+function Board.move_end(player_color, guid)
+    print("Board.move_end")
+    local miniature = getObjectFromGUID(guid)
+    -- move the miniature on the board
+    Board.move_miniature(miniature)
+    -- Hide the PlayerPanel
+    PlayerPanel.display(player_color, false)
+    -- end the action
+    Board.actions[player_color] = nil
+end
+
+function Board.move_miniature(miniature)
+    -- get the old coordinate of this miniature
+    local coordinate = Board.miniatures[miniature.getGUID()]["coordinate"]
+    if coordinate ~= nil then
+        -- hide the old tile
+        BoardPanel.display(coordinate[1], coordinate[2], false)
+    end
+    -- move the miniature in its final position
+    Board.set_miniature_position(miniature)
+end
+
+-- What should happen when the coordinate of a miniature change in the board
 function Board.set_miniature_position(miniature)
     -- get the coordinate on the board for this miniature
     local coordinate = Board.get_coordinate(miniature.getPosition())
@@ -235,31 +444,39 @@ function Board.set_miniature_position(miniature)
     miniature.call("update_position", coordinate)
 end
 
-function Board.move_miniature(miniature)
-    -- get the old coordinate of this miniature
-    local coordinate = Board.miniatures[miniature.getGUID()]["coordinate"]
-    if coordinate ~= nil then
-        -- hide the old tile
-        BoardPanel.display(coordinate[1], coordinate[2], false)
-    end
-    -- move the miniature in its final position
-    Board.set_miniature_position(miniature)
 
-end
-
-function Board.miniatures_color(player_color)
-    print("looking for miniature for color: " .. player_color)
-    local list_miniatures = {}
+-- start and end turn events
+function Board_start_turn()
     for guid, miniature in pairs(Board.miniatures) do
-        if miniature["owner"] == player_color then
-            table.insert(list_miniatures,miniature)
+        local object = getObjectFromGUID(guid)
+        if object ~= nil then
+            local position = Board.get_position(miniature["coordinate"][1], miniature["coordinate"][2])
+            local current_position = object.getPosition()
+            -- transfer the Y component
+            position[2] = current_position[2]
+            object.setPosition(position)
+            object.setLock(true)
         end
     end
-    return list_miniatures
 end
 
-function Board_miniatures_color(params)
-    return Board.miniatures_color(params[1])
+function Board_end_turn()
+    for guid, _ in pairs(Board.miniatures) do
+        local object = getObjectFromGUID(guid)
+        if object ~= nil then
+            object.setLock(false)
+        end
+    end
+end
+
+-- Called by UI to update a miniature
+function Board_update_miniature_data(params)
+    local guid =  params[1]
+    local key =  params[2]
+    local value =  params[3]
+    print(key)
+    print(type(value))
+    Board.miniatures[guid][key] = value
 end
 
 return Board
