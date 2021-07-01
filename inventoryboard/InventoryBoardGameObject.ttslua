@@ -1,0 +1,34 @@
+require("tts_squad_tactics.common.Constant")
+require("tts_squad_tactics.common.Utils")
+require("tts_squad_tactics.inventoryboard.InventoryBoard")
+
+--Startup procedure
+function onLoad(saved_data)
+    Wait.frames(function()
+        InventoryBoard.init()
+    end, 30)
+
+end
+
+function onDestroy()
+    if InventoryBoard.scripting_guid ~= nil then
+        local object = getObjectFromGUID(InventoryBoard.scripting_guid)
+        destroyObject(object)
+    end
+end
+
+
+-- Update data when cards are changed
+function onCollisionEnter()
+    InventoryBoard.compute_armors()
+    InventoryBoard.compute_weapon(1)
+    InventoryBoard.compute_weapon(2)
+end
+
+function onCollisionExit()
+    Wait.frames(function()
+        InventoryBoard.compute_armors()
+        InventoryBoard.compute_weapon(1)
+        InventoryBoard.compute_weapon(2)
+    end, 10)
+end

@@ -1,8 +1,6 @@
 --------------------------------------
 --- This is the main file for the board object type
 --- Contains GameObjects event and functions that needs to be called by externally
-
-
 require("tts_squad_tactics.common.Utils")
 require("tts_squad_tactics.common.Constant")
 require("tts_squad_tactics.global.ui.UI")
@@ -16,14 +14,18 @@ board_guid = "892585"
 miniature_guid = "558418"
 
 function onLoad()
-    --[[ print('onLoad!') --]]
-    print("Global loaded")
     update_asset()
+    Wait.frames(function()
+        UI.refresh()
+    end, 10)
 
-    print("Create the UI")
+end
+
+function onPlayerChangeColor(_)
     UI.refresh()
 end
 
-function onPlayerChangeColor(color)
-    UI.refresh()
+function UI_update_miniatures(params)
+    local player_color = params[1]
+    UI.update_miniatures(player_color)
 end

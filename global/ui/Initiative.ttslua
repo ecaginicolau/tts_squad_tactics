@@ -161,7 +161,7 @@ function Initiative.character(line_nb, character, waiting)
         }
     }
     -- The name
-    line[#line + 1] = {
+    table.insert(line, {
         tag = "Text",
         attributes = {
             width = LINE_WIDTH * 6 / 10,
@@ -172,7 +172,7 @@ function Initiative.character(line_nb, character, waiting)
             text = "  " .. character[NAME],
             alignment = "MiddleLeft",
         }
-    }
+    })
 
     -- Current hp
     local percentage = (character["current_hp"] * 100) / character["max_hp"]
@@ -181,7 +181,7 @@ function Initiative.character(line_nb, character, waiting)
         current_hp = character["current_hp"] .. " / " .. character["max_hp"]
     end
 
-    line[#line + 1] = {
+    table.insert(line, {
         tag = "Text",
         attributes = {
             width = LINE_WIDTH * 2 / 10,
@@ -191,9 +191,9 @@ function Initiative.character(line_nb, character, waiting)
             color = "Black",
             text = current_hp
         }
-    }
+    })
 
-    line[#line + 1] = {
+    table.insert(line, {
         tag = "ProgressBar",
         attributes = {
             width = LINE_WIDTH * 2 / 10,
@@ -204,9 +204,9 @@ function Initiative.character(line_nb, character, waiting)
             fillImageColor = "#801212",
             color = "#444444",
         }
-    }
+    })
     -- Attack button
-    line[#line + 1] = {
+    table.insert(line, {
         tag = "Button",
         attributes = {
             id = character["guid"],
@@ -220,10 +220,10 @@ function Initiative.character(line_nb, character, waiting)
             icon = "attack",
             iconColor = "#444444",
         }
-    }
+    })
 
     -- Detail button
-    line[#line + 1] = {
+    table.insert(line, {
         tag = "Button",
         attributes = {
             id = character["guid"],
@@ -237,12 +237,12 @@ function Initiative.character(line_nb, character, waiting)
             icon = "detail",
             iconColor = "#444444",
         }
-    }
+    })
 
     -- Wait button
     -- only display the wait button it the player has not played and is not waiting
     if not character["played"] and (not character["waited"] or waiting) then
-        line[#line + 1] = {
+        table.insert(line, {
             tag = "Button",
             attributes = {
                 width = LINE_WIDTH / 10,
@@ -255,7 +255,7 @@ function Initiative.character(line_nb, character, waiting)
                 icon = "wait",
                 iconColor = "#444444",
             }
-        }
+        })
     end
     return line
 end
@@ -277,7 +277,7 @@ function Initiative.init()
     -- right now it doesn't differentiate player and monster, it should one day
     Initiative.list_initiative = {}
     -- loop through all characters
-    for _, character in pairs(UI.characters) do
+    for _, character in pairs(UI.miniatures) do
         -- Get the initiative as a string, because otherwise it would make a list
         local init = tostring(character[INITIATIVE])
         -- add the character at this initiative
@@ -316,10 +316,10 @@ function Initiative_mouse_exit(player, guid)
     end
 end
 
-function Initiative_wait(player, guid)
+function Initiative_wait(_, guid)
     -- need to send to the Board
-    UI.characters[guid]["waited"] = not UI.characters[guid]["waited"]
-    UI.board_object.call("Board_update_miniature_data", { guid, "waited", UI.characters[guid]["waited"] })
+    UI.miniatures[guid]["waited"] = not UI.miniatures[guid]["waited"]
+    UI.board_object.call("Board_update_miniature_data", { guid, "waited", UI.miniatures[guid]["waited"] })
     UI.refresh()
 end
 
@@ -329,7 +329,7 @@ function Initiative_close()
     UI.board_object.call("Board_end_turn")
 end
 
-function Initiative_refresh(new_round)
+function Initiative_refresh()
     Initiative.reset()
     -- refresh the complete ui
     UI.refresh()
@@ -339,7 +339,7 @@ function Initiative_new_round()
     -- make sure the game is currently playing
     is_in_turn = true
     -- make sure every character has both played and waited flag turned off
-    for _, character in pairs(UI.characters) do
+    for guid, _ in pairs(UI.miniatures) do
         UI.board_object.call("Board_update_miniature_data", { guid, "waited", false })
         UI.board_object.call("Board_update_miniature_data", { guid, "played", false })
     end
@@ -350,9 +350,9 @@ function Initiative_new_round()
     UI.board_object.call("Board_start_turn")
 end
 
-function Initiative_play(player, guid)
-    UI.characters[guid]["played"] = not UI.characters[guid]["played"]
-    UI.board_object.call("Board_update_miniature_data", { guid, "played", UI.characters[guid]["played"] })
+function Initiative_play(_, guid)
+    UI.miniatures[guid]["played"] = not UI.miniatures[guid]["played"]
+    UI.board_object.call("Board_update_miniature_data", { guid, "played", UI.miniatures[guid]["played"] })
     UI.refresh()
 end
 

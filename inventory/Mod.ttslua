@@ -1,0 +1,74 @@
+-- The armor data
+
+layout = {
+    name = {
+        pos = { -0.2, 0.3, -1.28 },
+        font_size = 500,
+        value = "name",
+        color = { 0, 0, 0 },
+    },
+    tag1 = {
+        pos = { 0.3, 0.3, -0.89 },
+        font_size = 320,
+        value = "tag1",
+        color = { 0, 0, 0 },
+    },
+    tag2 = {
+        pos = { 0.78, 0.3, -0.89 },
+        font_size = 320,
+        value = "tag2",
+        color = { 0, 0, 0 },
+    },
+    rank = {
+        pos = { 0.85, 0.3, -1.28 },
+        font_size = 600,
+        value = "rank",
+        color = { 0, 0, 0 },
+    },
+    DAMAGE = {
+        pos = { 0.4, 0.3, -0.13 },
+        font_size = 600,
+        value = DAMAGE,
+        color = { 0, 0, 0 },
+    },
+    AMMO = {
+        pos = { 0.85, 0.3, -0.13 },
+        font_size = 600,
+        value = AMMO,
+        color = { 0, 0, 0 },
+    },
+    ACCURACY = {
+        pos = { 0.4, 0.3, 0.25 },
+        font_size = 600,
+        value = ACCURACY,
+        color = { 0, 0, 0 },
+    },
+    RANGE = {
+        pos = { 0.85, 0.3, 0.25 },
+        font_size = 600,
+        value = RANGE,
+        color = { 0, 0, 0 },
+    },
+
+    value = {
+        pos = { 0.92, 0.3, 1.4 },
+        font_size = 400,
+        value = "value",
+        color = { 0, 0, 0 },
+    },
+}
+
+decals = {
+    CHANGE_TYPE = {
+        pos = { -0.89, 0.5, -0.52 },
+        scale = { 0.18, 0.18, 0.18 },
+    },
+    ADD_TYPE = {
+        pos = { -0.42, 0.5, -0.52 },
+        scale = { 0.18, 0.18, 0.18 },
+    },
+}
+
+description_position = { 0, 0.3, 0.95 }
+description_width = 6000
+description_height = 2700

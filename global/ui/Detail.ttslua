@@ -65,9 +65,9 @@ function Detail.create(player_color)
             rectAlignment = "UpperLeft",
             scale = "0.5 0.5 0.5",
             rotation = "0 0 0",
-            showAnimation = "FadeIn",
-            hideAnimation = "FadeOut",
-            color = "#AAAAAA",
+            --showAnimation = "FadeIn",
+            --hideAnimation = "FadeOut",
+            --color = "#AAAAAA",
             allowDragging = true,
             returnToOriginalPositionWhenReleased = false,
             restrictDraggingToParentBounds = false,
@@ -257,35 +257,47 @@ function Detail.create(player_color)
     return panel
 end
 
-function Detail.update(player_color, guid)
-    local character = UI.characters[guid]
+function Detail.update_all()
+    for player_color, guid in pairs(Detail.player) do
+        Detail.update(player_color, guid)
+    end
+end
 
-    local percentage = math.tointeger((character["current_hp"] * 100.0) / character["max_hp"])
+function Detail.update(player_color, guid)
+    local miniature = UI.miniatures[guid]
+
+    -- check if the current miniature is considered identified, Black see all
+    local is_identified = miniature["identified"]
+    if player_color == "Black" then
+        is_identified = true
+    end
+
+    local percentage = math.tointeger((miniature["current_hp"] * 100.0) / miniature["max_hp"])
     -- hp display
     local hp_display = tostring(percentage) .. "%"
-    if character["identified"] then
-        hp_display = character["current_hp"] .. " / " .. character["max_hp"]
+    if is_identified then
+        hp_display = miniature["current_hp"] .. " / " .. miniature["max_hp"]
     end
 
     local def_color = {}
     local def_value = {}
 
-    if not character["identified"] then
+    if not is_identified then
         for _, defense in ipairs(Constant.DEFENSES) do
             def_color[defense] = Constant.DEFENSE_NEUTRAL_COLOR
             def_value[defense] = '?'
         end
     else
         for _, defense in ipairs(Constant.DEFENSES) do
-            if character[defense] < 0 then
+            if miniature[defense] < 0 then
                 def_color[defense] = Constant.DEFENSE_NEGATIVE_COLOR
-            elseif character[defense] > 0 then
+            elseif miniature[defense] > 0 then
                 def_color[defense] = Constant.DEFENSE_POSITIVE_COLOR
             else
                 -- == 0
                 def_color[defense] = Constant.DEFENSE_NEUTRAL_COLOR
             end
-            def_value[defense] = character[defense]
+            def_value[defense] = miniature[defense]
         end
     end
     for _, defense in ipairs(Constant.DEFENSES) do
@@ -299,15 +311,15 @@ function Detail.update(player_color, guid)
     local list_text_change = { NAME, LEVEL }
 
     for _, text_change in ipairs(list_text_change) do
-        self.UI.setAttribute(text_change .. "_" .. player_color, "text", character[text_change])
+        self.UI.setAttribute(text_change .. "_" .. player_color, "text", miniature[text_change])
     end
 
-    for i, tag in ipairs(character.TAGS) do
+    for i, tag in ipairs(miniature.TAGS) do
         self.UI.setAttribute("tag" .. i .. "_" .. player_color, "text", tag)
     end
 
     for _, text_change in ipairs(Constant.STATS) do
-        self.UI.setAttribute(text_change .. "_" .. player_color, "text", character[text_change])
+        self.UI.setAttribute(text_change .. "_" .. player_color, "text", miniature[text_change])
     end
 
     self.UI.setAttribute("percentage_" .. player_color, "percentage", percentage)
@@ -335,7 +347,12 @@ end
 
 function Detail.identify(player)
     local guid = Detail.player[player.color]
-    UI.characters[guid]["identified"] = not UI.characters[guid]["identified"]
+    UI.miniatures[guid]["identified"] = not UI.miniatures[guid]["identified"]
+    local miniature = getObjectFromGUID(guid)
+    miniature.call("update_data", { identified = UI.miniatures[guid]["identified"] })
+    -- send to the board, need to fix this mess
+    UI.board_object.call("Board_update_miniature_data", { guid, "identified", UI.miniatures[guid]["identified"] })
+
     Detail.update(player.color, guid)
 end
 

@@ -7,7 +7,18 @@ PlayerPanel = {
 
 }
 
+-- We create some Unity buttons, so few data needs to be store
+local input_id = 0  -- the next id of the button (incremented each time)
+local input = {} -- input by player_color
+local BUTTON_SIZE = 60 -- magic number for a tile ? strange
+
 function PlayerPanel.create(player_color)
+    -- setup the BUTTON SIZE, seems to be relative to tile_size, not sure why
+    BUTTON_SIZE = BoardPanel.tile_size_x / 2
+
+    -- reset input_id
+    input_id = 0
+
     -- at creation no need to make complex coordinate
     local player_panel = {
         tag = "Panel",
@@ -18,7 +29,6 @@ function PlayerPanel.create(player_color)
             height = BoardPanel.tile_size_x * (Constant.MAX_MOVE * 2 + 2),
             width = BoardPanel.tile_size_x * (Constant.MAX_MOVE * 2 + 2),
             position = "0 0 0",
-            --position = "0 0 -14",
             rotation = "0 0 0",
             active = "false",
             visibility = player_color,
@@ -34,31 +44,43 @@ function PlayerPanel.create(player_color)
                     text = "",
                     fontSize = BoardPanel.tile_size_x,
                 }
-            },
-            {
-                tag = "Button",
-                attributes = {
-                    id = "PlayerPanel_button_" .. player_color,
-                    width = BoardPanel.tile_size_x * (Constant.MAX_MOVE * 2 + 2),
-                    height = BoardPanel.tile_size_y * (Constant.MAX_MOVE * 2 + 2),
-                    color = "#80808000",
-                    onclick = "PlayerPanel_click(" .. player_color .. ")",
-                    active = false,
-                }
             }
         }
     }
-
+    PlayerPanel.create_button(player_color)
     return player_panel
 end
 
-function PlayerPanel_click(player, player_color)
+function PlayerPanel.create_button(player_color)
+    local funcName = "PlayerPanel_click" .. player_color
+    local func = function(obj, color, alt_click)
+        PlayerPanel_click(obj, color, alt_click, player_color)
+    end
+    self.setVar(funcName, func)
+
+    self.createButton({
+        label = "", click_function = funcName, function_owner = self,
+        position = { 0, 0.15, 0 },
+        height = BUTTON_SIZE * 5,
+        width = BUTTON_SIZE * 5,
+        --color = { 1, 0, 0, 0.5 },
+        color = { 0, 0, 0, 0.0 },
+        scale = { 0, 0, 0 },
+    })
+    input[player_color] = input_id -- store the button id for the player
+    input_id = input_id + 1 -- don't forget to increment
+end
+
+function PlayerPanel_click(_, color, alt_click, player_color)
     -- The player color can be different if another player click on someone's panel by mistake
-    if player.color ~= player_color then
+    if color ~= player_color then
+        return
+    end
+    if alt_click then
         return
     end
     local coordinate = Board.get_coordinate(Player[player_color].getPointerPosition())
-
+    print("coordinate: " .. coordinate[1] .. ":" .. coordinate[2])
     if Board.is_inside(coordinate) then
         -- check if it's a stoppable tile
         local tile_value = Board.data[coordinate[2]][coordinate[1]]
@@ -73,6 +95,8 @@ function PlayerPanel_click(player, player_color)
             if PathFinding.cache[guid][coordinate[2]][coordinate[1]] ~= 99 then
                 -- Make Board move the miniature
                 Board.move_to(player_color, coordinate)
+                -- Hide the button
+                self.editButton({ index = input[player_color], scale = { 0, 0, 0 } })
             end
         end
     end
@@ -86,16 +110,18 @@ function PlayerPanel.start_move(player_color, guid, nb_move)
     self.UI.setAttribute("PlayerPanel_" .. player_color, "position", position)
     -- update the text
     PlayerPanel.update_text(player_color, guid, nb_move, coordinate)
-    --
+    -- Display the text panel
     PlayerPanel.display(player_color, true)
 
     -- resize and activate the button to move
-    local attributes = {
-        width = BoardPanel.tile_size_x * (nb_move * 2 + 1),
-        height = BoardPanel.tile_size_y * (nb_move * 2 + 1),
-        active = true,
-    }
-    self.UI.setAttributes("PlayerPanel_button_" .. player_color, attributes)
+    local button_position = Board.get_position_relative(coordinate[1], coordinate[2])
+    self.editButton({
+        index = input[player_color],
+        position = button_position,
+        width = BUTTON_SIZE * (nb_move * 2 + 1),
+        height = BUTTON_SIZE * (nb_move * 2 + 1),
+        scale = { 1, 1, 1 }
+    })
 end
 
 function PlayerPanel.display(player_color, active)

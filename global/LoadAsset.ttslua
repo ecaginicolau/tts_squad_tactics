@@ -104,6 +104,8 @@ function update_asset()
         {
             name = "monster_detail",
             url = "http://cloud-3.steamusercontent.com/ugc/1709660756465799627/DCE015A67697B87FFB51FA66037FC4242D50EE61/",
+            --url = "http://cloud-3.steamusercontent.com/ugc/1687143729670041705/49A0156EFED68BE0728648D157A3816C4C293318/",
+
         },
 
 
@@ -125,8 +127,8 @@ function update_asset()
             modified = true
         end
     end
-    print("Imported new Custom ui Asset")
     if modified then
+        print("Imported new Custom ui Asset")
         self.UI.setCustomAssets(new_asset)
     end
 end

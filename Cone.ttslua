@@ -95,31 +95,3 @@ function cone_display()
     end
 end
 
-function check_all_miniature_in_cone()
-    local center_coordinate = dic_miniature_position[cone["guid"]]
-
-    for guid, coordinate in pairs(dic_miniature_position) do
-        -- check if itself is inside the cone
-        if guid ~= cone["guid"] then
-            -- get the object, make sure it exist
-            local object = getObjectFromGUID(guid)
-            if object ~= nil then
-                -- fight turn off the highlight
-                object.highlightOff({ 1, 0, 0 })
-                -- first find distance
-                local distance = distance_coordinate(center_coordinate, coordinate)
-                -- if the distance is good, then check the angle
-                if distance < cone["distance"] + 0.3 then
-                    -- add a small value to help get partial tile
-                    -- calculate the angle
-                    local guid_angle = angle_coordinate(center_coordinate, coordinate)
-                    -- make sure it's inside the cone
-                    if angle_between_2_angles(guid_angle, cone["pointing_angle"] - cone["angle"], cone["pointing_angle"] + cone["angle"]) then
-                        -- highlight on
-                        object.highlightOn({ 1, 0, 0 })
-                    end
-                end
-            end
-        end
-    end
-end

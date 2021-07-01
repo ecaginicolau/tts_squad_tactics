@@ -1,0 +1,88 @@
+-- The armor data
+
+layout = {
+    name = {
+        pos = { -0.175, 0.3, -1.3 },
+        font_size = 300,
+        value = "name",
+        color = { 0, 0, 0 },
+    },
+    tag1 = {
+        pos = { -0.72, 0.3, -1.08 },
+        font_size = 200,
+        value = "tag1",
+        color = { 0, 0, 0 },
+    },
+    tag2 = {
+        pos = { -0.233, 0.3, -1.08 },
+        font_size = 200,
+        value = "tag2",
+        color = { 0, 0, 0 },
+    },
+    tag3 = {
+        pos = { 0.233, 0.3, -1.08 },
+        font_size = 200,
+        value = "tag3",
+        color = { 0, 0, 0 },
+    },
+    --tag4 = {
+    --  pos = {0.73 , 0.3,-1.08},
+    --  font_size = 200,
+    --  value = "tag4",
+    --  color = {0,0,0},
+    --},
+    rank = {
+        pos = { 0.8, 0.3, -1.31 },
+        font_size = 400,
+        value = "rank",
+        color = { 0, 0, 0 },
+    },
+    INITIATIVE = {
+        pos = { 0.8, 0.3, -1.08 },
+        font_size = 400,
+        value = INITIATIVE,
+        color = { 0, 0, 0 },
+    },
+    IMPACT = {
+        pos = { 0.8, 0.3, -0.86 },
+        font_size = 400,
+        value = IMPACT,
+        color = { 0, 0, 0 },
+    },
+    FIRE = {
+        pos = { 0.8, 0.3, -0.63 },
+        font_size = 400,
+        value = FIRE,
+        color = { 0, 0, 0 },
+    },
+    COLD = {
+        pos = { 0.8, 0.3, -0.40 },
+        font_size = 400,
+        value = COLD,
+        color = { 0, 0, 0 },
+    },
+    ELECTRIC = {
+        pos = { 0.8, 0.3, -0.17 },
+        font_size = 400,
+        value = ELECTRIC,
+        color = { 0, 0, 0 },
+    },
+    BLIGHT = {
+        pos = { 0.8, 0.3, 0.06 },
+        font_size = 400,
+        value = BLIGHT,
+        color = { 0, 0, 0 },
+    },
+    value = {
+        pos = { 0.92, 0.3, 1.4 },
+        font_size = 400,
+        value = "value",
+        color = { 0, 0, 0 },
+    },
+}
+
+decals = {}
+
+description_position = { 0, 0.3, 0.78 }
+description_width = 5500
+description_height = 3500

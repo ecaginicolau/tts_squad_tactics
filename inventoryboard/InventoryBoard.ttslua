@@ -1,0 +1,187 @@
+InventoryBoard = {
+    zones = {},
+    miniature = nil,
+    board_object = nil,
+    player_color = nil,
+}
+
+function InventoryBoard.init()
+    InventoryBoard.create_scripting_zones()
+
+    -- Get player color from note from now
+    InventoryBoard.player_color = self.getGMNotes()
+    -- find the board
+    InventoryBoard.board_object = getObjectsWithTag("board")[1] -- for now let's suppose there is always one board
+
+    local list_miniatures = InventoryBoard.board_object.call("Board_miniatures_color", { InventoryBoard.player_color })
+    if #list_miniatures == 1 then
+        InventoryBoard.miniature = getObjectFromGUID(list_miniatures[1]["guid"])
+    end
+    -- compute armors cards
+    InventoryBoard.compute_armors()
+end
+
+local zones = {
+    scripting_weapon1 = {
+        position = Vector.new(1.21, 0.1, -1.25),
+        scale = Vector.new(0.84, 0.2, 1.35),
+    },
+    scripting_weapon2 = {
+        position = Vector.new(0.40, 0.1, -1.25),
+        scale = Vector.new(0.75, 0.2, 1.35),
+    },
+    scripting_mod1 = {
+        position = Vector.new(1.21, 0.1, 0.73),
+        scale = Vector.new(0.84, 0.2, 2.54),
+    },
+    scripting_mod2 = {
+        position = Vector.new(0.40, 0.1, 0.73),
+        scale = Vector.new(0.75, 0.2, 2.54),
+    },
+    scripting_armor = {
+        position = Vector.new(-0.826421, 0.1, 0),
+        scale = Vector.new(1.68, 0.2, 4.00),
+    },
+}
+
+local list_summable_data = { IMPACT, FIRE, COLD, ELECTRIC, BLIGHT, AMMO, DAMAGE, ACCURACY, RANGE }
+
+function InventoryBoard.create_scripting_zones()
+    local scale = self.getScale()[1] --  only need one scale dimension since token can't truly be scaled
+
+    for zone_name, zone_definition in pairs(zones) do
+        local position = self.positionToWorld(zone_definition["position"])
+        local zone_scale = zone_definition["scale"] * scale
+        zone_scale[2] = zone_definition["scale"][2] --  no need to resize this dimension
+
+        local list_obj = getObjectsByName(zone_name .. "_" .. self.getGUID())
+        local zone
+        if #list_obj >= 1 then
+            zone = list_obj[1]
+            -- Change position, scale and rotation of the zone
+            zone.setPosition(position)
+            zone.setScale(zone_scale)
+            zone.setRotation(self.getRotation())
+            InventoryBoard.zones[zone_name] = zone
+            zone.setName(zone_name .. "_" .. self.getGUID())
+
+        else
+            zone = spawnObject({
+                type = "ScriptingTrigger",
+                position = position,
+                scale = zone_scale,
+                sound = false,
+                rotation = self.getRotation(),
+                callback_function = function(scripting_zone)
+                    InventoryBoard.scripting_zone_callback(scripting_zone, zone_name)
+                end
+            })
+        end
+    end
+end
+
+function InventoryBoard.scripting_zone_callback(scripting_zone, zone_name)
+    -- store information
+    InventoryBoard.zones[zone_name] = scripting_zone
+    -- give it a name
+    scripting_zone.setName(zone_name .. "_" .. self.getGUID())
+end
+
+function InventoryBoard.compute_armors()
+    local zone_name = "scripting_armor"
+    -- if the zone are not initialized yet, just exit
+    if InventoryBoard.zones[zone_name] == nil then
+        return false
+    end
+    -- sum all summable data from all armor's cards
+    local data_sum = {}
+    for _, key in ipairs(list_summable_data) do
+        data_sum[key] = 0
+    end
+    -- get the list of cards in the zone
+    local list_card = InventoryBoard.zones[zone_name].getObjects()
+    -- get the data for every cards
+    for _, card_info in ipairs(list_card) do
+        local card = getObjectFromGUID(card_info["guid"])
+        local data = card.getTable("data")
+        if data ~= nil then
+            for _, key in ipairs(list_summable_data) do
+                if data[key] ~= nil then
+                    data_sum[key] = data_sum[key] + data[key]
+                end
+            end
+
+        end
+    end
+
+    -- send to the miniature if it's linked
+    if InventoryBoard.miniature ~= nil then
+        -- send data to the miniature
+        InventoryBoard.miniature.call("update_data", data_sum)
+        -- ask the board to reload the miniature data
+        InventoryBoard.board_object.call("Board_update_miniature", { InventoryBoard.miniature.getGUID() })
+        -- refresh a part of the UI
+        Global.call("UI_update_miniatures", { InventoryBoard.player_color })
+    end
+end
+
+function InventoryBoard.compute_weapon(slot)
+    local zone_name = "scripting_mod" .. slot
+    -- if the zone are not initialized yet, just exit
+    if InventoryBoard.zones[zone_name] == nil then
+        return false
+    end
+    -- sum all summable data from all armor's cards
+    local mods = {}
+
+    for _, key in ipairs(list_summable_data) do
+        mods[key] = 0
+    end
+    -- Damage type may need to change or be added
+
+    -- get the list of cards in the zone
+    local list_card = InventoryBoard.zones[zone_name].getObjects()
+    -- get the data for every cards
+    for _, card_info in ipairs(list_card) do
+        -- the name here is the type of the object
+        if card_info.name == "CardCustom" then
+            local card = getObjectFromGUID(card_info["guid"])
+            local data = card.call("get_data", {})
+            if data ~= nil then
+                for _, key in ipairs(list_summable_data) do
+                    if data[key] ~= nil then
+                        mods[key] = mods[key] + data[key]
+                    end
+                end
+                if data["CHANGE_TYPE"] ~= nil then
+                    mods["CHANGE_TYPE"] = data["CHANGE_TYPE"]
+                end
+                if data["ADD_TYPE"] ~= nil then
+                    mods["ADD_TYPE"] = data["ADD_TYPE"]
+                end
+            end
+        end
+    end
+
+
+    -- Need to get the weapon in the slot
+    local list_weapons = InventoryBoard.zones["scripting_weapon" .. slot].getObjects()
+    for _, weapon_info in ipairs(list_weapons) do
+        if weapon_info.name == "CardCustom" then
+            local weapon = getObjectFromGUID(weapon_info.guid)
+            weapon.call("update_mod", mods)
+        end
+    end
+
+    ---- send to the miniature if it's linked
+    --if InventoryBoard.miniature ~= nil then
+    --    -- send data to the miniature
+    --    InventoryBoard.miniature.call("update_data", data_sum)
+    --    -- ask the board to reload the miniature data
+    --    InventoryBoard.board_object.call("Board_update_miniature", { InventoryBoard.miniature.getGUID() })
+    --    -- refresh a part of the UI
+    --    Global.call("UI_update_miniatures", { InventoryBoard.player_color })
+    --end
+end
+
+return InventoryBoard

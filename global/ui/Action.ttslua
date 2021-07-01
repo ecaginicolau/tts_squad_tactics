@@ -36,7 +36,6 @@ local ACTION_DEFINITION = {
     },
 }
 
-
 for i, action in ipairs(Constant.ACTIONS) do
     ACTION_DEFINITION[action].index = i
 end
@@ -102,7 +101,7 @@ function Action.miniature_select(player_color)
     local active = true
     -- Specific if there is a selected miniature, or a single one
     if Action.selected_miniature[player_color] ~= nil then
-        text = " " .. Action.selected_miniature[player_color].name
+        text = " " .. Action.selected_miniature[player_color].NAME
         if table.count(Action.miniatures[player_color]) == 1 then
             onclick = ""
             active = false
@@ -227,7 +226,7 @@ function Action.button_value(player_color, action, value)
     local nb_actions = #values
     local pos_x = (BUTTON_WIDTH + BUTTON_SPACING) * index - (BUTTON_WIDTH + BUTTON_SPACING) * nb_actions / 2
     -- Hack: int = text, string = icon
-    local icon = nil
+    local icon
     local text = value
     if type(value) == "string" then
         icon = value

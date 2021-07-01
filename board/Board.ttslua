@@ -6,9 +6,16 @@
 
 -- No local, make it a global
 Board = {
+    size_x = 0,
+    size_y = 0,
+    data = { },
     actions = {},
     miniatures = {},
     coordinate_team = {},
+    world_size_x = 0,
+    world_size_y = 0,
+    bounds = {},
+    bounds_normalized = {}
 }
 
 -- this help loops through all directions
@@ -33,8 +40,19 @@ function Board.setup(size_x, size_y, data)
     Board.actions = {}
     Board.coordinate_team = {}
 
+    -- calculate and store the bounds
+    Board.bounds = self.getBounds() -- extract it at setup because it cal change with the UI!
+    Board.bounds_normalized = self.getBoundsNormalized() -- extract it at setup because it cal change with the UI!
+
     Board.calculate_team()
+    Board.calculate_dimension()
     return Board
+end
+
+function Board.calculate_dimension()
+    local world_size = Board.bounds["size"]
+    Board.world_size_x = world_size[1] / Board.size_x
+    Board.world_size_y = world_size[3] / Board.size_y
 end
 
 function Board.calculate_team()
@@ -61,7 +79,7 @@ function Board.calculate_team()
 end
 
 function Board.get_position(x, y)
-    local bounds = self.getBounds()
+    local bounds = Board.bounds
     local size = bounds['size']
     local center = bounds['center']
     -- the initial position will be the top left corner
@@ -76,19 +94,21 @@ function Board.get_position(x, y)
 end
 
 function Board.get_position_relative(x, y)
+    local position = Board.get_position(x, y)
+    -- apply scale
     local scale = self.getScale()
-    local size = self.getBoundsNormalized()['size']
-    -- Apply scale to size because the snap point are pure relative
-    size[1] = size[1] / scale[1]
-    size[2] = size[2] / scale[2]
-    size[3] = size[3] / scale[3]
-    -- the initial position will be the top left corner
-    local pos_x = -size[1] / 2
-    local pos_y = size[2] / 2 + 0.1
-    local pos_z = size[3] / 2
-    -- now add the x and y
-    pos_x = pos_x + (x - 0.5) * (size[1] / Board.size_x)
-    pos_z = pos_z - (y - 0.5) * (size[3] / Board.size_y)
+    local pos_x = position[1]
+    local pos_y = position[2]
+    local pos_z = position[3]
+    -- add the center
+    local center = Board.bounds['center']
+    pos_x = pos_x - center[1]
+    pos_y = pos_y - center[2]
+    pos_z = pos_z - center[3]
+
+    pos_x = -pos_x / scale[1] -- not sure why this coordinate has x axis inverted
+    pos_y = pos_y / scale[2]
+    pos_z = pos_z / scale[3]
 
     return Vector.new(pos_x, pos_y, pos_z)
 end
@@ -130,7 +150,7 @@ function Board.get_coordinate(position, rounded)
     if rounded == nil then
         rounded = false
     end
-    local bounds = self.getBounds()
+    local bounds = Board.bounds
     local center = bounds['center']
     local size = bounds['size']
     local pos_x = -center[1] + position[1] + size[1] / 2.0
@@ -164,7 +184,7 @@ function Board.is_inside(coordinate)
 end
 
 function Board.create_snap_points()
-    local bounds = self.getBoundsNormalized()
+    local bounds = Board.bounds_normalized
     local size = bounds['size']
     -- The list of all snap points of this objects, this will overwrite any old snap points
     local list_snap_points = {}
@@ -211,24 +231,14 @@ function Board.add_new_miniature(miniature)
     local coordinate = Board.get_coordinate(miniature.getPosition())
 
     local miniature_data = miniature.call("get_data")
-    ---- get the miniature name
-    --local name = data["NAME"]
-    ---- get the miniature owner
-    --local owner = data["owner"]
-    ---- get the miniature team
-    --local team = data["team"]
-    --print("guid: " .. tostring(guid) .. "name: " .. tostring(name) .. " owner: " .. tostring(owner) .. " team: " .. tostring(team))
+    -- Hack to avoid mutable issue
     local data = {}
-    --local list_keys = {"NAME", "owner", "team", "INITIATIVE"}
     local list_keys = {}
     for key, _ in pairs(miniature_data) do
-        --print(key)
         table.insert(list_keys, key)
     end
-
+    -- Copy the data
     for _, key in pairs(list_keys) do
-        print(key)
-        print(type(miniature_data[key]))
         if type(miniature_data[key]) == "table" then
             data[key] = table.clone(miniature_data[key])
         else
@@ -239,26 +249,21 @@ function Board.add_new_miniature(miniature)
     -- store the miniature inside the table
     Board.miniatures[guid] = data
     Board.miniatures[guid].coordinate = coordinate
-
-    print("Adding : " .. Board.miniatures[guid].NAME)
 end
 
 function Board.miniatures_color(player_color)
-    print("looking for miniature for color: " .. tostring(player_color))
     local list_miniatures = {}
     for _, miniature in pairs(Board.miniatures) do
         if player_color == "All" or miniature["owner"] == player_color then
             table.insert(list_miniatures, miniature)
         end
     end
-    for i, miniature in ipairs(list_miniatures) do
-        print(i.. " name: " .. miniature.NAME)
-    end
 
     return list_miniatures
 end
 
 function Board_miniatures_color(params)
+
     return Board.miniatures_color(params[1])
 end
 
@@ -269,7 +274,6 @@ function Board.start_action(player_color, guid, action, value)
         guid = guid,
         value = value,
     }
-    print(action)
     -- Check action type, both MOVE and SAFE_MOVE are similar
     if action == Constant.MOVE or action == Constant.SAFE_MOVE then
         print("Start action")
@@ -277,8 +281,20 @@ function Board.start_action(player_color, guid, action, value)
         local safe = action == Constant.SAFE_MOVE
         Board.move_start(player_color, guid, nb_move, safe)
     end
-end
+    if action == Constant.ATTACK then
+        local cone = getObjectFromGUID("9b3ed5")
+        local board_scale = Board_get_scale()
+        --local miniature = getObjectFromGUID(guid)
+        local coordinate = Board.miniatures[guid].coordinate
+        -- take the position from the coordinate to avoid the small involuntary movement
+        local position = Board.get_position(coordinate[1], coordinate[2])
+        position[2] = position[2] + 0.1 -- raise the cone a bit higher than the board
+        local angle = 60
+        local length = 6
+        cone.call("Cone_create", { player_color, guid, angle, length, position, coordinate, board_scale , self})
+    end
 
+end
 
 -- Start of the move action
 function Board.move_start(player_color, guid, nb_move, safe)
@@ -325,7 +341,7 @@ function Board.move_to(player_color, coordinate)
         local angle = angle_coordinate(path_coordinates[1], coordinate)
         miniature.setRotationSmooth({ 0, angle, 0 })
 
-        -- store the fact that the miniture is moving inside the action
+        -- store the fact that the miniature is moving inside the action
         action.is_moving = true
         action.destination = coordinate
 
@@ -471,12 +487,25 @@ end
 
 -- Called by UI to update a miniature
 function Board_update_miniature_data(params)
-    local guid =  params[1]
-    local key =  params[2]
-    local value =  params[3]
-    print(key)
-    print(type(value))
+    local guid = params[1]
+    local key = params[2]
+    local value = params[3]
     Board.miniatures[guid][key] = value
+end
+
+function Board_update_miniature(params)
+    local guid = params[1]
+    local miniature = getObjectFromGUID(guid)
+    Board.add_new_miniature(miniature)
+end
+
+function Board_get_scale()
+    -- get the position of 2 tiles
+    local position1 = Board.get_position(0, 0)
+    local position2 = Board.get_position(10, 0)
+    -- calculate the distance
+    local distance = Vector.distance(position1, position2)
+    return distance / 10
 end
 
 return Board

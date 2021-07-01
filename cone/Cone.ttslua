@@ -1,0 +1,173 @@
+local root_gameobject = "Cone(Clone)"
+
+Cone = {
+    angle = nil,
+    length = nil,
+    player_color = nil,
+    pointing_angle = nil,
+    coordinate = nil,
+    guid = nil
+}
+
+local initialized = false
+
+function Cone.create(player_color, guid, angle, length, position, center_coordinate, board_scale, board_gameobject)
+    -- lock it, avoid any movement
+    self.setLock(true)
+    local boxCollider = self.getChild(root_gameobject).getComponent("BoxCollider")
+    -- Disable the BoxCollider Component
+    boxCollider.set("enabled", false)
+    -- attach the cone to a player
+    Cone.player_color = player_color
+    -- attach to a miniature
+    Cone.guid = guid
+
+    -- get the root component, will be faster next time
+    self.createButton({
+        label = "",
+        click_function = "cone_click",
+        function_owner = self,
+        position = { 0.5, 0, -0.5 },
+        height = 500,
+        width = 500,
+        --color = { 0, 1, 0, 0.5 },
+        color = { 0, 0, 0, 0.0 },
+        scale = { 1, 1, 1 },
+    })
+
+    -- scale the Cone to it's length
+    Cone.length = length
+    self.setScale({ board_scale * length, board_scale * length, board_scale * length })
+
+    -- Change it's angle
+    Cone.angle = angle
+    Cone.set_angle(angle)
+
+    -- set it's position
+    self.setPosition(position)
+    Cone.coordinate = center_coordinate
+
+    -- get all miniature from the board
+    local list_miniatures = board_gameobject.call("Board_miniatures_color", { "All" })
+
+    -- create a first filter, remove all miniatures who are too far
+    Cone.miniatures = {}
+    for _, miniature in ipairs(list_miniatures) do
+        if miniature.guid ~= Cone.guid then
+            local distance = distance_coordinate(center_coordinate, miniature.coordinate)
+            -- if the distance is good, then check the angle
+            if distance < Cone.length + 0.3 then
+                -- insert into the filtered table of miniatures
+                table.insert(Cone.miniatures, miniature)
+            end
+        end
+    end
+
+    -- flag as initialized
+    initialized = true
+
+
+end
+
+function Cone.set_angle(angle)
+    children = self.getChild(root_gameobject).getChildren()
+    for _, child in ipairs(children) do
+        if child.name ~= tostring(angle) then
+            child.getComponent("MeshRenderer").set("enabled", false)
+        else
+            child.getComponent("MeshRenderer").set("enabled", true)
+        end
+    end
+end
+
+function Cone.update()
+    if not initialized then
+        return
+    end
+    -- get the position of the player cursor
+    local cursor_position = Player[Cone.player_color].getPointerPosition()
+    -- get the position of the cone, it's the same as the figurine
+    local position = self.getPosition()
+    --  calculate the direction vector
+    local direction = cursor_position - position
+    -- remove y component
+    direction[2] = 0
+    -- create an up vector to calculate the angle
+    local up = Vector.new(0, 0, -1)
+    -- calculate the angle
+    local angle = Vector.angle(direction, up)
+    -- the function only handle angle between 0 and 180, make it works for 0 360
+    if direction[1] > 0 then
+        angle = 360 - angle
+    end
+    -- store the angle
+    Cone.pointing_angle = angle
+    -- offset the angle by 45 because the objects are
+    local rotation = { 0, angle - 45, 0 }
+    -- rotate the object itself
+    self.setRotationSmooth(rotation, false)
+
+    -- now check the targets
+    Cone.check_targets()
+end
+
+function cone_click()
+    local targets = Cone.get_targets()
+    print("Attacking: ")
+    for _, miniature in ipairs(targets) do
+        print(miniature.NAME)
+    end
+
+        -- stop the cone, needs to do better
+    -- TODO handle better cone stop
+    initialized=false
+    self.setPosition({0,-1,0}) -- hack to hide it, debug
+
+end
+
+function Cone.check_targets()
+    -- turn hightlight off on all
+    for _, miniature in pairs(Cone.miniatures) do
+        -- get the object, make sure it exist
+        local object = getObjectFromGUID(miniature.guid)
+        -- make sure the miniature still exist
+        if object ~= nil then
+            -- turn off the highlight
+            object.highlightOff({ 1, 0, 0 })
+        end
+
+    end
+    -- find the targets
+    local targets = Cone.get_targets()
+
+    -- turn highlightOn on target
+    for _, miniature in pairs(targets) do
+        -- get the object, make sure it exist
+        local object = getObjectFromGUID(miniature.guid)
+        -- make sure the miniature still exist
+        if object ~= nil then
+            -- turn on the highlight
+            object.highlightOn({ 1, 0, 0 })
+        end
+    end
+end
+
+function Cone.get_targets()
+    local targets = {}
+    for _, miniature in pairs(Cone.miniatures) do
+        -- get the object, make sure it exist
+        local object = getObjectFromGUID(miniature.guid)
+        -- make sure the miniature still exist
+        if object ~= nil then
+            -- calculate the angle
+            local guid_angle = angle_coordinate(Cone.coordinate, miniature.coordinate)
+            -- make sure it's inside the cone
+            if angle_between_2_angles(guid_angle + 180, Cone.pointing_angle - Cone.angle / 2, Cone.pointing_angle + Cone.angle / 2) then
+                table.insert(targets, miniature)
+            end
+        end
+    end
+    return targets
+end
+
+return Cone

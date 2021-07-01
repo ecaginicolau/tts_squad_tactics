@@ -56,8 +56,6 @@ function table.reverse(t)
     end
 end
 
-
-
 function distance_coordinate(coordinate1, coordinate2)
     local dx = coordinate1[1] - coordinate2[1]
     local dy = coordinate1[2] - coordinate2[2]
@@ -67,9 +65,9 @@ end
 function angle_coordinate(coordinate1, coordinate2)
     -- for now 0 is looking down
     local angle = math.atan((coordinate1[1] - coordinate2[1]) / (coordinate1[2] - coordinate2[2])) / degree_to_radian
-    angle =  - angle
+    angle = -angle
     if coordinate1[2] - coordinate2[2] < 0 then
-        angle =  angle + 180
+        angle = angle + 180
     end
     return angle
 end
@@ -84,4 +82,35 @@ function angle_between_2_angles(angle, min_angle, max_angle)
     else
         return min_angle <= angle or angle <= max_angle
     end
+end
+
+
+-- Calculate how many lines a string take, 2nd params describe after how many character the line wraps
+function number_line(str, wrap)
+    if wrap == nil then
+        wrap = 33
+    end
+    lines = {}
+    local nb = 0
+    for s in str:gmatch("[^\r\n]+") do
+        table.insert(lines, s)
+        nb = nb + math.floor(string.len(s) / wrap)
+    end
+    nb = nb + #lines + #lines - 1
+    return nb
+end
+
+function getObjectsByName(name)
+    local list_output = {}
+    -- Find the old scripting zone if it exists
+    local list_objects = getObjects()
+
+    for _, obj in ipairs(list_objects) do
+        -- look for the child scripting zone
+        if obj.getName() == name then
+            -- add to the list of objects
+            table.insert(list_output, obj)
+        end
+    end
+    return list_output
 end

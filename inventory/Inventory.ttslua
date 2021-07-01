@@ -1,0 +1,211 @@
+--Color information for button text (r,g,b, values of 0-1)
+buttonFontColor = { 0, 0, 0 }
+--Color information for button background
+buttonColor = { 1, 1, 1 }
+--Change scale of button (Avoid changing if possible)
+buttonScale = { 0.15, 0.15, 0.15 }
+
+button_link = {}
+input_link = {}
+button_index = 0
+
+Inventory = {
+    data = {
+
+        name = "Armor",
+        rank = "1",
+        tag1 = "Assaut",
+        tag2 = "Lunette",
+        tag3 = "",
+        tag4 = "",
+        IMPACT = 0,
+        FIRE = 0,
+        COLD = 0,
+        ELECTRIC = 0,
+        BLIGHT = 0,
+        INITIATIVE = 0,
+        DAMAGE = 0,
+        AMMO = 0,
+        ACCURACY = 0,
+        RANGE = 0,
+        TYPE1 = IMPACT,
+        TYPE2 = FIRE,
+        CHANGE_TYPE = nil,
+        ADD_TYPE = nil,
+        value = 100,
+        description = ""
+    },
+    mods = {}
+}
+
+function Inventory.create()
+    self.clearButtons()
+    self.clearInputs()
+    -- reset the button index
+    button_index = 0
+
+    -- create all fields but description
+    for _, layout_info in pairs(layout) do
+        local value = Inventory.compute_value(layout_info["value"])
+        Inventory.create_label(layout_info.value, value, layout_info.pos, layout_info.font_size, layout_info.color)
+    end
+
+    -- create the description
+    local font_size = 400
+    local value = Inventory.compute_value("description")
+    if number_line(value) >= 8 then
+        font_size = 280
+    end
+    self.createInput({
+        input_function = "inputDescription",
+        function_owner = self,
+        label = "",
+        alignment = 2, -- Left
+        position = description_position,
+        scale = buttonScale,
+        width = description_width,
+        height = description_height,
+        font_size = font_size,
+        color = buttonColor,
+        font_color = buttonFontColor,
+        value = value,
+        interactable = false
+    })
+
+    -- Decals
+    local list_decal = {}
+
+    for decal_type, definition in pairs(decals) do
+        local decal = Inventory.compute_value(decal_type)
+        if decal ~= nil then
+            table.insert(list_decal,
+                    {
+                        name = decal,
+                        url = DECAL[decal],
+                        position = definition["pos"],
+                        rotation = { 90, 180, 0 },
+                        scale = definition["scale"],
+                    }
+            )
+        end
+
+    end
+
+    self.setDecals(list_decal)
+
+end
+
+function Inventory.compute_value(name)
+    -- type must be computed
+    if name == "TYPE1" then
+        if Inventory.mods["CHANGE_TYPE"] ~= nil then
+            return Inventory.mods["CHANGE_TYPE"]
+        end
+    end
+    if name == "TYPE2" then
+        if Inventory.mods["ADD_TYPE"] ~= nil then
+            return Inventory.mods["ADD_TYPE"]
+        end
+    end
+
+    if Inventory.mods[name] == nil then
+        return Inventory.data[name]
+    else
+        return Inventory.data[name] + Inventory.mods[name]
+    end
+
+end
+
+function Inventory.create_label(name, value, pos, font_size, color)
+    if type(value) == "number" then
+        if value < 0 then
+            color = Constant.DEFENSE_NEGATIVE_COLOR_TAB
+        elseif value > 0 then
+            color = Constant.DEFENSE_POSITIVE_COLOR_TAB
+        end
+    end
+    self.createButton({
+        label = value, click_function = "click_none", function_owner = self,
+        position = pos, height = 0, width = 0,
+        font_size = font_size, scale = buttonScale,
+        color = buttonColor, font_color = color
+    })
+    button_link[name] = button_index
+
+    -- increase the button count
+    button_index = button_index + 1
+
+end
+
+-- update the data
+function Inventory_update_data(new_data)
+    data = new_data
+    saved_data = JSON.encode(data)
+
+    for name, index in pairs(button_link) do
+        value = data[name]
+        self.editButton({ index = index, label = value })
+    end
+    value = data.description
+    local font_size = 400
+    if number_line(value) >= 8 then
+        font_size = 280
+    end
+
+    self.editInput({ index = 0, value = value, font_size = font_size })
+    updateSave()
+end
+
+-- empty function for labels
+function click_none()
+end
+
+-- avoid description change by input
+function inputDescription(_, _, _, _)
+    return data.description
+end
+
+function get_data()
+    return Inventory.data
+end
+
+function update_mod(mods)
+    --print("------------------------")
+    --for key, value in pairs(mods) do
+    --    if value ~= 0 then
+    --        print(key .. " : " .. value)
+    --    end
+    --end
+    --print("ADD_TYPE: " .. tostring(mods["ADD_TYPE"]))
+    --print("CHANGE_TYPE: " .. tostring(mods["CHANGE_TYPE"]))
+    Inventory.mods = mods
+    Inventory.create()
+end
+
+
+--- Load/save
+--Startup procedure
+function onLoad(saved_data)
+    if load_disabled == false and saved_data ~= "" then
+        local loaded_data = JSON.decode(saved_data)
+        Inventory.data = loaded_data["data"]
+        Inventory.mods = loaded_data["mods"]
+    end
+
+    local notes = self.getGMNotes()
+    if notes ~= nil and notes ~= "" then
+        Inventory.data = JSON.decode(notes)
+    end
+
+    Inventory.create()
+end
+
+--Save function
+function updateSave()
+    saved_data = JSON.encode({ data = Inventory.data, mods = Inventory.mods })
+    self.script_state = saved_data
+end
+
+
+
+return Inventory

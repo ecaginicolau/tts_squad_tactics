@@ -4,29 +4,14 @@
 
 UI = {
     is_in_turn = false,
-    characters = {}
+    miniatures = {}
 }
-
--- debug
-require("tts_squad_tactics.CharacterDebug")
-
---UI.characters[data["guid"]] = data
---UI.characters[data2["guid"]] = data2
 
 function UI.refresh()
     UI.board_object = getObjectsWithTag("board")[1] -- for now let's suppose there is always one board
-
-    local list_miniatures = UI.board_object.call("Board_miniatures_color", {"All"})
-    if list_miniatures == nil then
-        list_miniatures = {}
-    end
-
-    print("received characters: " .. #list_miniatures)
     -- need to rework in dictionary
-    UI.character = {}
-    for _, miniature in ipairs(list_miniatures) do
-        UI.characters[miniature["guid"]] = miniature
-    end
+    UI.miniatures = {}
+    UI.update_miniatures("All")
 
     local list_panel = {}
     -- global UI for all player
@@ -43,3 +28,16 @@ function UI.refresh()
 
     self.UI.setXmlTable(list_panel)
 end
+
+function UI.update_miniatures(player_color)
+    local list_miniatures = UI.board_object.call("Board_miniatures_color", { player_color })
+    if list_miniatures == nil then
+        list_miniatures = {}
+    end
+    for _, miniature in ipairs(list_miniatures) do
+        UI.miniatures[miniature["guid"]] = miniature
+    end
+    Detail.update_all()
+end
+
+return UI

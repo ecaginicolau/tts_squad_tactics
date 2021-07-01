@@ -74,7 +74,7 @@ function onLoad(saved_data)
     if RandomCharacter ~= nil then
         RandomCharacter.setup()
     end
-    local position =  Miniature.data["coordinate"][1] .. ":" .. Miniature.data["coordinate"][2]
+    local position = Miniature.data["coordinate"][1] .. ":" .. Miniature.data["coordinate"][2]
     local position_panel = {
         tag = "Panel",
         attributes = {
@@ -140,7 +140,9 @@ function edit()
 end
 
 function onPickUp()
+    print("test3: ")
     Animated.onPickUp()
+
 end
 
 function onDrop()
@@ -177,7 +179,7 @@ function create_input(name, value, pos, font_size, width)
 end
 
 --Updates saved value for given text box
-function click_textbox(name, value, selected)
+function click_textbox(_, value, selected)
     if selected == false then
         data = JSON.decode(value)
         Miniature.data = data
@@ -207,4 +209,13 @@ end
 
 function get_data()
     return Miniature.data
+end
+
+function update_data(input_data)
+    -- copy input_data to miniature data
+    for key, value in pairs(input_data) do
+        -- print(key .. " : " .. tostring(value))
+        Miniature.data[key] = value
+    end
+    updateSave()
 end

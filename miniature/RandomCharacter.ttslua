@@ -1,9 +1,9 @@
-local selected_part = {}
 local root_gameobject = "CustomCharacter(Clone)"
 
 local root
 local right_hand
 
+---@type table
 local list_part = {
     backpack = {
         "", -- this means don't use any!
@@ -96,6 +96,7 @@ local list_part = {
 
 }
 
+---@type table
 local list_weapons = {
     "Bita",
     "Star_Axe",

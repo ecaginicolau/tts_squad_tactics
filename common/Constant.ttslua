@@ -158,6 +158,9 @@ Constant = {
     DEFENSE_POSITIVE_COLOR = "#801212",
     DEFENSE_NEGATIVE_COLOR = "#128012",
 
+    DEFENSE_NEUTRAL_COLOR_TAB = { 0.07, 0.07, 0.07 },
+    DEFENSE_POSITIVE_COLOR_TAB = { 0.07, 0.65, 0.07 },
+    DEFENSE_NEGATIVE_COLOR_TAB = { 0.65, 0.07, 0.07 },
     -- List possible actions
     SAFE_MOVE = "SAFE_MOVE",
     MOVE = "MOVE",
@@ -177,8 +180,6 @@ Constant = {
     }
 
 }
-
-
 
 HINDER_COLOR = "#FFFF50"
 
@@ -201,10 +202,24 @@ HATE = "HATE"
 INITIATIVE = "INITIATIVE"
 IDENTIFICATION = "IDENTIFICATION"
 
+-- ATTACK
+DAMAGE = "DAMAGE"
+AMMO = "AMMO"
+ACCURACY = "ACCURACY"
+RANGE = "RANGE"
 
 -- add an index for faster lookup
 for i, TERRAIN in ipairs(Constant.TERRAINS) do
     Constant[TERRAIN].index = i
 end
+
+DECAL = {
+    IMPACT = "http://cloud-3.steamusercontent.com/ugc/1687143819155943010/1B6424A774FFEE865F4C9B2AADCC11E0DED6E62B/",
+    FIRE = "http://cloud-3.steamusercontent.com/ugc/1687143819155942799/4C96368CACDB118AE951E368274C2390B73F27CA/",
+    COLD = "http://cloud-3.steamusercontent.com/ugc/1687143819155942910/A245171DF35AC95193C4FBD29BAA68E86F1315C0/",
+    ELECTRIC = "http://cloud-3.steamusercontent.com/ugc/1687143819155942704/C7D9AF73A4DC1561D52E788391A1F49DBF6131E5/",
+    BLIGHT = "http://cloud-3.steamusercontent.com/ugc/1687143819155942567/97ABC74A6F284C8A0B5CC57B9403E14890D7E0F1/",
+}
+
 
 return Constant
