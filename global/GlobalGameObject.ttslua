@@ -9,6 +9,7 @@ require("tts_squad_tactics.global.ui.Detail")
 require("tts_squad_tactics.global.ui.Attack")
 require("tts_squad_tactics.global.ui.Action")
 require("tts_squad_tactics.global.LoadAsset")
+require("tts_squad_tactics.global.die.PlayerDie")
 
 board_guid = "892585"
 miniature_guid = "558418"
@@ -18,6 +19,8 @@ function onLoad()
     Wait.frames(function()
         UI.refresh()
     end, 10)
+
+    PlayerDie.init()
 
 end
 

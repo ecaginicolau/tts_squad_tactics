@@ -1,0 +1,96 @@
+PlayerDie = {
+    player_color = {}
+}
+
+function PlayerDie.init()
+    for _, player in ipairs(Player.getPlayers()) do
+        PlayerDie[player.color] = {
+            die = {},
+            wait_id = nil,
+            callback_function = nil,
+            callback_obj = nil,
+        }
+    end
+end
+
+function PlayerDie.randomized(player_color, die)
+    -- add the die to the table, need to deduplicate
+    PlayerDie[player_color]["die"][die.getGUID()] = die
+
+    -- if there is no Wait m create one
+    if PlayerDie[player_color]["wait_id"] == nil then
+        local wait_id = Wait.condition(
+                function()
+                    -- Executed after our condition is met
+                    PlayerDie.end_roll(player_color)
+                end,
+                function()
+                    -- Condition function
+                    return PlayerDie.check_resting(player_color)
+                end,
+                10,
+                function()
+                    PlayerDie.timeout(player_color)
+                end
+        )
+        PlayerDie[player_color]["wait_id"] = wait_id
+    end
+end
+
+function PlayerDie.timeout(player_color)
+    print("Timeout in roll for player: " .. player_color)
+    -- reset the wait
+    PlayerDie[player_color]["wait_id"] = nil
+    -- reset the list of die rolled
+    PlayerDie[player_color]["die"] = {}
+end
+
+function PlayerDie.end_roll(player_color)
+    local value = 0
+    local nb = 0
+    for _, die in pairs(PlayerDie[player_color]["die"]) do
+        value = value + die.getRotationValue()
+        nb = nb + 1
+    end
+    broadcastToAll("Player: " .. player_color .. " rolled: " .. tostring(value))
+    -- reset the wait
+    PlayerDie[player_color]["wait_id"] = nil
+    -- reset the list of die rolled
+    PlayerDie[player_color]["die"] = {}
+    -- if there is a registered callback, call it
+    if PlayerDie[player_color]["callback_obj"] ~= nil and PlayerDie[player_color]["callback_function"] ~= nil then
+        -- call the callback with the same parameters each time, player_color, total value of the roll and number of die rolled
+        PlayerDie[player_color]["callback_obj"].call(PlayerDie[player_color]["callback_function"], { player_color, value, nb })
+        -- reset the call back
+        PlayerDie[player_color]["callback_obj"] = nil
+        PlayerDie[player_color]["callback_function"] = nil
+    end
+end
+
+function PlayerDie.check_resting(player_color)
+    for _, die in pairs(PlayerDie[player_color]["die"]) do
+        if not die.isDestroyed() and not die.resting then
+            return false
+        end
+    end
+    return true
+end
+
+function PlayerDie.set_callback(player_color, callback_obj, callback_function)
+    PlayerDie[player_color]["callback_obj"] = callback_obj
+    PlayerDie[player_color]["callback_function"] = callback_function
+end
+
+
+-- call stubs
+
+function PlayerDie_set_callback(params)
+    PlayerDie.set_callback(table.unpack(params))
+end
+
+function PlayerDie_randomized(params)
+    PlayerDie.randomized(table.unpack(params))
+end
+
+return Die
+

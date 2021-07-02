@@ -140,9 +140,7 @@ function edit()
 end
 
 function onPickUp()
-    print("test3: ")
     Animated.onPickUp()
-
 end
 
 function onDrop()

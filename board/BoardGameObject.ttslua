@@ -12,6 +12,7 @@ require("tts_squad_tactics.board.PathFinding")
 require("tts_squad_tactics.board.LineOfSight")
 require("tts_squad_tactics.board.LineDrawer")
 require("tts_squad_tactics.board.Path")
+require("tts_squad_tactics.board.AoE")
 
 -- require("tts_squad_tactics.Cone")
 
@@ -186,12 +187,6 @@ function onFixedUpdate() -- this is called 90 times per seconds, even if it's mo
             end
         end
     end
-
-
-
-    --if is_cone_displayed then
-    --    cone_display()
-    --end
 end
 
 function onUpdate()
@@ -214,6 +209,9 @@ function onUpdate()
 
     -- this is fps dependent, but enough
     Path.continue()
+
+    -- AoE update if needed
+    AoE.update()
 end
 
 function PlayerPanel_hide(params)

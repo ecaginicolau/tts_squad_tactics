@@ -12,7 +12,6 @@ function UI.refresh()
     -- need to rework in dictionary
     UI.miniatures = {}
     UI.update_miniatures("All")
-
     local list_panel = {}
     -- global UI for all player
     table.insert(list_panel, Initiative.create())

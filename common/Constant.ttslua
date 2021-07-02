@@ -165,8 +165,11 @@ Constant = {
     SAFE_MOVE = "SAFE_MOVE",
     MOVE = "MOVE",
     ATTACK = "ATTACK",
+    CONE = "CONE",
+    SPLASH = "SPLASH",
+    LINE = "LINE",
     -- list for easier loop
-    ACTIONS = { "SAFE_MOVE", "MOVE", "ATTACK" },
+    ACTIONS = { "SAFE_MOVE", "MOVE", "ATTACK", "CONE", "SPLASH", "LINE" },
 
     DIRECTIONS = {
         { 0, 1, false }, -- x, y, diagonal
@@ -221,5 +224,6 @@ DECAL = {
     BLIGHT = "http://cloud-3.steamusercontent.com/ugc/1687143819155942567/97ABC74A6F284C8A0B5CC57B9403E14890D7E0F1/",
 }
 
+COVER_BONUS = 2 -- multiplicative ratio
 
 return Constant

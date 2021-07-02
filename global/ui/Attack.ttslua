@@ -1,6 +1,9 @@
 -- store the type of damage done by a player
 Attack = {
-    damage_player = {}
+    damage_player = {},
+    targets = {},
+    hits = {},
+    covers = {}
 }
 
 local SELECTED_COLOR = "#808080"
@@ -16,10 +19,11 @@ function Attack.create(player_color)
             id = "panel_damage_" .. player_color,
             visibility = player_color,
             active = false,
-            height = 270,
+            height = 540,
             width = 750,
             allowDragging = "true",
             returnToOriginalPositionWhenReleased = "false",
+            restrictDraggingToParentBounds = false,
             scale = "0.5 0.5 0.5",
             position = "0 0 0",
             color = "#AAAAAA"
@@ -31,7 +35,7 @@ function Attack.create(player_color)
                 attributes = {
                     text = "Damage",
                     fontSize = 70,
-                    position = "-225 62 0"
+                    position = "-225 -73 0"
                 }
             },
             -- Damage value
@@ -42,7 +46,8 @@ function Attack.create(player_color)
                     height = 100,
                     text = "0",
                     fontSize = 70,
-                    position = "-263 -62 0"
+                    position = "-263 -197 0",
+                    onEndEdit = "Attack_change_damage"
                 }
             },
             -- Attack button
@@ -53,19 +58,66 @@ function Attack.create(player_color)
                     fontSize = 60,
                     width = 100,
                     height = 100,
-                    position = "-105 -62 0"
+                    position = "-105 -197 0",
+                    onClick = "Attack_compute"
                 }
-            }
+            },
+            -- header
+            {
+                tag = "Text",
+                attributes = {
+                    text = "Precision",
+                    fontSize = 70,
+                    position = "-225 197 0"
+                }
+            },
+            -- precision value
+            {
+                tag = "InputField",
+                attributes = {
+                    id = "precision_" .. player_color,
+                    width = 175,
+                    height = 100,
+                    text = "0",
+                    fontSize = 70,
+                    position = "-263 73 0",
+                    onEndEdit = "Attack_change_precision"
+                }
+            },
+            -- precision button
+            {
+                tag = "Button",
+                attributes = {
+                    text = "",
+                    fontSize = 60,
+                    width = 100,
+                    height = 100,
+                    position = "-105 73 0",
+                    onClick = "Attack_toggle_cover"
+                },
+                children = {
+                    {
+                        tag = "Image",
+                        attributes = {
+                            id = "image_cover_" .. player_color,
+                            image = "cover",
+                            width = 80,
+                            height = 80,
+                            preserveAspect = true,
+                        }
+                    }
+                }
+            },
         }
     }
 
     local list_pos = {
-        { 50, 62 },
-        { 175, 62 },
-        { 300, 62 },
-        { 50, -62 },
-        { 175, -62 },
-        { 300, -62 },
+        { 50, -73 },
+        { 175, -73 },
+        { 300, -73 },
+        { 50, -197 },
+        { 175, -197 },
+        { 300, -197 },
     }
     for i, pos in ipairs(list_pos) do
         local position = pos[1] .. " " .. pos[2] .. " 0"
@@ -90,6 +142,194 @@ function Attack.create(player_color)
         })
     end
 
+    local target_panel = {
+        tag = "Panel",
+        attributes = {
+            width = 400,
+            height = 270,
+            position = "175 135 0",
+            color = "#AAAAAA",
+        },
+        children = {
+            {
+                tag = "TableLayout",
+                attributes = {
+                    columnWidths = "230 50 50 50",
+                },
+                children = {
+                    {
+                        tag = "Row",
+                        attributes = {
+                            preferredHeight = 50,
+                        },
+
+                        children = {
+                            {
+                                tag = "Cell",
+                                children = {
+                                    {
+                                        tag = "Text",
+                                        attributes = {
+                                            text = "Nom",
+                                            fontSize = 40,
+                                            fontColor = "#000000",
+                                            alignment = "MiddleCenter",
+                                            resizeTextForBestFit = true,
+                                        }
+                                    },
+                                }
+                            },
+                            {
+                                tag = "Cell",
+                                children = {
+                                    {
+                                        tag = "Image",
+                                        attributes = {
+                                            image = "evasion",
+                                            color = "#121212",
+                                            preserveAspect = true,
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                tag = "Cell",
+                                children = {
+                                    {
+                                        tag = "Image",
+                                        attributes = {
+                                            image = "cover",
+                                            preserveAspect = true,
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                tag = "Cell",
+                                children = {
+                                    {
+                                        tag = "Text",
+                                        attributes = {
+                                            text = "H",
+                                            fontSize = 40,
+                                        }
+                                    }
+                                }
+                            },
+                        }
+                    }
+                }
+            }
+        }
+    }
+    local vertical_scroll = {
+        tag = "VerticalScrollView",
+        attributes = {
+            position = "0 -25 0",
+            width = 400,
+            height = 220,
+        },
+        children = {
+            {
+                tag = "TableLayout",
+                attributes = {
+                    columnWidths = "230 50 50 50",
+                },
+                children = {
+                }
+            }
+        }
+    }
+    local vertical_layout = vertical_scroll["children"][1]
+    -- add vertical_scroll to target target_panel
+    table.insert(target_panel["children"], vertical_scroll)
+    -- add target_panel to attack panel
+    table.insert(panel["children"], target_panel)
+
+    for guid, miniature in pairs(UI.miniatures) do
+        local cover_bonus = "+2"
+        local row = {
+            tag = "Row",
+            attributes = {
+                id = "target_row_" .. player_color .. "_" .. guid,
+                preferredHeight = 50,
+            },
+
+            children = {
+                {
+                    tag = "Cell",
+                    children = {
+                        {
+                            tag = "Text",
+                            attributes = {
+                                text = miniature["NAME"],
+                                fontSize = 40,
+                                color = "#000000",
+                                alignment = "MiddleLeft",
+                                resizeTextForBestFit = true,
+                            }
+                        },
+                    }
+                },
+                {
+                    tag = "Cell",
+                    children = {
+                        {
+                            tag = "Text",
+                            attributes = {
+                                text = miniature["EVASION"],
+                                fontSize = 40,
+                            }
+                        }
+                    }
+                },
+                {
+                    tag = "Cell",
+                    children = {
+                        {
+                            tag = "Text",
+                            attributes = {
+                                id = "target_cover_" .. player_color .. "_" .. guid,
+                                text = cover_bonus,
+                                color = "#00BBCC",
+                                fontSize = 40,
+                            }
+                        }
+                    }
+                },
+                {
+                    tag = "Cell",
+                    children = {
+                        {
+                            tag = "Button",
+                            attributes = {
+                                id = "target_button_" .. player_color .. "_" .. guid,
+                                onClick = "Attack_toggle_target(" .. guid .. ")",
+                                text = "X",
+                                fontSize = 30,
+                            }
+                        }
+                    }
+                },
+            }
+        }
+
+        table.insert(vertical_layout["children"], row)
+
+    end
+    table.insert(panel["children"], {
+        tag = "Button",
+        attributes = {
+            fontSize = 40,
+            color = "#DDDDDD",
+            width = 60,
+            height = 60,
+            position = "375 270 -20",
+            onclick = "Attack_hide()",
+            text = "X",
+        }
+    })
+
     return panel
 end
 
@@ -105,6 +345,8 @@ function Attack.reset(player_color)
     Attack.damage_player[player_color] = {
         guid = nil,
         damage = 0,
+        precision = 0,
+        use_cover = true,
         IMPACT = true,
         FIRE = false,
         COLD = false,
@@ -112,11 +354,77 @@ function Attack.reset(player_color)
         BLIGHT = false,
         DIRECT = false,
     }
+    Attack.targets[player_color] = {}
+    Attack.hits[player_color] = {}
+    Attack.covers[player_color] = {}
+end
+
+function Attack.set_targets(player_color, targets)
+    Attack.targets[player_color] = targets
+    -- first disable all miniature
+    for guid, _ in pairs(UI.miniatures) do
+        self.UI.setAttribute("target_row_" .. player_color .. "_" .. guid, "active", false)
+        Attack.hits[player_color][guid] = true
+        self.UI.setAttribute("target_button_" .. player_color .. "_" .. guid, "text", "X")
+
+    end
+    -- first disable all miniature
+    for _, miniature in ipairs(targets) do
+        self.UI.setAttribute("target_row_" .. player_color .. "_" .. miniature["guid"], "active", true)
+    end
+    -- display the Attack panel
+    self.UI.setAttribute("panel_damage_" .. player_color, "active", true)
+    -- set die callback to catch the precision roll
+    PlayerDie.set_callback(player_color, Global, "Attack_set_precision")
+    -- Update the covers
+    Attack.update_covers(player_color)
+end
+
+function Attack.update_covers(player_color)
+    -- Get the cover definition for all these miniatures
+    local selected_guid = Action.selected_miniature[player_color]["guid"]
+    local covers = UI.board_object.call("LoS_get_cover", { selected_guid })
+    for guid, cover_value in pairs(covers) do
+        if cover_value > 0 then
+            cover_value = "+" .. tostring(cover_value * COVER_BONUS)
+        else
+            cover_value = ""
+        end
+        self.UI.setAttribute("target_cover_" .. player_color .. "_" .. guid, "text", cover_value)
+    end
+    Attack.covers[player_color] = covers
+end
+
+function Attack.compute_precision(player_color)
+    -- get the precision from the damage definition
+    local precision = Attack.damage_player[player_color]["precision"]
+    -- Check which miniature is hit or not
+    for _, miniature in ipairs(Attack.targets[player_color]) do
+        local evasion = miniature["EVASION"]
+        if Attack.damage_player[player_color]["user_cover"] then
+            evasion = evasion + Attack.covers[player_color][miniature["guid"]] * COVER_BONUS
+        end
+        if evasion < precision then
+            Attack.hits[player_color][miniature["guid"]] = true
+            self.UI.setAttribute("target_button_" .. player_color .. "_" .. miniature["guid"], "text", "X")
+        else
+            Attack.hits[player_color][miniature["guid"]] = false
+            self.UI.setAttribute("target_button_" .. player_color .. "_" .. miniature["guid"], "text", "")
+        end
+    end
+end
+
+function Attack.set_precision(player_color, precision, _)
+    -- store the precision in the attack
+    Attack.damage_player[player_color]["precision"] = precision
+    -- refresh the precision display
+    self.UI.setAttribute("precision_" .. player_color, "text", precision)
+    -- compute precision
+    Attack.compute_precision(player_color)
 end
 
 -- Click events
 function Attack_update(player_color)
-
     for _, damage_type in ipairs(Constant.DAMAGES) do
         local id = "damage_" .. damage_type .. "_" .. player_color
         if Attack.damage_player[player_color][damage_type] then
@@ -129,6 +437,10 @@ end
 
 function Attack_character(player, guid)
     local player_color = player.color
+    -- set the miniature
+    Attack.set_targets(player_color, { UI.miniatures[guid] })
+
+    -- Toggle on/off the panel
     if Attack.damage_player[player_color]["guid"] == nil then
         Attack.damage_player[player_color]["guid"] = guid
         self.UI.setAttribute("panel_damage_" .. player_color, "active", true)
@@ -162,6 +474,69 @@ function Attack_damage_type(player, damage_type)
         end
     end
     Attack_update(player.color)
+end
+
+function Attack_toggle_target(player, guid)
+    local text = "X"
+    Attack.hits[player.color][guid] = not Attack.hits[player.color][guid]
+    if not Attack.hits[player.color][guid] then
+        text = ""
+    end
+    print("player_color: " .. player.color .. " guid: " .. guid)
+
+    self.UI.setAttribute("target_button_" .. player.color .. "_" .. guid, "text", text)
+end
+
+-- callable
+function Attack_set_targets(params)
+    Attack.set_targets(table.unpack(params))
+end
+
+function Attack_change_damage(player, value, _)
+    Attack.damage_player[player.color]["damage"] = value
+
+end
+
+function Attack_change_precision(player, value, _)
+    Attack.damage_player[player.color]["precision"] = tonumber(value)
+    Attack.compute_precision(player.color)
+end
+
+function Attack_compute(player)
+    local player_color = player.color
+    print("player launching attack: " .. player_color)
+    print("damage: " .. Attack.damage_player[player_color]["damage"])
+    print("IMPACT: " .. tostring(Attack.damage_player[player_color]["IMPACT"]))
+    print("FIRE: " .. tostring(Attack.damage_player[player_color]["FIRE"]))
+    print("COLD: " .. tostring(Attack.damage_player[player_color]["COLD"]))
+    print("ELECTRIC: " .. tostring(Attack.damage_player[player_color]["ELECTRIC"]))
+    print("BLIGHT: " .. tostring(Attack.damage_player[player_color]["BLIGHT"]))
+    print("DIRECT: " .. tostring(Attack.damage_player[player_color]["DIRECT"]))
+    print("To targets: ")
+    for _, miniature in ipairs(Attack.targets[player_color]) do
+        if Attack.hits[player_color][miniature["guid"]] then
+            print(miniature["NAME"])
+        end
+    end
+end
+
+function Attack_set_precision(params)
+    Attack.set_precision(table.unpack(params))
+end
+
+function Attack_toggle_cover(player)
+    Attack.damage_player[player.color]["use_cover"] = not Attack.damage_player[player.color]["use_cover"]
+    local image = "cover"
+    if not Attack.damage_player[player.color]["use_cover"] then
+        image = "nocover"
+    end
+    self.UI.setAttribute("image_cover_" .. player.color, "image", image)
+    Attack.compute_precision(player.color)
+end
+
+function Attack_hide(player)
+    self.UI.setAttribute("panel_damage_" .. player.color, "active", false)
+    Attack.damage_player[player.color]["guid"] = nil
 end
 
 return Attack

@@ -85,7 +85,7 @@ end
 
 function LoS.see_through(x, y)
     -- 0 is invisible and 2 is blocked, both block line of sight
-    if not Board.is_inside({x, y}) then
+    if not Board.is_inside({ x, y }) then
         return false
     end
 
@@ -107,7 +107,7 @@ function LoS.check_visited_tiled(list_visited_tile)
     return true
 end
 
-function LoS.coordinate(coordinate1, coordinate2)
+function LoS.coordinate(coordinate1, coordinate2, coroutine)
     -- raytracing from slightly inside AND slightly outside the tile seems to remove most of the LoS issue, but double the nb of checks...
     -- giggle around for the origin
     local list_d1 = { -0.01, 0.01, 0.99, 1.01 }
@@ -115,7 +115,9 @@ function LoS.coordinate(coordinate1, coordinate2)
     local list_d2 = { 0, 1 }
     -- That's 64 rays in totals ... if we use list_d1 twice that would be 256 rays
     for _, dx1 in ipairs(list_d1) do
-        coroutine.yield(0) -- this limit the nb of ray calculated per frame to 64
+        if coroutine == nil or coroutine then
+            coroutine.yield(0) -- this limit the nb of ray calculated per frame to 64
+        end
         for _, dy1 in ipairs(list_d1) do
             for _, dx2 in ipairs(list_d2) do
                 for _, dy2 in ipairs(list_d2) do
@@ -132,26 +134,27 @@ function LoS.coordinate(coordinate1, coordinate2)
     return false
 end
 
-function LoS.cover(coordinate1, coordinate2, list_line)
-    local dx = coordinate1[1] - coordinate2[1]
-    local dy = coordinate1[2] - coordinate2[2]
-    local direction
-    if math.abs(dx) > math.abs(dy) then
-        direction = { dx / math.abs(dx), 0 }
-    elseif math.abs(dx) < math.abs(dy) then
-        direction = { 0, dy / math.abs(dy), }
-    else
-        -- equal
-        direction = { 0, 0 }
+function LoS.coordinate_splash(coordinate1, coordinate2)
+    -- raytracing from slightly inside AND slightly outside the tile seems to remove most of the LoS issue, but double the nb of checks...
+    -- only use the real corner for the destination, it should divide by 4 the nb of ray
+    local list_d2 = { 0, 1 }
+    -- That's 64 rays in totals ... if we use list_d1 twice that would be 256 rays
+    for _, dx2 in ipairs(list_d2) do
+        for _, dy2 in ipairs(list_d2) do
+            local list_visited_tile = LoS.raytrace(coordinate1[1], coordinate1[2], coordinate2[1] + dx2, coordinate2[2] + dy2)
+            local line_visible = LoS.check_visited_tiled(list_visited_tile)
+            if line_visible then
+                -- no need to continue if we need it's visible
+                return true
+            end
+        end
     end
-    local x = coordinate2[1] + direction[1]
-    local y = coordinate2[2] + direction[2]
+    return false
+end
 
+function LoS.cover(coordinate1, coordinate2, list_line)
+    local cover_value = LoS.get_cover_value(coordinate1, coordinate2)
     local color
-
-    local tile_value = Board.data[y][x]
-    local cover_value = Constant[tile_value].cover
-
     if cover_value == 0 then
         color = { 0, 1, 0, 0.8 }
     elseif cover_value == 1 then
@@ -169,4 +172,44 @@ function LoS.cover(coordinate1, coordinate2, list_line)
             rotation = { 0, 0, 0 },
         })
     end
+end
+
+function LoS.get_cover_value(coordinate1, coordinate2)
+    local dx = coordinate1[1] - coordinate2[1]
+    local dy = coordinate1[2] - coordinate2[2]
+    local direction
+    if math.abs(dx) > math.abs(dy) then
+        direction = { dx / math.abs(dx), 0 }
+    elseif math.abs(dx) < math.abs(dy) then
+        direction = { 0, dy / math.abs(dy), }
+    else
+        -- equal
+        direction = { 0, 0 }
+    end
+    local x = coordinate2[1] + direction[1]
+    local y = coordinate2[2] + direction[2]
+
+    local tile_value = Board.data[y][x]
+
+    local cover_value = Constant[tile_value].cover
+
+    return cover_value
+end
+
+function LoS.get_cover(guid1)
+    local miniature_cover = {}
+    local coordinate1 = Board.miniatures[guid1]["coordinate"]
+
+    for guid2, miniature2 in pairs(Board.miniatures) do
+        local coordinate2 = miniature2["coordinate"]
+        if guid1 ~= guid2 then
+            local cover_value = LoS.get_cover_value(coordinate1, coordinate2)
+            miniature_cover[guid2] = cover_value
+        end
+    end
+    return miniature_cover
+end
+
+function LoS_get_cover(params)
+    return LoS.get_cover(table.unpack(params))
 end

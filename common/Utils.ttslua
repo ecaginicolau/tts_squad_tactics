@@ -114,3 +114,13 @@ function getObjectsByName(name)
     end
     return list_output
 end
+
+function is_between(value, start_value, end_value)
+    if start_value > end_value then
+        start_value, end_value = end_value, start_value
+    end
+    if value >= start_value and value <= end_value then
+        return true
+    end
+    return false
+end

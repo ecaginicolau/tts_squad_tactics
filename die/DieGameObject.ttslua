@@ -1,0 +1,5 @@
+function onRandomize(player_color)
+    Global.call("PlayerDie_randomized" , {player_color, self})
+end
+
+

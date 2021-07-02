@@ -32,7 +32,28 @@ local ACTION_DEFINITION = {
         id = "attack_",
         text = nil,
         onclick = "Action_toggle(ATTACK)",
-        values = { "melee", "attack", "cone" },
+        values = { 4, 8, 12 },
+    },
+    CONE = {
+        icon = "cone",
+        id = "cone_",
+        text = nil,
+        onclick = "Action_toggle(CONE)",
+        values = { 3, 6, 9 },
+    },
+    SPLASH = {
+        icon = "splash",
+        id = "splash_",
+        text = nil,
+        onclick = "Action_toggle(SPLASH)",
+        values = { 4, 6, 8 },
+    },
+    LINE = {
+        icon = "line",
+        id = "line_",
+        text = nil,
+        onclick = "Action_toggle(LINE)",
+        values = { 8, 12, 16 },
     },
 }
 
@@ -56,9 +77,10 @@ function Action.create(player_color)
         Action.miniatures[player_color][miniature["guid"]] = miniature
     end
     -- no miniature selected by default
-    Action.selected_miniature[player_color] = nil
+    --Action.selected_miniature[player_color] = nil
+
     -- if there is only one miniature for this player, select it by default
-    if #list_miniatures == 1 then
+    if #list_miniatures >= 1 then
         Action.selected_miniature[player_color] = list_miniatures[1]
     end
 
@@ -214,6 +236,7 @@ function Action.button_action(player_color, action)
 end
 
 function Action.button_value(player_color, action, value)
+
     local pos_y = BUTTON_HEIGHT + BUTTON_SPACING
     local values = ACTION_DEFINITION[action].values
     local index

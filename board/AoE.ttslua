@@ -1,0 +1,773 @@
+local CONE_THRESHOLD = 0.3
+local LINE_THRESHOLD = 0.3
+local SPLASH_THRESHOLD = 0.3
+local ATTACK_THRESHOLD = 0.2
+local CONE_ROOT = "Cone(Clone)"
+
+local SPLASH_COLOR_VALID = Color.new(1, 0, 0, 0.5)
+local SPLASH_COLOR_INVALID = Color.new(0.5, 0.5, 0.5, 0.5)
+
+local ATTACK_COLOR_VALID = Color.new(1, 0, 0, 0.5)
+local ATTACK_COLOR_INVALID = Color.new(0.5, 0.5, 0.5, 0.5)
+
+AoE = {
+    player_color = {},
+    objects_guid = {
+        CONE = "9b3ed5",
+        LINE = "58fad9",
+        SPLASH = "d49d6c",
+        ATTACK = "d49d6c",
+    },
+}
+
+function AoE.create_cone(player_color, guid, angle, range, position, center_coordinate, board_scale)
+    AoE.reset(player_color)
+    -- initialise the aoe information
+    local aoe = {
+        type = "CONE",
+        player_color = player_color,
+        guid = guid,
+        coordinate = center_coordinate,
+        range = range,
+        angle = angle,
+        miniatures = {},
+        running = true,
+        pointing_angle = 0,
+    }
+
+    -- get the cone game object
+    local cone = getObjectFromGUID(AoE.objects_guid.CONE)
+
+    -- lock it, avoid any movement
+    cone.setLock(true)
+    -- Get the box Collider
+    local boxCollider = cone.getComponentInChildren("BoxCollider")
+    -- Disable the BoxCollider Component
+    boxCollider.set("enabled", false)
+
+    -- remove previous buttons
+    cone.clearButtons()
+    -- Create a button on this objects
+    cone.createButton({
+        label = "",
+        click_function = "AoE_click",
+        function_owner = self,
+        position = { 0.5, 0, -0.5 },
+        height = 500,
+        width = 500,
+        --color = { 0, 1, 0, 0.5 },
+        color = { 0, 0, 0, 0.0 },
+        scale = { 1, 1, 1 },
+    })
+
+    -- scale the Cone to it's range
+    cone.setScale({ board_scale * range, board_scale * range, board_scale * range })
+
+    -- Change it's angle by enabling/disabling children
+    local children = cone.getChild(CONE_ROOT).getChildren()
+    for _, child in ipairs(children) do
+        if child.name ~= tostring(angle) then
+            child.getComponent("MeshRenderer").set("enabled", false)
+        else
+            child.getComponent("MeshRenderer").set("enabled", true)
+        end
+    end
+
+    -- set it's position
+    cone.setPosition(position)
+
+    -- create a first filter, remove all miniatures who are too far
+    for _, miniature in pairs(Board.miniatures) do
+        if miniature.guid ~= aoe.guid then
+            local distance = distance_coordinate(center_coordinate, miniature.coordinate)
+            -- if the distance is good, then check the angle
+            if distance < aoe.range + CONE_THRESHOLD then
+                -- insert into the filtered table of miniatures
+                if LoS.coordinate(center_coordinate, miniature["coordinate"], false) then
+                    table.insert(aoe.miniatures, miniature)
+                end
+            end
+        end
+    end
+
+    -- Store the aoe
+    AoE.player_color[player_color] = aoe
+
+end
+
+function AoE.create_line(player_color, guid, width, range, position, center_coordinate, board_scale)
+    AoE.reset(player_color)
+    local aoe = {
+        type = "LINE",
+        range = range,
+        width = width,
+        player_color = player_color,
+        pointing_angle = 0,
+        coordinate = center_coordinate,
+        guid = guid,
+        end_position = nil,
+        board_scale = board_scale,
+        running = true,
+        miniatures = {},
+        is_valid = true,
+    }
+    -- get the Line object
+    local line = getObjectFromGUID(AoE.objects_guid.LINE)
+    -- lock it, avoid any movement
+    line.setLock(true)
+    local boxCollider = line.getComponentInChildren("BoxCollider")
+    -- Disable the BoxCollider Component
+    boxCollider.set("enabled", false)
+
+    -- get the root component, will be faster next time
+    line.createButton({
+        label = "",
+        click_function = "AoE_click",
+        function_owner = self,
+        position = { 0, 0, -0.5 },
+        height = 500,
+        width = 500,
+        --color = { 0, 1, 0, 0.5 },
+        color = { 0, 0, 0, 0.0 },
+        scale = { 1, 1, 1 },
+    })
+
+    -- scale the Line to it's range
+    line.setScale({ width * board_scale, width * board_scale, board_scale * range })
+
+    -- set it's position
+    line.setPosition(position)
+
+    for _, miniature in pairs(Board.miniatures) do
+        if miniature.guid ~= aoe.guid then
+
+            local distance = distance_coordinate(center_coordinate, miniature.coordinate)
+            -- if the distance is good, then check the angle
+            if distance < aoe.range + LINE_THRESHOLD then
+                -- insert into the filtered table of miniatures
+                if LoS.coordinate(center_coordinate, miniature["coordinate"], false) then
+                    table.insert(aoe.miniatures, miniature)
+                end
+            end
+        end
+    end
+
+    -- Store the aoe
+    AoE.player_color[player_color] = aoe
+end
+
+function AoE.create_splash(player_color, guid, radius, range, position, center_coordinate, board_scale)
+    AoE.reset(player_color)
+    local aoe = {
+        type = "SPLASH",
+        range = range,
+        radius = radius,
+        player_color = player_color,
+        coordinate = center_coordinate,
+        guid = guid,
+        end_position = nil,
+        board_scale = board_scale,
+        running = true,
+        miniatures = {},
+        old_coordinate = center_coordinate,
+        old_visible = true,
+    }
+
+    -- get the Line object
+    local splash = getObjectFromGUID(AoE.objects_guid.SPLASH)
+    -- lock it, avoid any movement
+    splash.setLock(true)
+    local boxCollider = splash.getComponentInChildren("BoxCollider")
+    -- Disable the BoxCollider Component
+    boxCollider.set("enabled", false)
+
+    -- get the root component, will be faster next time
+    splash.createButton({
+        label = "",
+        click_function = "AoE_click",
+        function_owner = self,
+        position = { 0, 0, 0 },
+        height = 1000,
+        width = 1000,
+        --color = { 0, 1, 0, 0.5 },
+        color = { 0, 0, 0, 0.0 },
+        scale = { 1, 1, 1 },
+    })
+
+    -- scale the Splash to it's range
+    splash.setScale({ board_scale * radius, board_scale * radius, board_scale * radius })
+
+    -- set it's position
+    splash.setPosition(position)
+
+
+    -- draw the radius, attached to the miniature
+    AoE.draw_radius(aoe, getObjectFromGUID(guid))
+
+
+    -- create a first filter, remove all miniatures who are too far
+    for _, miniature in pairs(Board.miniatures) do
+        if miniature.guid == aoe.guid then
+            table.insert(aoe.miniatures, miniature)
+        else
+            local distance = distance_coordinate(center_coordinate, miniature.coordinate)
+            -- if the distance is good, then check the angle
+            if distance < aoe.range + radius + SPLASH_THRESHOLD then
+                -- insert into the filtered table of miniatures
+                table.insert(aoe.miniatures, miniature)
+            end
+        end
+    end
+
+    -- Store the aoe
+    AoE.player_color[player_color] = aoe
+
+end
+
+function AoE.create_attack(player_color, guid, range, position, center_coordinate, board_scale)
+    AoE.reset(player_color)
+    local aoe = {
+        type = "ATTACK",
+        range = range,
+        player_color = player_color,
+        coordinate = center_coordinate,
+        guid = guid,
+        board_scale = board_scale,
+        running = true,
+        miniatures = {},
+    }
+
+    -- get the Line object
+    local splash = getObjectFromGUID(AoE.objects_guid.SPLASH)
+    -- lock it, avoid any movement
+    splash.setLock(true)
+    local boxCollider = splash.getComponentInChildren("BoxCollider")
+    -- Disable the BoxCollider Component
+    boxCollider.set("enabled", false)
+
+    -- get the root component, will be faster next time
+    splash.createButton({
+        label = "",
+        click_function = "AoE_click",
+        function_owner = self,
+        position = { 0, 0, 0 },
+        height = 1000,
+        width = 1000,
+        --color = { 0, 1, 0, 0.5 },
+        color = { 0, 0, 0, 0.0 },
+        scale = { 1, 1, 1 },
+    })
+
+    -- scale the Splash to it's range
+    splash.setScale({ board_scale * 0.5, board_scale * 0.5, board_scale * 0.5 })
+    -- set it's position
+    splash.setPosition(position)
+
+    -- draw the radius, attached to the miniature
+    AoE.draw_radius(aoe, getObjectFromGUID(guid))
+    -- create a first filter, remove all miniatures who are too far
+    for _, miniature in pairs(Board.miniatures) do
+        if miniature.guid ~= aoe.guid then
+            local distance = distance_coordinate(center_coordinate, miniature["coordinate"])
+            -- if the distance is good, then check the angle
+            if distance < aoe.range + ATTACK_THRESHOLD then
+                -- insert into the filtered table of miniatures
+                if LoS.coordinate(center_coordinate, miniature["coordinate"], false) then
+                    table.insert(aoe.miniatures, miniature)
+                end
+            end
+        end
+    end
+
+    -- Store the aoe
+    AoE.player_color[player_color] = aoe
+
+end
+
+function AoE.update()
+    for player_color, aoe in pairs(AoE.player_color) do
+        if aoe["running"] ~= nil then
+            if aoe["type"] == "CONE" then
+                AoE.update_cone(player_color, aoe)
+            elseif aoe["type"] == "SPLASH" then
+                AoE.update_splash(player_color, aoe)
+            elseif aoe["type"] == "LINE" then
+                AoE.update_line(player_color, aoe)
+            elseif aoe["type"] == "ATTACK" then
+                AoE.update_attack(player_color, aoe)
+            end
+        end
+    end
+end
+
+function AoE.update_cone(player_color, cone)
+    -- get the position of the player cursor
+    local cursor_position = Player[player_color].getPointerPosition()
+
+    -- get both the miniature and the cone
+    local miniature_object = getObjectFromGUID(cone["guid"])
+    local cone_object = getObjectFromGUID(AoE.objects_guid.CONE)
+
+    -- get the position of the cone, it's the same as the figurine
+    local position = cone_object.getPosition()
+    --  calculate the direction vector
+    local direction = cursor_position - position
+    -- remove y component
+    direction[2] = 0
+    -- create an up vector to calculate the angle
+    local up = Vector.new(0, 0, -1)
+    -- calculate the angle
+    local angle = Vector.angle(direction, up)
+    -- the function only handle angle between 0 and 180, make it works for 0 360
+    if direction[1] > 0 then
+        angle = 360 - angle
+    end
+    -- store the angle
+    cone.pointing_angle = angle
+
+    -- rotate the object itself
+    miniature_object.setRotation({ 0, angle + 180, 0 })
+    cone_object.setRotation({ 0, angle - 45, 0 })
+
+    -- now display the targets
+    -- first highlight off
+    AoE.highlight_off(cone)
+    -- then highlight target on
+    AoE.highlight_on(cone)
+end
+
+function AoE.update_line(player_color, aoe)
+    -- get the position of the player cursor
+    local cursor_position = Player[player_color].getPointerPosition()
+
+    -- get both the miniature and the cone
+    local miniature_object = getObjectFromGUID(aoe["guid"])
+    local line_object = getObjectFromGUID(AoE.objects_guid.LINE)
+
+    -- get the position of the cone, it's the same as the figurine
+    local position = line_object.getPosition()
+    --  calculate the direction vector
+    local direction = cursor_position - position
+    -- remove y component
+    direction[2] = 0
+
+    -- create an up vector to calculate the angle
+    local up = Vector.new(0, 0, -1)
+    -- calculate the angle
+    local angle = Vector.angle(direction, up)
+    -- the function only handle angle between 0 and 180, make it works for 0 360
+    if direction[1] > 0 then
+        angle = 360 - angle
+    end
+    -- store the angle
+    aoe.pointing_angle = angle
+
+    -- rotate the object itself
+    line_object.setRotation({ 0, angle, 0 }) -- void angle rounding issue
+    miniature_object.setRotation({ 0, angle + 180, 0 }) -- void angle rounding issue
+
+    -- calculate the end position of the line
+    local normalize_direction = direction:normalize()
+    aoe.end_position = normalize_direction:scale(aoe.board_scale * aoe.range) + position
+
+    -- now display the targets
+    -- first highlight off
+    AoE.highlight_off(aoe)
+    -- then highlight target on
+    AoE.highlight_on(aoe)
+end
+
+function AoE.update_splash(player_color, aoe)
+    -- get the position of the player cursor
+    local cursor_position = Player[player_color].getPointerPosition()
+
+    -- check if this tile is visible by the player
+    local coordinate = Board.get_coordinate(cursor_position)
+    local coordinate_float = Board.get_coordinate(cursor_position, true)
+    coordinate_float[1] = coordinate_float[1] + 0.5
+    coordinate_float[2] = coordinate_float[2] + 0.5
+    -- check if the splash is valid
+    aoe.is_valid = true
+
+    -- first make sure it's inside the board and it's walkable
+    if not Board.is_inside(coordinate) or Constant[Board.data[coordinate[2]][coordinate[1]]].move_cost == 0 then
+        aoe.is_valid = false
+    end
+
+    -- Check if there is a line of sight
+    if coordinate_float[1] ~= aoe.old_coordinate[1] or coordinate_float[2] ~= aoe.old_coordinate[2] then
+        local visible = LoS.coordinate_splash(coordinate_float, aoe.coordinate)
+        aoe.old_visible = visible
+        aoe.old_coordinate = coordinate_float
+        if not visible then
+            aoe._valid = false
+        end
+    end
+
+    if not aoe.old_visible then
+        aoe.is_valid = false
+    end
+
+    -- get both the miniature and the cone
+    local miniature_object = getObjectFromGUID(aoe["guid"])
+    local splash_object = getObjectFromGUID(AoE.objects_guid.SPLASH)
+
+    --  calculate the direction vector
+    local direction = cursor_position - miniature_object.getPosition()
+    -- remove y component
+    direction[2] = 0
+    local magnitude = direction:magnitude()
+
+    if magnitude > aoe.range * aoe.board_scale then
+        aoe.is_valid = false
+        --direction:scale((splash.range * splash.board_scale) / magnitude)
+    end
+
+    -- remove y component
+    direction[2] = 0
+    -- create an up vector to calculate the angle
+    local up = Vector.new(0, 0, -1)
+    -- calculate the angle
+    local angle = Vector.angle(direction, up)
+    -- the function only handle angle between 0 and 180, make it works for 0 360
+    if direction[1] > 0 then
+        angle = 360 - angle
+    end
+
+    -- Store the new center
+    aoe.center = direction + miniature_object.getPosition()
+
+    -- rotate the object itself
+    splash_object.setRotation({ 0, angle, 0 }) -- void angle rounding issue
+    miniature_object.setRotation({ 0, angle + 180, 0 }) -- void angle rounding issue
+
+    splash_object.setPosition(aoe.center)
+
+    -- change the color
+    if aoe.is_valid then
+        if not splash_object.getColorTint():equals(SPLASH_COLOR_VALID) then
+            splash_object.setColorTint(SPLASH_COLOR_VALID)
+        end
+    else
+        if not splash_object.getColorTint():equals(SPLASH_COLOR_INVALID) then
+            splash_object.setColorTint(SPLASH_COLOR_INVALID)
+        end
+    end
+
+    -- now display the targets
+    -- first highlight off
+    AoE.highlight_off(aoe)
+    -- then highlight target on
+    if aoe.is_valid then
+        AoE.highlight_on(aoe)
+    end
+end
+
+function AoE.update_attack(player_color, aoe)
+    -- get the position of the player cursor
+    local cursor_position = Player[player_color].getPointerPosition()
+
+    -- check if this tile is visible by the player
+    local coordinate = Board.get_coordinate(cursor_position)
+
+    -- check if the splash is valid
+    aoe.is_valid = true
+
+    -- first make sure it's inside the board and it's walkable
+    if not Board.is_inside(coordinate) or Constant[Board.data[coordinate[2]][coordinate[1]]].move_cost == 0 then
+        aoe.is_valid = false
+    end
+
+    local distance = distance_coordinate(coordinate, aoe.coordinate)
+    if distance > (aoe.range + ATTACK_THRESHOLD) then
+        aoe.is_valid = false
+    end
+
+    -- get both the miniature and the cone
+    local miniature_object = getObjectFromGUID(aoe["guid"])
+    local splash_object = getObjectFromGUID(AoE.objects_guid.SPLASH)
+
+    --  calculate the direction vector
+    local direction = cursor_position - miniature_object.getPosition()
+
+    -- remove y component
+    direction[2] = 0
+    -- create an up vector to calculate the angle
+    local up = Vector.new(0, 0, -1)
+    -- calculate the angle
+    local angle = Vector.angle(direction, up)
+    -- the function only handle angle between 0 and 180, make it works for 0 360
+    if direction[1] > 0 then
+        angle = 360 - angle
+    end
+
+    -- Store the new center
+    aoe.center = direction + miniature_object.getPosition()
+
+    -- rotate the object itself
+    splash_object.setRotation({ 0, angle, 0 }) -- void angle rounding issue
+    miniature_object.setRotation({ 0, angle + 180, 0 }) -- void angle rounding issue
+
+    splash_object.setPosition(Board.get_position(coordinate[1], coordinate[2]))
+
+    local targets = AoE.targets_attack(aoe)
+    -- only valid if a single target
+    if #targets ~= 1 then
+        aoe.is_valid = false
+    end
+
+    -- change the color
+    if aoe.is_valid then
+        if not splash_object.getColorTint():equals(ATTACK_COLOR_VALID) then
+            splash_object.setColorTint(ATTACK_COLOR_VALID)
+        end
+    else
+        if not splash_object.getColorTint():equals(ATTACK_COLOR_INVALID) then
+            splash_object.setColorTint(ATTACK_COLOR_INVALID)
+        end
+    end
+
+    -- now display the targets
+    -- first highlight off
+    AoE.highlight_off(aoe)
+    -- then highlight target on
+    if aoe.is_valid then
+        AoE.highlight_on(aoe)
+    end
+end
+
+function AoE.highlight_off(aoe)
+    -- turn highlight off on all
+    for _, miniature in pairs(aoe.miniatures) do
+        -- get the object, make sure it exist
+        local object = getObjectFromGUID(miniature.guid)
+        -- make sure the miniature still exist
+        if object ~= nil then
+            -- turn off the highlight
+            object.highlightOff({ 1, 0, 0 })
+            -- make sure they re become interactable
+            object.interactable = true
+        end
+    end
+end
+
+function AoE.highlight_on(aoe)
+    local targets = AoE.targets(aoe)
+    -- turn highlightOn on target
+    for _, miniature in pairs(targets) do
+        -- get the object, make sure it exist
+        local object = getObjectFromGUID(miniature.guid)
+        -- make sure the miniature still exist
+        if object ~= nil then
+            -- turn on the highlight
+            object.highlightOn({ 1, 0, 0 })
+            -- make them not interactable so we can click through
+            object.interactable = false
+        end
+    end
+end
+
+function AoE.targets(aoe)
+    if aoe["type"] == "CONE" then
+        return AoE.targets_cone(aoe)
+    elseif aoe["type"] == "LINE" then
+        return AoE.targets_line(aoe)
+    elseif aoe["type"] == "SPLASH" then
+        return AoE.targets_splash(aoe)
+    elseif aoe["type"] == "ATTACK" then
+        return AoE.targets_attack(aoe)
+    end
+end
+
+function AoE.targets_cone(aoe)
+    local targets = {}
+    for _, miniature in ipairs(aoe.miniatures) do
+        -- get the object, make sure it exist
+        local object = getObjectFromGUID(miniature.guid)
+        -- make sure the miniature still exist
+        if object ~= nil then
+            -- calculate the angle
+            local guid_angle = angle_coordinate(aoe.coordinate, miniature.coordinate)
+            -- make sure it's inside the cone
+            if angle_between_2_angles(guid_angle + 180, aoe.pointing_angle - aoe.angle / 2, aoe.pointing_angle + aoe.angle / 2) then
+                table.insert(targets, miniature)
+            end
+        end
+    end
+    return targets
+end
+
+function AoE.targets_line(aoe)
+    local targets = {}
+    local line_object = getObjectFromGUID(AoE.objects_guid.LINE)
+    for _, miniature in pairs(aoe.miniatures) do
+        -- get the object, make sure it exist
+        local object = getObjectFromGUID(miniature.guid)
+        -- make sure the miniature still exist
+        if object ~= nil then
+            -- calculate the distance between the line and the miniature
+            local position = object.getPosition() - line_object.getPosition()
+            local direction = aoe.end_position - line_object.getPosition()
+            local projection = position:project(direction)
+            -- make sure the projection is inside the line
+            if is_between(projection[1], 0, direction[1]) and is_between(projection[2], 0, direction[2]) then
+                --  reset position
+                position = object.getPosition() - line_object.getPosition()
+                local distance = Vector.distance(projection, position)
+                -- scale the distance to the board
+                distance = distance / aoe.board_scale
+                -- if the distance is lower than half of the width + some padding, consider the target valid
+                if distance < aoe.width / 2 + LINE_THRESHOLD then
+                    table.insert(targets, miniature)
+                end
+            end
+        end
+    end
+    return targets
+end
+
+function AoE.targets_splash(aoe)
+    local targets = {}
+    local splash_coordinate = Board.get_coordinate(aoe.center, true)
+    splash_coordinate[1] = splash_coordinate[1] + 0.5
+    splash_coordinate[2] = splash_coordinate[2] + 0.5
+    for _, miniature in pairs(aoe.miniatures) do
+        -- get the object, make sure it exist
+        local object = getObjectFromGUID(miniature.guid)
+        -- make sure the miniature still exist
+        if object ~= nil then
+            local position = object.getPosition()
+            local distance = Vector.distance(position, aoe.center)
+            -- apply the board_scale
+            distance = distance / aoe.board_scale
+            if distance < aoe.radius + SPLASH_THRESHOLD then
+                if LoS.coordinate_splash(splash_coordinate, miniature["coordinate"]) then
+                    table.insert(targets, miniature)
+                end
+            end
+        end
+    end
+    return targets
+end
+
+function AoE.targets_attack(aoe)
+    local targets = {}
+    local coordinate = Board.get_coordinate(aoe.center)
+    for _, miniature in pairs(aoe.miniatures) do
+        if miniature["coordinate"][1] == coordinate[1] and miniature["coordinate"][2] == coordinate[2] then
+            table.insert(targets, miniature)
+        end
+    end
+    return targets
+end
+
+function AoE.draw_radius(aoe, miniature)
+    -- hard coded circle
+    local list_point = {
+        { 1, 0, 0 },
+        { 0.984808, 0, 0.173648 },
+        { 0.939693, 0, 0.34202 },
+        { 0.866025, 0, 0.5 },
+        { 0.766045, 0, 0.642787 },
+        { 0.642788, 0, 0.766045 },
+        { 0.5, 0, 0.866025 },
+        { 0.34202, 0, 0.939693 },
+        { 0.173648, 0, 0.984808 },
+        { 0, 0, 1 },
+        { -0.173648, 0, 0.984808 },
+        { -0.34202, 0, 0.939693 },
+        { -0.5, 0, 0.866025 },
+        { -0.642788, 0, 0.766045 },
+        { -0.766045, 0, 0.642788 },
+        { -0.866025, 0, 0.5 },
+        { -0.939693, 0, 0.34202 },
+        { -0.984808, 0, 0.173648 },
+        { -1, 0, 0 },
+        { -0.984808, 0, -0.173648 },
+        { -0.939693, 0, -0.34202 },
+        { -0.866025, 0, -0.5 },
+        { -0.766045, 0, -0.642787 },
+        { -0.642787, 0, -0.766045 },
+        { -0.5, 0, -0.866025 },
+        { -0.34202, 0, -0.939693 },
+        { -0.173648, 0, -0.984808 },
+        { 0, 0, -1 },
+        { 0.173648, 0, -0.984808 },
+        { 0.34202, 0, -0.939693 },
+        { 0.5, 0, -0.866025 },
+        { 0.642787, 0, -0.766045 },
+        { 0.766044, 0, -0.642788 },
+        { 0.866025, 0, -0.5 },
+        { 0.939693, 0, -0.342021 },
+        { 0.984808, 0, -0.173649 },
+        { 1, 0, 0 },
+    }
+
+    -- get miniature scale ratio
+    local scale = miniature.getScale()[1]
+    local delta = Vector.new(0, 0.2, 0)
+    local list_vector = {}
+    --local vector_scale = (aoe.range) / scale
+    for _, point in ipairs(list_point) do
+        local vector = Vector.new(point[1], point[2], point[3])
+        -- scale to radius
+        --vector:scale(vector_scale)
+        vector:scale(aoe.range * 0.8) -- no fuck
+        -- make it a bit higher than the miniature
+        vector = vector + delta + miniature.getPosition()
+        vector = miniature.positionToLocal(vector)
+
+        table.insert(list_vector, vector)
+    end
+
+    local lines = {
+        {
+            points = list_vector,
+            color = { 1, 0, 0, 0.8 },
+            thickness = 0.05 / scale,
+            rotation = { 0, 0, 0 },
+        }
+    }
+    miniature.setVectorLines(lines)
+end
+
+function AoE.reset(player_color)
+    local aoe = AoE.player_color[player_color]
+    if aoe == nil then
+        return
+    end
+    -- stop the cone, needs to do better
+    -- TODO handle better cone stop
+    AoE.player_color[player_color] = nil
+
+    getObjectFromGUID(AoE.objects_guid[aoe['type']]).setPosition({ 0, -1, 0 }) -- hack to hide it, debug
+
+    -- turn highlight off on all
+    AoE.highlight_off(aoe)
+
+    -- remove line if any
+    getObjectFromGUID(aoe.guid).setVectorLines({ })
+end
+
+-- Click events
+function AoE_click(_, player_color, alt_click)
+    if alt_click then
+        return
+    end
+    local aoe = AoE.player_color[player_color]
+    -- no need to continue if the aoe is not valid
+    if aoe["is_valid"] == false then
+        -- true or nil is both valid
+        return
+    end
+    -- get the targets
+    local targets = AoE.targets(aoe)
+
+    AoE.reset(player_color)
+
+    if #targets > 0 then
+        Global.call("Attack_set_targets", { player_color, targets })
+    end
+end
+
+return AoE

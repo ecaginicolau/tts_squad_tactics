@@ -21,6 +21,10 @@ function update_asset()
             name = "semicover",
             url = "http://cloud-3.steamusercontent.com/ugc/1709661083127777275/C650AC1C7F7C223C56636AB055124562DAC8F576/",
         },
+        {
+            name = "nocover",
+            url = "http://cloud-3.steamusercontent.com/ugc/1687143991063176330/939D3F8215B2ACE108646E0A3540C2D486EF58FC/",
+        },
         -- defense
         {
             name = Constant.IMPACT.image,
@@ -100,6 +104,15 @@ function update_asset()
             name = "melee",
             url = "http://cloud-3.steamusercontent.com/ugc/1687143182121667754/38B0D8AA27004259D33667A6996B3207682420D5/",
         },
+        {
+            name = "line",
+            url = "http://cloud-3.steamusercontent.com/ugc/1687143991063594651/4A0924B135EF7FA88FAE833260330B1C6CB80C5D/",
+        },
+        {
+            name = "splash",
+            url = "http://cloud-3.steamusercontent.com/ugc/1687143991063603327/A93D1109043B599DF17563A7D68B8BB1531F1408/",
+        },
+
         --background detail
         {
             name = "monster_detail",
