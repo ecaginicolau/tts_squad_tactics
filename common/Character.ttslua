@@ -116,12 +116,13 @@ setmetatable(Character, {
         end
 
         function self.getManager()
-            if self._manager == nil then
-                local guid = "0d5151"
-                -- Should be global after dev/debug
-                self._manager = getObjectFromGUID(guid)
-            end
-            return self._manager
+            return Global
+            --if self._manager == nil then
+            --    local guid = "0d5151"
+            --    -- Should be global after dev/debug
+            --    self._manager = getObjectFromGUID(guid)
+            --end
+            --return self._manager
 
         end
 

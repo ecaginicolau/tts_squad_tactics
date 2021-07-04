@@ -5,12 +5,13 @@ Listener = {
 }
 
 function Listener.getManager()
-    if Listener._manager == nil then
-        local guid = "0d5151"
-        -- Should be global after dev/debug
-        Listener._manager = getObjectFromGUID(guid)
-    end
-    return Listener._manager
+    --if Listener._manager == nil then
+    --    local guid = "0d5151"
+    --    -- Should be global after dev/debug
+    --    Listener._manager = getObjectFromGUID(guid)
+    --end
+    --return Listener._manager
+    return Global
 end
 
 function Listener.register()

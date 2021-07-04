@@ -297,23 +297,26 @@ function Board.start_action(player_color, guid, action, value)
         Board.move_start(player_color, guid, nb_move, safe)
     end
     if action == Constant.LINE then
-        position[2] = position[2] + 0.1 -- raise the cone a bit higher than the board
+        position[2] = position[2] + 0.05 -- raise the cone a bit higher than the board
         local width = 0.4
         local range = tonumber(value)
         AoE.create_line(player_color, guid, width, range, position, coordinate)
     end
     if action == Constant.CONE then
-        position[2] = position[2] + 0.05 -- raise the cone a bit higher than the board
         local angle = 60
         local range = tonumber(value)
         AoE.create_cone(player_color, guid, angle, range, position, coordinate)
     end
     if action == Constant.SPLASH then
+        position[2] = position[2] + 0.1-- raise the cone a bit higher than the board
+
         local radius = 2
         local range = tonumber(value)
         AoE.create_splash(player_color, guid, radius, range, position, coordinate)
     end
     if action == Constant.ATTACK then
+        position[2] = position[2] + 0.05-- raise the cone a bit higher than the board
+
         local range = tonumber(value)
         AoE.create_attack(player_color, guid, range, position, coordinate)
     end

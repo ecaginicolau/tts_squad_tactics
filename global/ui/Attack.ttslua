@@ -361,7 +361,11 @@ function Attack.reset(player_color)
     Attack.covers[player_color] = {}
 end
 
-function Attack.set_targets(player_color, targets)
+function Attack.set_targets(player_color, targets, attack_type)
+    -- right now disable cover for splash
+    Attack.damage_player[player_color]["use_cover"] = attack_type ~= "SPLASH"
+    Attack.set_use_cover(player_color)
+
     Attack.targets[player_color] = targets
     -- first disable all miniature
     for guid, _ in pairs(MainUI.characters) do
@@ -370,14 +374,17 @@ function Attack.set_targets(player_color, targets)
         self.UI.setAttribute("target_button_" .. player_color .. "_" .. guid, "text", "X")
 
     end
-    -- first disable all miniature
-    for _, guid in ipairs(targets) do
+
+    -- then enable the targets
+    for _, guid in pairs(targets) do
         self.UI.setAttribute("target_row_" .. player_color .. "_" .. guid, "active", true)
     end
     -- display the Attack panel
     self.UI.setAttribute("panel_damage_" .. player_color, "active", true)
+
     -- set die callback to catch the precision roll
     PlayerDie.set_callback(player_color, Global, "Attack_set_precision")
+
     -- Update the covers
     Attack.update_covers(player_color)
 end
@@ -426,6 +433,14 @@ function Attack.set_precision(player_color, precision, _)
     Attack.compute_precision(player_color)
 end
 
+function Attack.set_use_cover(player_color)
+    local image = "cover"
+    if not Attack.damage_player[player_color]["use_cover"] then
+        image = "nocover"
+    end
+    self.UI.setAttribute("image_cover_" .. player_color, "image", image)
+end
+
 -- Click events
 function Attack_update(player_color)
     for _, damage_type in ipairs(Constant.DAMAGES) do
@@ -442,7 +457,6 @@ function Attack_character(player, guid)
     local player_color = player.color
     -- set the miniature
     Attack.set_targets(player_color, { guid })
-
     -- Toggle on/off the panel
     if Attack.damage_player[player_color]["guid"] == nil then
         Attack.damage_player[player_color]["guid"] = guid
@@ -529,12 +543,8 @@ end
 
 function Attack_toggle_cover(player)
     Attack.damage_player[player.color]["use_cover"] = not Attack.damage_player[player.color]["use_cover"]
-    local image = "cover"
-    if not Attack.damage_player[player.color]["use_cover"] then
-        image = "nocover"
-    end
-    self.UI.setAttribute("image_cover_" .. player.color, "image", image)
-    Attack.compute_precision(player.color)
+    Attack.set_use_cover(player.color)
+    Attack.compute_precision(player_color)
 end
 
 function Attack_hide(player)

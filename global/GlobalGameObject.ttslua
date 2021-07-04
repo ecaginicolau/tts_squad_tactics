@@ -13,6 +13,7 @@ require("tts_squad_tactics.global.ui.Action")
 require("tts_squad_tactics.global.die.PlayerDie")
 require("tts_squad_tactics.listener.Listener")
 require("tts_squad_tactics.global.LoadAsset")
+require("tts_squad_tactics.global.manager.Manager")
 
 function onLoad()
     update_asset()
@@ -30,4 +31,5 @@ end
 
 function onPlayerChangeColor(_)
     MainUI.refresh()
+    PlayerDie.init()
 end

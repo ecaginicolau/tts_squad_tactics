@@ -74,7 +74,7 @@ function AoE.create_cone(player_color, guid, angle, range, position, center_coor
     end
 
     -- set it's position
-    cone.setPosition(position + Vector.new(0, 0.5, 0))
+    cone.setPosition(position)
 
     -- create a first filter, remove all miniatures who are too far
     for _, character in pairs(Board.characters) do
@@ -431,7 +431,7 @@ function AoE.update_splash(player_color, aoe)
     end
 
     -- Store the new center
-    aoe.center = direction + miniature_object.getPosition()
+    aoe.center = direction + miniature_object.getPosition() + Vector.new(0, 0.05, 0)
 
     -- rotate the object itself
     splash_object.setRotation({ 0, angle, 0 }) -- void angle rounding issue
@@ -763,7 +763,7 @@ function AoE_click(_, player_color, alt_click)
     AoE.reset(player_color)
 
     if #targets > 0 then
-        Global.call("Attack_set_targets", { player_color, targets })
+        Global.call("Attack_set_targets", { player_color, targets, aoe["type"] })
     end
 end
 

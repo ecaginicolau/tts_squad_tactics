@@ -1,7 +1,3 @@
-require("tts_squad_tactics.common.Constant")
-require("tts_squad_tactics.common.Utils")
-require("tts_squad_tactics.common.Character")
-require("tts_squad_tactics.listener.Listener")
 
 Manager = {
     characters = {},
@@ -119,18 +115,4 @@ function Manager_register_listener(params)
 
     -- return the character on list format
     return Manager.characters[guid].dump()
-end
-
-
--- gameobject
-function onLoad()
-
-    --local char1 = Character()
-    --local char2 = Character()
-    --char1.update({ NAME = "toto", guid="ABCDEF" })
-    --char2.update({ NAME = "tata", guid="FGHIJ" })
-    --
-    --CharacterManager.register(char1)
-    --CharacterManager.register(char2)
-
 end
