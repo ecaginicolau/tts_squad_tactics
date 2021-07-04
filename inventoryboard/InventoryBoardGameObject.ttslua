@@ -1,11 +1,20 @@
 require("tts_squad_tactics.common.Constant")
 require("tts_squad_tactics.common.Utils")
+require("tts_squad_tactics.common.Character")
 require("tts_squad_tactics.inventoryboard.InventoryBoard")
+require("tts_squad_tactics.listener.Listener")
+
+miniature_guid = "558418"
 
 --Startup procedure
 function onLoad(saved_data)
+
     Wait.frames(function()
+        -- first register to get the character
+        Listener.single(miniature_guid)
+        -- then initialize the inventory board
         InventoryBoard.init()
+
     end, 30)
 
 end

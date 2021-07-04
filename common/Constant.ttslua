@@ -226,4 +226,6 @@ DECAL = {
 
 COVER_BONUS = 2 -- multiplicative ratio
 
+NB_TAGS = 4
+
 return Constant

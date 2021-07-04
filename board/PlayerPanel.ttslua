@@ -103,7 +103,7 @@ function PlayerPanel_click(_, color, alt_click, player_color)
 end
 
 function PlayerPanel.start_move(player_color, guid, nb_move)
-    local coordinate = Board.miniatures[guid]["coordinate"]
+    local coordinate = Board.characters[guid].get("coordinate")
     local pos_x = BoardPanel.tile_size_x * (coordinate[1] - 0.5) - BoardPanel.panel_x / 2
     local pos_y = BoardPanel.panel_y / 2 - BoardPanel.tile_size_y * (coordinate[2] - 0.5)
     local position = pos_x .. " " .. pos_y .. " -12"
@@ -114,7 +114,7 @@ function PlayerPanel.start_move(player_color, guid, nb_move)
     PlayerPanel.display(player_color, true)
 
     -- resize and activate the button to move
-    local button_position = Board.get_position_relative(coordinate[1], coordinate[2])
+    local button_position = Board.get_position_relative(coordinate)
     self.editButton({
         index = input[player_color],
         position = button_position,

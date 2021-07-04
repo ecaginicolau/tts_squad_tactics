@@ -1,0 +1,136 @@
+require("tts_squad_tactics.common.Constant")
+require("tts_squad_tactics.common.Utils")
+require("tts_squad_tactics.common.Character")
+require("tts_squad_tactics.listener.Listener")
+
+Manager = {
+    characters = {},
+    -- store guid of listener interested in some characters
+    listeners = {},
+    -- store the guid of listeners that wants all info
+    -- they will be added to the future listeners when a new character register
+    all_listeners = {},
+}
+
+function Manager.register(character)
+    local guid = character.getGUID()
+    --print("registering character: " .. guid)
+    Manager.characters[guid] = character
+    -- dictionary form to avoid duplicate
+    Manager.listeners[guid] = {}
+    -- the character itself is automatically added to listeners
+    Manager.listeners[guid][guid] = guid
+    for _, listener_guid in pairs(Manager.all_listeners) do
+        -- insert in the list of listener for this object
+        Manager.listeners[guid][listener_guid] = listener_guid
+        -- get the listener gameobject
+        local listener
+        if listener_guid ~= "-1" then
+            local listener = getObjectFromGUID(listener_guid)
+            --print("Notifying character update of " .. guid .. " to " .. listener_guid .. "Type: " .. type(listener_guid))
+            listener.call("Manager_register_notification", character.dump())
+
+        else
+            -- -1 means Global
+            --print("Notifying character update of " .. guid .. " to Global!")
+            Global.call("Manager_register_notification", character.dump())
+        end
+
+    end
+end
+
+function Manager.update(guid, data, origin)
+    local character = Manager.characters[guid]
+    if character ~= nil then
+        character.change(data, origin)
+    end
+    -- now notify all listeners
+    Manager.notify(guid, data, origin)
+end
+
+function Manager.notify(guid, data, origin)
+    for _, listener_guid in pairs(Manager.listeners[guid]) do
+        -- don't notify the one that triggered the update
+        if listener_guid ~= origin then
+            -- get the gameobject
+            if listener_guid ~= "-1" then
+                local listener = getObjectFromGUID(listener_guid)
+                -- Call a function that needs to be implemented on every listeners
+                --print("Notifying character update of " .. guid .. " to " .. listener_guid)
+                listener.call("Manager_update_notification", { guid = guid, data = data, origin = origin })
+            else
+                --print("Notifying character update of " .. guid .. " to Global")
+                Global.call("Manager_update_notification", { guid = guid, data = data, origin = origin })
+            end
+        end
+    end
+end
+
+-- Call functions
+function Manager_register(data)
+    --print("Manager_register")
+    -- create the character from the data
+    local character = Character(data)
+    Manager.register(character)
+end
+
+function Manager_update(params)
+    --print("Manager_update received")
+    local guid = params["guid"]
+    local data = params["data"]
+    local origin = params["origin"]
+    Manager.update(guid, data, origin)
+end
+
+function Manager_register_all_listener(params)
+    --print("Manager_register_all_listener received")
+    local listener_guid = params["listener_guid"]
+    --print("listener_guid: " .. tostring(listener_guid))
+    -- dictionary form avoid duplicate
+    Manager.all_listeners[listener_guid] = listener_guid
+
+    -- return the list of current character's data
+    local list_character = {}
+    -- add the listener_guid to all character
+    for guid, character in pairs(Manager.characters) do
+        -- Add the listener to this character
+        if Manager.listeners[guid] == nil then
+            Manager.listeners[guid] = {}
+        end
+        Manager.listeners[guid][listener_guid] = listener_guid
+        -- get the character data
+        table.insert(list_character, character.dump())
+    end
+
+    return list_character
+end
+
+function Manager_register_listener(params)
+    --print("Manager_register_listener received")
+    local listener_guid = params["listener_guid"]
+    local guid = params["guid"]
+    --print("listener_guid: " .. tostring(listener_guid))
+    --print("guid: " .. tostring(guid))
+    -- dictionary form avoid duplicate
+    if Manager.listeners[guid] == nil then
+        Manager.listeners[guid] = {}
+    end
+    Manager.listeners[guid][listener_guid] = listener_guid
+
+    -- return the character on list format
+    return Manager.characters[guid].dump()
+end
+
+
+-- gameobject
+function onLoad()
+
+    --local char1 = Character()
+    --local char2 = Character()
+    --char1.update({ NAME = "toto", guid="ABCDEF" })
+    --char2.update({ NAME = "tata", guid="FGHIJ" })
+    --
+    --CharacterManager.register(char1)
+    --CharacterManager.register(char2)
+
+end

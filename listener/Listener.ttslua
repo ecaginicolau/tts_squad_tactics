@@ -1,0 +1,74 @@
+Listener = {
+    _manager = nil,
+    characters = {}, -- list all characters
+    interest = nil, -- right now can look for one character or all
+}
+
+function Listener.getManager()
+    if Listener._manager == nil then
+        local guid = "0d5151"
+        -- Should be global after dev/debug
+        Listener._manager = getObjectFromGUID(guid)
+    end
+    return Listener._manager
+end
+
+function Listener.register()
+    if Listener.interest ~= nil then
+        --print("Listener.interest : listener_guid: " .. tostring(self.getGUID()) .. " guid: " .. tostring(Listener.interest.getGUID()))
+        local data = Listener.getManager().call("Manager_register_listener", { listener_guid = self.getGUID(), guid = Listener.interest.getGUID() })
+        Listener.interest.change(data)
+    else
+        --print("Listener.register all : listener_guid: " .. tostring(self.getGUID()) .. " name: " .. self.name)
+        local list_data = Listener.getManager().call("Manager_register_all_listener", { listener_guid = self.getGUID() })
+        --print("Received characters: " .. #list_data)
+        for _, data in pairs(list_data) do
+            local character = Character(data)
+            --print(self.name .." : Received character: " .. tostring(character.getGUID()) .. " " .. tostring(character))
+            -- add to the list of character
+            Listener.characters[character.getGUID()] = character
+        end
+    end
+end
+
+function Listener.single(guid)
+    local character = Character()
+    --print("Listener.single : listener_guid: " .. tostring(self.getGUID()) .. " guid: " .. tostring(guid))
+    local data = Listener.getManager().call("Manager_register_listener", { listener_guid = self.getGUID(), guid = guid })
+    character.change(data)
+    Listener.interest = character
+end
+
+function Manager_register_notification(data)
+    --print("Manager_register_notification received by " .. self.getName())
+    local character = Character(data)
+    Listener.characters[character.getGUID()] = character
+end
+
+function Manager_update_notification(params)
+    --print("Manager_update_notification")
+    local guid = params["guid"]
+    local data = params["data"]
+    local origin = params["origin"]
+    -- update the character without triggering a new event
+    --print("interest" .. tostring(Listener.interest))
+    if Listener.interest == nil then
+        local character = Listener.characters[guid]
+        --print("character: " .. tostring(character))
+        if character ~= nil then
+            --print("character.change")
+            character.change(data)
+        --else
+        --    print("character. create")
+        --    local character = Character(data)
+        --    for key, value in pairs(data) do
+        --        print(" key : " .. tostring(key) .. "  value: " .. tostring(value))
+        --    end
+        --    Listener.characters[character.getGUID()] = character
+        end
+    else
+        Listener.interest.change(data)
+    end
+end
+
+return Listener

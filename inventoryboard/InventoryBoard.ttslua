@@ -1,6 +1,6 @@
 InventoryBoard = {
     zones = {},
-    miniature = nil,
+    character = nil,
     board_object = nil,
     player_color = nil,
 }
@@ -13,10 +13,9 @@ function InventoryBoard.init()
     -- find the board
     InventoryBoard.board_object = getObjectsWithTag("board")[1] -- for now let's suppose there is always one board
 
-    local list_miniatures = InventoryBoard.board_object.call("Board_miniatures_color", { InventoryBoard.player_color })
-    if #list_miniatures == 1 then
-        InventoryBoard.miniature = getObjectFromGUID(list_miniatures[1]["guid"])
-    end
+    -- get the character from the listener
+    InventoryBoard.character = Listener.interest
+
     -- compute armors cards
     InventoryBoard.compute_armors()
 end
@@ -116,12 +115,8 @@ function InventoryBoard.compute_armors()
 
     -- send to the miniature if it's linked
     if InventoryBoard.miniature ~= nil then
-        -- send data to the miniature
-        InventoryBoard.miniature.call("update_data", data_sum)
-        -- ask the board to reload the miniature data
-        InventoryBoard.board_object.call("Board_update_miniature", { InventoryBoard.miniature.getGUID() })
-        -- refresh a part of the UI
-        Global.call("UI_update_miniatures", { InventoryBoard.player_color })
+        -- Update the character
+        InventoryBoard.character.update(data_sum, self.getGUID())
     end
 end
 
@@ -163,7 +158,6 @@ function InventoryBoard.compute_weapon(slot)
         end
     end
 
-
     -- Need to get the weapon in the slot
     local list_weapons = InventoryBoard.zones["scripting_weapon" .. slot].getObjects()
     for _, weapon_info in ipairs(list_weapons) do
@@ -173,15 +167,6 @@ function InventoryBoard.compute_weapon(slot)
         end
     end
 
-    ---- send to the miniature if it's linked
-    --if InventoryBoard.miniature ~= nil then
-    --    -- send data to the miniature
-    --    InventoryBoard.miniature.call("update_data", data_sum)
-    --    -- ask the board to reload the miniature data
-    --    InventoryBoard.board_object.call("Board_update_miniature", { InventoryBoard.miniature.getGUID() })
-    --    -- refresh a part of the UI
-    --    Global.call("UI_update_miniatures", { InventoryBoard.player_color })
-    --end
 end
 
 return InventoryBoard

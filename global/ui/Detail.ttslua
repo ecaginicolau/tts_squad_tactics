@@ -264,19 +264,19 @@ function Detail.update_all()
 end
 
 function Detail.update(player_color, guid)
-    local miniature = UI.miniatures[guid]
+    local character = MainUI.characters[guid]
 
     -- check if the current miniature is considered identified, Black see all
-    local is_identified = miniature["identified"]
+    local is_identified = character.get("identified")
     if player_color == "Black" then
         is_identified = true
     end
 
-    local percentage = math.tointeger((miniature["current_hp"] * 100.0) / miniature["max_hp"])
+    local percentage = math.tointeger((character.get("CURRENT_HP") * 100.0) / character.get("MAX_HP"))
     -- hp display
     local hp_display = tostring(percentage) .. "%"
     if is_identified then
-        hp_display = miniature["current_hp"] .. " / " .. miniature["max_hp"]
+        hp_display = character.get("CURRENT_HP") .. " / " .. character.get("MAX_HP")
     end
 
     local def_color = {}
@@ -289,15 +289,15 @@ function Detail.update(player_color, guid)
         end
     else
         for _, defense in ipairs(Constant.DEFENSES) do
-            if miniature[defense] < 0 then
+            if character.get(defense) < 0 then
                 def_color[defense] = Constant.DEFENSE_NEGATIVE_COLOR
-            elseif miniature[defense] > 0 then
+            elseif character.get(defense) > 0 then
                 def_color[defense] = Constant.DEFENSE_POSITIVE_COLOR
             else
                 -- == 0
                 def_color[defense] = Constant.DEFENSE_NEUTRAL_COLOR
             end
-            def_value[defense] = miniature[defense]
+            def_value[defense] = character.get(defense)
         end
     end
     for _, defense in ipairs(Constant.DEFENSES) do
@@ -311,15 +311,19 @@ function Detail.update(player_color, guid)
     local list_text_change = { NAME, LEVEL }
 
     for _, text_change in ipairs(list_text_change) do
-        self.UI.setAttribute(text_change .. "_" .. player_color, "text", miniature[text_change])
+        self.UI.setAttribute(text_change .. "_" .. player_color, "text", character.get(text_change))
     end
 
-    for i, tag in ipairs(miniature.TAGS) do
+    for i = 1, NB_TAGS, 1 do
+        local tag = character.get("TAGS")[i]
+        if tag == nil then
+            tag = ""
+        end
         self.UI.setAttribute("tag" .. i .. "_" .. player_color, "text", tag)
     end
 
     for _, text_change in ipairs(Constant.STATS) do
-        self.UI.setAttribute(text_change .. "_" .. player_color, "text", miniature[text_change])
+        self.UI.setAttribute(text_change .. "_" .. player_color, "text", character.get(text_change))
     end
 
     self.UI.setAttribute("percentage_" .. player_color, "percentage", percentage)
@@ -347,12 +351,7 @@ end
 
 function Detail.identify(player)
     local guid = Detail.player[player.color]
-    UI.miniatures[guid]["identified"] = not UI.miniatures[guid]["identified"]
-    local miniature = getObjectFromGUID(guid)
-    miniature.call("update_data", { identified = UI.miniatures[guid]["identified"] })
-    -- send to the board, need to fix this mess
-    UI.board_object.call("Board_update_miniature_data", { guid, "identified", UI.miniatures[guid]["identified"] })
-
+    MainUI.characters[guid].update({ identified = not MainUI.characters[guid].get("identified") }, self.getGUID())
     Detail.update(player.color, guid)
 end
 

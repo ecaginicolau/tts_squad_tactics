@@ -1,0 +1,34 @@
+require("tts_squad_tactics.common.Constant")
+require("tts_squad_tactics.common.Utils")
+require("tts_squad_tactics.common.Character")
+require("tts_squad_tactics.listener.Listener")
+
+character = Character()
+
+function onLoad()
+    -- read some data from the GM notes
+    local notes = self.getGMNotes()
+    if notes ~= nil and notes ~= "" then
+        local data = JSON.decode(notes)
+        -- no need to notify before the registration
+        character.change(data)
+    end
+
+    -- make sure to update the guid
+    -- no need to notify before the registration
+    character.change({ guid = self.getGUID() })
+
+    -- the character listener should only listen to self
+    Listener.interest = character
+
+    -- Wait a bit to register to manager
+    Wait.time(Character_register_to_manager, 0.5)
+
+end
+
+
+function Character_register_to_manager()
+    --print("register to manager")
+    character.register()
+    Listener.register()
+end

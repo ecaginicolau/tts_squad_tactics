@@ -1,0 +1,144 @@
+Character = {}
+
+setmetatable(Character, {
+    __call = function(_, data)
+        local self = --[[---@type self]] {
+            -- put the data apart , it will be easier to serialise it
+            _data = {
+                NAME = "Nom",
+                LEVEL = 10,
+
+                -- Characteristics
+                STR = 10,
+                DEX = 10,
+                INT = 10,
+                SAG = 10,
+                CHA = 10,
+
+                -- Tags
+                TAGS = { "", "", "", "" },
+
+                -- HP Related
+                MAX_HP = 100,
+                CURRENT_HP = 100,
+                FATIGUE = 0, -- should stay at 0 for most
+
+                -- WEAPON
+                DAMAGE = 10, -- could be 0-2 and weapon only give dices + third of dice fixed
+                AMMO = 4,
+                RANGE = 8,
+
+                -- Stats
+                SPEED = 4,
+                ACCURACY = 3, -- should be 75%+ hit chance with 3D + accuracy vs evasion
+                EVASION = 10, -- no dice, should be around 2D + accuracy
+                INITIATIVE = 10, -- With 10 it should go from 0 to 20 with equipments
+                IDENTIFICATION = 10,
+                HATE = 0, -- can be both the HATE score or HATE multiplier
+
+                -- Armors
+                IMPACT = 0,
+                FIRE = 0,
+                COLD = 0,
+                ELECTRIC = 0,
+                BLIGHT = 0,
+                DIRECT = 0, -- should never be changed
+
+                -- List available move, for the UI
+                AVAILABLE_MOVE = { 4, 8 },
+                AVAILABLE_SAFE_MOVE = { 2, 4 },
+
+                -- List available attacks, for the UI
+                AVAILABLE_ATTACK = { 4, 8 },
+                AVAILABLE_LINE = { { 0.5, 12 }, { 1, 6 } },
+                AVAILABLE_CONE = { { 90, 3 }, { 45, 6 } },
+                AVAILABLE_SPLASH = { { 2, 8 }, { 3, 6 } },
+
+                -- Owner
+                owner = "Black",
+                team = "Enemies",
+
+                -- Flags
+                generate_hate = true, -- true if it's a player or it's pet, false for monster and npc
+                can_use_cover = true, -- could be false for giant
+                waited = false,
+                played = true,
+                identified = false, -- should be true for player's characters
+                on_board = true, -- store if it's on the board or not
+
+                -- miniature
+                guid = nil,
+                coordinate = { 20, 20 },
+            }
+        }
+
+        if data then
+            self._data = data
+        end
+
+        setmetatable(self, {
+            __index = numberedIndex,
+            __tostring = function(_)
+                return self.toString()
+            end,
+        })
+
+        ---@return string
+        function self.toString()
+            return 'Character: ' .. self._data["NAME"]
+        end
+
+        ---@return table
+        function self.dump()
+            return self._data
+        end
+
+        -- internal change, doesn't trigger the call to the manager
+        -- should only be used by the manager or the manager event
+        function self.change(new_data)
+            for key, value in pairs(new_data) do
+                self._data[key] = value
+            end
+        end
+
+        -- trigger the manager event
+        function self.update(new_data, origin)
+            self.change(new_data)
+            self.getManager().call("Manager_update", { guid = self.getGUID(), data = new_data, origin = origin })
+        end
+
+        function self.getGUID()
+            return self._data["guid"]
+        end
+
+        function self.getObject()
+            return getObjectFromGUID(self.getGUID())
+        end
+
+        function self.getManager()
+            if self._manager == nil then
+                local guid = "0d5151"
+                -- Should be global after dev/debug
+                self._manager = getObjectFromGUID(guid)
+            end
+            return self._manager
+
+        end
+
+        function self.get(key)
+            return self._data[key]
+        end
+
+        function self.register()
+            self.getManager().call("Manager_register", self.dump())
+        end
+
+        function self.getMiniature()
+            return getObjectFromGUID(self.getGUID())
+        end
+
+        return self
+    end,
+})
+
+return Character

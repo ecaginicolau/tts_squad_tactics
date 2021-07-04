@@ -246,7 +246,7 @@ function Attack.create(player_color)
     -- add target_panel to attack panel
     table.insert(panel["children"], target_panel)
 
-    for guid, miniature in pairs(UI.miniatures) do
+    for guid, character in pairs(MainUI.characters) do
         local cover_bonus = "+2"
         local row = {
             tag = "Row",
@@ -262,7 +262,7 @@ function Attack.create(player_color)
                         {
                             tag = "Text",
                             attributes = {
-                                text = miniature["NAME"],
+                                text = character.get("NAME"),
                                 fontSize = 40,
                                 color = "#000000",
                                 alignment = "MiddleLeft",
@@ -277,7 +277,7 @@ function Attack.create(player_color)
                         {
                             tag = "Text",
                             attributes = {
-                                text = miniature["EVASION"],
+                                text = character.get("EVASION"),
                                 fontSize = 40,
                             }
                         }
@@ -337,7 +337,9 @@ function Attack.reset_round()
     -- Key damage information, it could be easier
     for _, player in ipairs(Player.getPlayers()) do
         -- still reset any target
-        Attack.damage_player[player.color]["guid"] = nil
+        if Attack.damage_player[player.color] ~= nil then
+            Attack.damage_player[player.color]["guid"] = nil
+        end
     end
 end
 
@@ -362,15 +364,15 @@ end
 function Attack.set_targets(player_color, targets)
     Attack.targets[player_color] = targets
     -- first disable all miniature
-    for guid, _ in pairs(UI.miniatures) do
+    for guid, _ in pairs(MainUI.characters) do
         self.UI.setAttribute("target_row_" .. player_color .. "_" .. guid, "active", false)
         Attack.hits[player_color][guid] = true
         self.UI.setAttribute("target_button_" .. player_color .. "_" .. guid, "text", "X")
 
     end
     -- first disable all miniature
-    for _, miniature in ipairs(targets) do
-        self.UI.setAttribute("target_row_" .. player_color .. "_" .. miniature["guid"], "active", true)
+    for _, guid in ipairs(targets) do
+        self.UI.setAttribute("target_row_" .. player_color .. "_" .. guid, "active", true)
     end
     -- display the Attack panel
     self.UI.setAttribute("panel_damage_" .. player_color, "active", true)
@@ -382,8 +384,8 @@ end
 
 function Attack.update_covers(player_color)
     -- Get the cover definition for all these miniatures
-    local selected_guid = Action.selected_miniature[player_color]["guid"]
-    local covers = UI.board_object.call("LoS_get_cover", { selected_guid })
+    local selected_guid = Action.selected_character[player_color].get("guid")
+    local covers = MainUI.board_object.call("LoS_get_cover", { selected_guid })
     for guid, cover_value in pairs(covers) do
         if cover_value > 0 then
             cover_value = "+" .. tostring(cover_value * COVER_BONUS)
@@ -399,17 +401,18 @@ function Attack.compute_precision(player_color)
     -- get the precision from the damage definition
     local precision = Attack.damage_player[player_color]["precision"]
     -- Check which miniature is hit or not
-    for _, miniature in ipairs(Attack.targets[player_color]) do
-        local evasion = miniature["EVASION"]
-        if Attack.damage_player[player_color]["user_cover"] then
-            evasion = evasion + Attack.covers[player_color][miniature["guid"]] * COVER_BONUS
+    for _, guid in ipairs(Attack.targets[player_color]) do
+        local character = MainUI.characters[guid]
+        local evasion = character.get("EVASION")
+        if Attack.damage_player[player_color]["use_cover"] then
+            evasion = evasion + Attack.covers[player_color][character.getGUID()] * COVER_BONUS
         end
         if evasion < precision then
-            Attack.hits[player_color][miniature["guid"]] = true
-            self.UI.setAttribute("target_button_" .. player_color .. "_" .. miniature["guid"], "text", "X")
+            Attack.hits[player_color][character.getGUID()] = true
+            self.UI.setAttribute("target_button_" .. player_color .. "_" .. character.getGUID(), "text", "X")
         else
-            Attack.hits[player_color][miniature["guid"]] = false
-            self.UI.setAttribute("target_button_" .. player_color .. "_" .. miniature["guid"], "text", "")
+            Attack.hits[player_color][character.getGUID()] = false
+            self.UI.setAttribute("target_button_" .. player_color .. "_" .. character.getGUID(), "text", "")
         end
     end
 end
@@ -438,7 +441,7 @@ end
 function Attack_character(player, guid)
     local player_color = player.color
     -- set the miniature
-    Attack.set_targets(player_color, { UI.miniatures[guid] })
+    Attack.set_targets(player_color, { guid })
 
     -- Toggle on/off the panel
     if Attack.damage_player[player_color]["guid"] == nil then
@@ -513,9 +516,9 @@ function Attack_compute(player)
     print("BLIGHT: " .. tostring(Attack.damage_player[player_color]["BLIGHT"]))
     print("DIRECT: " .. tostring(Attack.damage_player[player_color]["DIRECT"]))
     print("To targets: ")
-    for _, miniature in ipairs(Attack.targets[player_color]) do
-        if Attack.hits[player_color][miniature["guid"]] then
-            print(miniature["NAME"])
+    for _, character in ipairs(Attack.targets[player_color]) do
+        if Attack.hits[player_color][character.getGUID()] then
+            print(character["NAME"])
         end
     end
 end

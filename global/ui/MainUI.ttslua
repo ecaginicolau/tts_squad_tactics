@@ -2,16 +2,16 @@
 --- Global UI main entry point
 --- Store the main UI status
 
-UI = {
+MainUI = {
     is_in_turn = false,
-    miniatures = {}
+    characters = {}
 }
 
-function UI.refresh()
-    UI.board_object = getObjectsWithTag("board")[1] -- for now let's suppose there is always one board
+function MainUI.refresh()
+    MainUI.board_object = getObjectsWithTag("board")[1] -- for now let's suppose there is always one board
     -- need to rework in dictionary
-    UI.miniatures = {}
-    UI.update_miniatures("All")
+    MainUI.characters = {}
+    MainUI.update_miniatures()
     local list_panel = {}
     -- global UI for all player
     table.insert(list_panel, Initiative.create())
@@ -28,15 +28,13 @@ function UI.refresh()
     self.UI.setXmlTable(list_panel)
 end
 
-function UI.update_miniatures(player_color)
-    local list_miniatures = UI.board_object.call("Board_miniatures_color", { player_color })
-    if list_miniatures == nil then
-        list_miniatures = {}
-    end
-    for _, miniature in ipairs(list_miniatures) do
-        UI.miniatures[miniature["guid"]] = miniature
+function MainUI.update_miniatures()
+    for _, character in pairs(Listener.characters) do
+        if character.get("on_board") then
+            MainUI.characters[character.getGUID()] = character
+        end
     end
     Detail.update_all()
 end
 
-return UI
+return MainUI

@@ -1,47 +1,11 @@
 require("tts_squad_tactics.common.Utils")
+require("tts_squad_tactics.common.Character")
 require("tts_squad_tactics.miniature.Animated")
 require("tts_squad_tactics.miniature.Miniature")
-
-local data = {
-    -- the position, mostly for debug
-    coordinate = { 20, 20 },
-    -- will link to the board
-    board = nil,
-    -- the owner of this miniature
-    owner = "Black",
-    team = "Enemies",
-    -- miniature stats
-    NAME = "Name",
-    LEVEL = 14,
-    TAGS = { "Mob", "Boss", "Mecanique", "Humain" },
-    -- defenses
-    IMPACT = 10,
-    FIRE = 4,
-    ELECTRIC = 0,
-    BLIGHT = 0,
-    COLD = -12,
-    -- stats
-    EVASION = 14,
-    IDENTIFICATION = 12,
-    HATE = 2,
-    INITIATIVE = 14,
-    -- other
-    max_hp = 140,
-    current_hp = 40,
-    guid = "86e3b2",
-    -- some status
-    identified = false,
-    played = false,
-    waited = false,
-    -- Is this miniature a player (Calculate Hate)
-    player = false,
-
-    -- UI
-    ui_height = -150
-}
+require("tts_squad_tactics.listener.Listener")
 
 -- for debug/test
-local load_disabled = true
+local load_disabled = false
 
 -- Toggle if the data is visible or not
 local data_visible = false
@@ -55,30 +19,48 @@ local buttonScale = { 0.15, 0.15, 0.15 }
 local input_link = {}
 local spawnedInputCount = 0
 
+local ui_height = -150
+
 function updateSave()
-    local saved_data = JSON.encode(Miniature.data)
+    local saved_data = JSON.encode(Miniature.character.dump())
     self.script_state = saved_data
 end
 
 -- Events
 function onLoad(saved_data)
+    local data = {}
     if load_disabled == false and saved_data ~= "" then
         local loaded_data = JSON.decode(saved_data)
         data = loaded_data
     end
 
+    local character = Character()
+    character.change(data)
+    character.change({ guid = self.getGUID() })
+
+    -- the character listener should only listen to self
+    Listener.interest = character
+
     -- Initialize
-    Miniature.setup(data)
+    Miniature.setup(character)
+
+    -- Wait a bit to register to manager
+    Wait.time(Character_register_to_manager, 0.5)
+
+    -- handle animated setup if needed
     Animated.setup()
 
     if RandomCharacter ~= nil then
         RandomCharacter.setup()
     end
-    local position = Miniature.data["coordinate"][1] .. ":" .. Miniature.data["coordinate"][2]
+
+    -- Create a small UI
+    local coordinate = Miniature.character.get("coordinate")
+    local position = coordinate[1] .. ":" .. coordinate[2]
     local position_panel = {
         tag = "Panel",
         attributes = {
-            position = "0 0 " .. Miniature.data.ui_height,
+            position = "0 0 " .. ui_height,
             rotation = "90 0 180",
             scale = "0.1 0.1 0.1"
         },
@@ -96,11 +78,14 @@ function onLoad(saved_data)
     }
     self.UI.setXmlTable({ position_panel })
 
-    local value = JSON.encode_pretty(Miniature.data)
+    -- Get a json dumps of the character data
+    local value = JSON.encode_pretty(Miniature.character.dump())
+
     local funcName = "textbox" .. spawnedInputCount
     local func = function(_, _, val, sel)
         click_textbox("data", val, sel)
     end
+
     self.setVar(funcName, func)
 
     self.createInput({
@@ -130,7 +115,7 @@ function edit()
     data_visible = not data_visible
     -- The input makes the miniature falls... Lock to be able to edit
     self.setLock(data_visible)
-    local value = JSON.encode_pretty(Miniature.data)
+    local value = JSON.encode_pretty(Miniature.character.dump())
 
     if data_visible then
         self.editInput({ index = input_link["data"], scale = buttonScale, value = value })
@@ -179,17 +164,20 @@ end
 --Updates saved value for given text box
 function click_textbox(_, value, selected)
     if selected == false then
-        data = JSON.decode(value)
-        Miniature.data = data
+        local data = JSON.decode(value)
+        Miniature.character.update(data, self.getGUID())
+        self.setName(Miniature.character.get("NAME"))
         updateSave()
+
+
     end
 end
 
 
 -- Calls
 function update_position(coordinate)
-    Miniature.data["coordinate"] = coordinate
-    self.UI.setAttribute("position", "text", Miniature.data["coordinate"][1] .. ":" .. Miniature.data["coordinate"][2])
+    Miniature.character.update({ coordinate = coordinate}, self.getGUID())
+    self.UI.setAttribute("position", "text", coordinate[1] .. ":" .. coordinate[2])
     updateSave()
 end
 
@@ -206,14 +194,21 @@ function run_start()
 end
 
 function get_data()
-    return Miniature.data
+    return Miniature.character.dump()
 end
 
 function update_data(input_data)
+    error("[FORBIDDEN] Miniature update_data " .. self.getGUID() )
     -- copy input_data to miniature data
-    for key, value in pairs(input_data) do
-        -- print(key .. " : " .. tostring(value))
-        Miniature.data[key] = value
-    end
-    updateSave()
+    --for key, value in pairs(input_data) do
+    --    -- print(key .. " : " .. tostring(value))
+    --    Miniature.data[key] = value
+    --end
+    --updateSave()
+end
+
+function Character_register_to_manager()
+    --print("register to manager")
+    Miniature.character.register()
+    Listener.register()
 end

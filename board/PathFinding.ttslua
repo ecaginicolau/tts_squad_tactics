@@ -12,7 +12,7 @@ function PathFinding.check_hinder(guid, x, y)
     if #(Board.coordinate_team[y][x]) == 0 then
         return false
     end
-    local team = Board.miniatures[guid]["team"]
+    local team = Board.characters[guid].get("team")
     -- check if another team than this one if found in this tile
     for _, other_team in ipairs(Board.coordinate_team[y][x]) do
         if other_team ~= team then
@@ -94,7 +94,7 @@ function PathFinding.calculate(guid, nb_move, safe)
     end
 
     -- Call the pathfinding at the starting position
-    local coordinate = Board.miniatures[guid]["coordinate"]
+    local coordinate = Board.characters[guid].get("coordinate")
     calculate_rec(coordinate[1], coordinate[2], -1, false)
 
     PathFinding.cache[guid] = current_pathfinding

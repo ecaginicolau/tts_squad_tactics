@@ -10,12 +10,13 @@ Board = {
     size_y = 0,
     data = { },
     actions = {},
-    miniatures = {},
+    characters = {},
     coordinate_team = {},
     world_size_x = 0,
     world_size_y = 0,
     bounds = {},
-    bounds_normalized = {}
+    bounds_normalized = {},
+    board_scale = nil,
 }
 
 -- this help loops through all directions
@@ -35,7 +36,7 @@ function Board.setup(size_x, size_y, data)
     Board.size_x = size_x
     Board.size_y = size_y
     Board.data = data
-    Board.miniatures = {}
+    Board.characters = {}
     -- will store ongoing action by player_color
     Board.actions = {}
     Board.coordinate_team = {}
@@ -53,6 +54,16 @@ function Board.calculate_dimension()
     local world_size = Board.bounds["size"]
     Board.world_size_x = world_size[1] / Board.size_x
     Board.world_size_y = world_size[3] / Board.size_y
+    Board.board_scale = Board.get_scale()
+end
+
+function Board.get_scale()
+    -- get the position of 2 tiles
+    local position1 = Board.get_position(0, 0)
+    local position2 = Board.get_position(10, 0)
+    -- calculate the distance
+    local distance = Vector.distance(position1, position2)
+    return distance / 10
 end
 
 function Board.calculate_team()
@@ -65,20 +76,26 @@ function Board.calculate_team()
             Board.coordinate_team[y][x] = {  }
         end
     end
-    for _, miniature in pairs(Board.miniatures) do
-        local coordinate = miniature["coordinate"]
+    for _, character in pairs(Board.characters) do
+        local coordinate = character.get("coordinate")
         for _, direction in ipairs(hinder_direction) do
             local dx = coordinate[1] + direction[1]
             local dy = coordinate[2] + direction[2]
             if Board.is_inside({ dx, dy }) then
                 -- insert in the list of team
-                table.insert(Board.coordinate_team[dy][dx], miniature["team"])
+                table.insert(Board.coordinate_team[dy][dx], character.get("team"))
             end
         end
     end
 end
 
-function Board.get_position(x, y)
+function Board.get_position(x_or_coordinate, y)
+    local x = x_or_coordinate
+    -- the function accept a coordinate or a couple of x/y
+    if y == nil then
+        x = x_or_coordinate[1]
+        y = x_or_coordinate[2]
+    end
     local bounds = Board.bounds
     local size = bounds['size']
     local center = bounds['center']
@@ -93,7 +110,13 @@ function Board.get_position(x, y)
     return Vector.new(pos_x, pos_y, pos_z)
 end
 
-function Board.get_position_relative(x, y)
+function Board.get_position_relative(x_or_coordinate, y)
+    local x = x_or_coordinate
+    -- the function accept a coordinate or a couple of x/y
+    if y == nil then
+        x = x_or_coordinate[1]
+        y = x_or_coordinate[2]
+    end
     local position = Board.get_position(x, y)
     -- apply scale
     local scale = self.getScale()
@@ -215,55 +238,44 @@ function Board.next_value(value)
 end
 
 -- Find all miniatures in the current board
-function Board.find_miniatures()
-    local list_miniature = getObjectsWithTag("miniature")
-    Board.miniatures = {}
-    for _, miniature in ipairs(list_miniature) do
-        Board.add_new_miniature(miniature)
+function Board.find_characters()
+    Board.characters = {}
+    for _, character in pairs(Listener.characters) do
+        Board.add_new_character(character)
     end
     -- at the end calculate team influence
     Board.calculate_team()
 end
 
-function Board.add_new_miniature(miniature)
-    local guid = miniature.getGUID()
+function Board.add_new_character(character)
+    local guid = character.getGUID()
+
+    -- get the miniature itself
+    local miniature = getObjectFromGUID(guid)
+
     -- get the miniature coordinate
     local coordinate = Board.get_coordinate(miniature.getPosition())
-
-    local miniature_data = miniature.call("get_data")
-    -- Hack to avoid mutable issue
-    local data = {}
-    local list_keys = {}
-    for key, _ in pairs(miniature_data) do
-        table.insert(list_keys, key)
-    end
-    -- Copy the data
-    for _, key in pairs(list_keys) do
-        if type(miniature_data[key]) == "table" then
-            data[key] = table.clone(miniature_data[key])
-        else
-            data[key] = miniature_data[key]
-        end
-    end
+    character.update({ on_board = Board.is_inside(coordinate) }, self.getGUID())
 
     -- store the miniature inside the table
-    Board.miniatures[guid] = data
-    Board.miniatures[guid].coordinate = coordinate
+    Board.characters[guid] = character
+
+    -- update the character coordinate
+    character.update({ coordinate = coordinate }, self.getGUID())
 end
 
-function Board.miniatures_color(player_color)
-    local list_miniatures = {}
-    for _, miniature in pairs(Board.miniatures) do
-        if player_color == "All" or miniature["owner"] == player_color then
-            table.insert(list_miniatures, miniature)
+function Board.characters_color(player_color)
+    local list_characters = {}
+    for _, character in pairs(Board.characters) do
+        if player_color == "All" or miniature.get("owner") == player_color then
+            table.insert(list_characters, character.dump())
         end
     end
-
-    return list_miniatures
+    return list_characters
 end
 
-function Board_miniatures_color(params)
-    return Board.miniatures_color(table.unpack(params))
+function Board_characters_color(params)
+    return Board.characters_color(table.unpack(params))
 end
 
 function Board.start_action(player_color, guid, action, value)
@@ -273,51 +285,37 @@ function Board.start_action(player_color, guid, action, value)
         guid = guid,
         value = value,
     }
+
+    local coordinate = Board.characters[guid].get("coordinate")
+    -- take the position from the coordinate to avoid the small involuntary movement
+    local position = Board.get_position(coordinate)
+
     -- Check action type, both MOVE and SAFE_MOVE are similar
     if action == Constant.MOVE or action == Constant.SAFE_MOVE then
-        print("Start action")
         local nb_move = tonumber(value)
         local safe = action == Constant.SAFE_MOVE
         Board.move_start(player_color, guid, nb_move, safe)
     end
     if action == Constant.LINE then
-        local board_scale = Board_get_scale()
-        local coordinate = Board.miniatures[guid].coordinate
-        -- take the position from the coordinate to avoid the small involuntary movement
-        local position = Board.get_position(coordinate[1], coordinate[2])
         position[2] = position[2] + 0.1 -- raise the cone a bit higher than the board
         local width = 0.4
         local range = tonumber(value)
-        AoE.create_line(player_color, guid, width, range, position, coordinate, board_scale)
+        AoE.create_line(player_color, guid, width, range, position, coordinate)
     end
     if action == Constant.CONE then
-        local board_scale = Board_get_scale()
-        local coordinate = Board.miniatures[guid].coordinate
-        -- take the position from the coordinate to avoid the small involuntary movement
-        local position = Board.get_position(coordinate[1], coordinate[2])
         position[2] = position[2] + 0.05 -- raise the cone a bit higher than the board
         local angle = 60
         local range = tonumber(value)
-        AoE.create_cone(player_color, guid, angle, range, position, coordinate, board_scale)
+        AoE.create_cone(player_color, guid, angle, range, position, coordinate)
     end
     if action == Constant.SPLASH then
-        local board_scale = Board_get_scale()
-        local coordinate = Board.miniatures[guid].coordinate
-        -- take the position from the coordinate to avoid the small involuntary movement
-        local position = Board.get_position(coordinate[1], coordinate[2])
-        position[2] = position[2] + 0.1 -- raise the cone a bit higher than the board
         local radius = 2
         local range = tonumber(value)
-        AoE.create_splash(player_color, guid, radius, range, position, coordinate, board_scale)
+        AoE.create_splash(player_color, guid, radius, range, position, coordinate)
     end
     if action == Constant.ATTACK then
-        local board_scale = Board_get_scale()
-        local coordinate = Board.miniatures[guid].coordinate
-        -- take the position from the coordinate to avoid the small involuntary movement
-        local position = Board.get_position(coordinate[1], coordinate[2])
-        position[2] = position[2] + 0.1 -- raise the cone a bit higher than the board
         local range = tonumber(value)
-        AoE.create_attack(player_color, guid, range, position, coordinate, board_scale)
+        AoE.create_attack(player_color, guid, range, position, coordinate)
     end
 
 end
@@ -344,7 +342,7 @@ function Board.move_to(player_color, coordinate)
     local guid = action.guid
     local miniature = getObjectFromGUID(guid)
     local current_position = miniature.getPosition()
-    local next_position = Board.get_position(coordinate[1], coordinate[2])
+    local next_position = Board.get_position(coordinate)
 
     -- we need to replace the Y component
     next_position[2] = current_position[2]
@@ -356,7 +354,7 @@ function Board.move_to(player_color, coordinate)
         -- convert to position path
         local path = {}
         for _, path_coordinate in ipairs(path_coordinates) do
-            local path_position = Board.get_position(path_coordinate[1], path_coordinate[2])
+            local path_position = Board.get_position(path_coordinate)
             -- make sure to always set the y position to the miniature  position
             path_position[2] = current_position[2]
             -- insert into the position path
@@ -383,19 +381,6 @@ function Board.move_to(player_color, coordinate)
         Board.move_end(player_color, guid)
     end
 
-end
-
-function Board.is_moving(player_color)
-    local action = Board.actions[player_color]
-    if action == nil then
-        return false
-    end
-    if action.is_moving == nil then
-        return false
-    end
-    -- check if the miniature is moving
-    local miniature = getObjectFromGUID(action["guid"])
-    return miniature.isSmoothMoving()
 end
 
 function Board.find_path(guid, coordinate)
@@ -441,39 +426,42 @@ end
 
 function Board.move_end(player_color, guid)
     print("Board.move_end")
-    local miniature = getObjectFromGUID(guid)
+    local character = Board.characters[guid]
     -- move the miniature on the board
-    Board.move_miniature(miniature)
+    Board.move_character(character)
     -- Hide the PlayerPanel
     PlayerPanel.display(player_color, false)
     -- end the action
     Board.actions[player_color] = nil
 end
 
-function Board.move_miniature(miniature)
+function Board.move_character(character)
     -- get the old coordinate of this miniature
-    local coordinate = Board.miniatures[miniature.getGUID()]["coordinate"]
+    local coordinate = character.get("coordinate")
+
     if coordinate ~= nil then
         -- hide the old tile
         BoardPanel.display(coordinate[1], coordinate[2], false)
     end
     -- move the miniature in its final position
-    Board.set_miniature_position(miniature)
+    Board.set_character_position(character)
 end
 
 -- What should happen when the coordinate of a miniature change in the board
-function Board.set_miniature_position(miniature)
+function Board.set_character_position(character)
+    -- get the miniature
+    local miniature = getObjectFromGUID(character.getGUID())
+
     -- get the coordinate on the board for this miniature
     local coordinate = Board.get_coordinate(miniature.getPosition())
 
     -- store the position of this miniature
-    local miniature_data = Board.miniatures[miniature.getGUID()]
-    if miniature_data == nil then
+    if Board.characters[character.getGUID()] == nil then
         -- if it's the first time the miniature enter the board, add it to the board
-        Board.add_new_miniature(miniature)
+        Board.add_new_character(character)
     else
         -- update its coordinate
-        Board.miniatures[miniature.getGUID()]["coordinate"] = coordinate
+        character.update({ coordinate = coordinate }, self.getGUID())
     end
 
     -- Calculate new team hindering
@@ -481,57 +469,40 @@ function Board.set_miniature_position(miniature)
 
     -- show the new tile
     BoardPanel.display(coordinate[1], coordinate[2], true)
-
-    -- call a debug function on this miniature, should do better later
-    miniature.call("update_position", coordinate)
 end
 
 
 -- start and end turn events
 function Board_start_turn()
-    for guid, miniature in pairs(Board.miniatures) do
-        local object = getObjectFromGUID(guid)
-        if object ~= nil then
-            local position = Board.get_position(miniature["coordinate"][1], miniature["coordinate"][2])
-            local current_position = object.getPosition()
+    for _, character in pairs(Board.characters) do
+        local miniature = getObjectFromGUID(character.getGUID())
+        if miniature ~= nil then
+            local position = Board.get_position(character.get("coordinate"))
+            local current_position = miniature.getPosition()
             -- transfer the Y component
             position[2] = current_position[2]
-            object.setPosition(position)
-            object.setLock(true)
+            miniature.setPosition(position)
+            miniature.setLock(true)
         end
     end
 end
 
 function Board_end_turn()
-    for guid, _ in pairs(Board.miniatures) do
-        local object = getObjectFromGUID(guid)
-        if object ~= nil then
-            object.setLock(false)
+    for _, character in pairs(Board.characters) do
+        local miniature = getObjectFromGUID(character.getGUID())
+        if miniature ~= nil then
+            miniature.setLock(false)
         end
     end
 end
 
 -- Called by UI to update a miniature
 function Board_update_miniature_data(params)
-    local guid = params[1]
-    local key = params[2]
-    local value = params[3]
-    Board.miniatures[guid][key] = value
+    error("[FORBIDDEN] Board_update_miniature_data ")
 end
 
 function Board_update_miniature(params)
-    local guid = params[1]
-    local miniature = getObjectFromGUID(guid)
-    Board.add_new_miniature(miniature)
-end
-
-function Board_get_scale()
-    -- get the position of 2 tiles
-    local position1 = Board.get_position(0, 0)
-    local position2 = Board.get_position(10, 0)
-    -- calculate the distance
-    local distance = Vector.distance(position1, position2)
-    return distance / 10
+    error("[FORBIDDEN] Board_update_miniature_data ")
 end
 
 return Board

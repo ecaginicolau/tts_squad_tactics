@@ -3,32 +3,31 @@
 --- Contains GameObjects event and functions that needs to be called by externally
 require("tts_squad_tactics.common.Utils")
 require("tts_squad_tactics.common.Constant")
-require("tts_squad_tactics.global.ui.UI")
+require("tts_squad_tactics.common.Utils")
+require("tts_squad_tactics.common.Character")
+require("tts_squad_tactics.global.ui.MainUI")
 require("tts_squad_tactics.global.ui.Initiative")
 require("tts_squad_tactics.global.ui.Detail")
 require("tts_squad_tactics.global.ui.Attack")
 require("tts_squad_tactics.global.ui.Action")
-require("tts_squad_tactics.global.LoadAsset")
 require("tts_squad_tactics.global.die.PlayerDie")
-
-board_guid = "892585"
-miniature_guid = "558418"
+require("tts_squad_tactics.listener.Listener")
+require("tts_squad_tactics.global.LoadAsset")
 
 function onLoad()
     update_asset()
-    Wait.frames(function()
-        UI.refresh()
-    end, 10)
+    Wait.frames(
+            function()
+                MainUI.refresh()
+                -- register another all character listener
+                Listener.register()
+            end,
+            30
+    )
 
     PlayerDie.init()
-
 end
 
 function onPlayerChangeColor(_)
-    UI.refresh()
-end
-
-function UI_update_miniatures(params)
-    local player_color = params[1]
-    UI.update_miniatures(player_color)
+    MainUI.refresh()
 end

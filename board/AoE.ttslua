@@ -20,7 +20,7 @@ AoE = {
     },
 }
 
-function AoE.create_cone(player_color, guid, angle, range, position, center_coordinate, board_scale)
+function AoE.create_cone(player_color, guid, angle, range, position, center_coordinate)
     AoE.reset(player_color)
     -- initialise the aoe information
     local aoe = {
@@ -30,7 +30,7 @@ function AoE.create_cone(player_color, guid, angle, range, position, center_coor
         coordinate = center_coordinate,
         range = range,
         angle = angle,
-        miniatures = {},
+        characters = {},
         running = true,
         pointing_angle = 0,
     }
@@ -61,7 +61,7 @@ function AoE.create_cone(player_color, guid, angle, range, position, center_coor
     })
 
     -- scale the Cone to it's range
-    cone.setScale({ board_scale * range, board_scale * range, board_scale * range })
+    cone.setScale({ Board.board_scale * range, Board.board_scale * range, Board.board_scale * range })
 
     -- Change it's angle by enabling/disabling children
     local children = cone.getChild(CONE_ROOT).getChildren()
@@ -74,17 +74,17 @@ function AoE.create_cone(player_color, guid, angle, range, position, center_coor
     end
 
     -- set it's position
-    cone.setPosition(position)
+    cone.setPosition(position + Vector.new(0, 0.5, 0))
 
     -- create a first filter, remove all miniatures who are too far
-    for _, miniature in pairs(Board.miniatures) do
-        if miniature.guid ~= aoe.guid then
-            local distance = distance_coordinate(center_coordinate, miniature.coordinate)
+    for _, character in pairs(Board.characters) do
+        if character.getGUID() ~= aoe.guid then
+            local distance = distance_coordinate(center_coordinate, character.get("coordinate"))
             -- if the distance is good, then check the angle
             if distance < aoe.range + CONE_THRESHOLD then
                 -- insert into the filtered table of miniatures
-                if LoS.coordinate(center_coordinate, miniature["coordinate"], false) then
-                    table.insert(aoe.miniatures, miniature)
+                if LoS.coordinate(center_coordinate, character.get("coordinate"), false) then
+                    table.insert(aoe.characters, character)
                 end
             end
         end
@@ -95,7 +95,7 @@ function AoE.create_cone(player_color, guid, angle, range, position, center_coor
 
 end
 
-function AoE.create_line(player_color, guid, width, range, position, center_coordinate, board_scale)
+function AoE.create_line(player_color, guid, width, range, position, center_coordinate)
     AoE.reset(player_color)
     local aoe = {
         type = "LINE",
@@ -106,9 +106,8 @@ function AoE.create_line(player_color, guid, width, range, position, center_coor
         coordinate = center_coordinate,
         guid = guid,
         end_position = nil,
-        board_scale = board_scale,
         running = true,
-        miniatures = {},
+        characters = {},
         is_valid = true,
     }
     -- get the Line object
@@ -133,20 +132,20 @@ function AoE.create_line(player_color, guid, width, range, position, center_coor
     })
 
     -- scale the Line to it's range
-    line.setScale({ width * board_scale, width * board_scale, board_scale * range })
+    line.setScale({ width * Board.board_scale, width * Board.board_scale, Board.board_scale * range })
 
     -- set it's position
-    line.setPosition(position)
+    line.setPosition(position + Vector.new(0, 0.1, 0))
 
-    for _, miniature in pairs(Board.miniatures) do
-        if miniature.guid ~= aoe.guid then
+    for _, character in pairs(Board.characters) do
+        if character.getGUID() ~= aoe.guid then
 
-            local distance = distance_coordinate(center_coordinate, miniature.coordinate)
+            local distance = distance_coordinate(center_coordinate, character.get("coordinate"))
             -- if the distance is good, then check the angle
             if distance < aoe.range + LINE_THRESHOLD then
                 -- insert into the filtered table of miniatures
-                if LoS.coordinate(center_coordinate, miniature["coordinate"], false) then
-                    table.insert(aoe.miniatures, miniature)
+                if LoS.coordinate(center_coordinate, character.get("coordinate"), false) then
+                    table.insert(aoe.characters, character)
                 end
             end
         end
@@ -156,7 +155,7 @@ function AoE.create_line(player_color, guid, width, range, position, center_coor
     AoE.player_color[player_color] = aoe
 end
 
-function AoE.create_splash(player_color, guid, radius, range, position, center_coordinate, board_scale)
+function AoE.create_splash(player_color, guid, radius, range, position, center_coordinate)
     AoE.reset(player_color)
     local aoe = {
         type = "SPLASH",
@@ -166,9 +165,8 @@ function AoE.create_splash(player_color, guid, radius, range, position, center_c
         coordinate = center_coordinate,
         guid = guid,
         end_position = nil,
-        board_scale = board_scale,
         running = true,
-        miniatures = {},
+        characters = {},
         old_coordinate = center_coordinate,
         old_visible = true,
     }
@@ -195,10 +193,10 @@ function AoE.create_splash(player_color, guid, radius, range, position, center_c
     })
 
     -- scale the Splash to it's range
-    splash.setScale({ board_scale * radius, board_scale * radius, board_scale * radius })
+    splash.setScale({ Board.board_scale * radius, Board.board_scale * radius, Board.board_scale * radius })
 
     -- set it's position
-    splash.setPosition(position)
+    splash.setPosition(position + Vector.new(0, 0.1, 0))
 
 
     -- draw the radius, attached to the miniature
@@ -206,15 +204,15 @@ function AoE.create_splash(player_color, guid, radius, range, position, center_c
 
 
     -- create a first filter, remove all miniatures who are too far
-    for _, miniature in pairs(Board.miniatures) do
-        if miniature.guid == aoe.guid then
-            table.insert(aoe.miniatures, miniature)
+    for _, character in pairs(Board.characters) do
+        if character.getGUID() == aoe.guid then
+            table.insert(aoe.characters, character)
         else
-            local distance = distance_coordinate(center_coordinate, miniature.coordinate)
+            local distance = distance_coordinate(center_coordinate, character.get("coordinate"))
             -- if the distance is good, then check the angle
             if distance < aoe.range + radius + SPLASH_THRESHOLD then
                 -- insert into the filtered table of miniatures
-                table.insert(aoe.miniatures, miniature)
+                table.insert(aoe.characters, character)
             end
         end
     end
@@ -224,7 +222,7 @@ function AoE.create_splash(player_color, guid, radius, range, position, center_c
 
 end
 
-function AoE.create_attack(player_color, guid, range, position, center_coordinate, board_scale)
+function AoE.create_attack(player_color, guid, range, position, center_coordinate)
     AoE.reset(player_color)
     local aoe = {
         type = "ATTACK",
@@ -232,9 +230,8 @@ function AoE.create_attack(player_color, guid, range, position, center_coordinat
         player_color = player_color,
         coordinate = center_coordinate,
         guid = guid,
-        board_scale = board_scale,
         running = true,
-        miniatures = {},
+        characters = {},
     }
 
     -- get the Line object
@@ -259,21 +256,21 @@ function AoE.create_attack(player_color, guid, range, position, center_coordinat
     })
 
     -- scale the Splash to it's range
-    splash.setScale({ board_scale * 0.5, board_scale * 0.5, board_scale * 0.5 })
+    splash.setScale({ Board.board_scale * 0.5, Board.board_scale * 0.5, Board.board_scale * 0.5 })
     -- set it's position
-    splash.setPosition(position)
+    splash.setPosition(position + Vector.new(0, 0.1, 0))
 
     -- draw the radius, attached to the miniature
     AoE.draw_radius(aoe, getObjectFromGUID(guid))
     -- create a first filter, remove all miniatures who are too far
-    for _, miniature in pairs(Board.miniatures) do
-        if miniature.guid ~= aoe.guid then
-            local distance = distance_coordinate(center_coordinate, miniature["coordinate"])
+    for _, character in pairs(Board.characters) do
+        if character.getGUID() ~= aoe.guid then
+            local distance = distance_coordinate(center_coordinate, character.get("coordinate"))
             -- if the distance is good, then check the angle
             if distance < aoe.range + ATTACK_THRESHOLD then
                 -- insert into the filtered table of miniatures
-                if LoS.coordinate(center_coordinate, miniature["coordinate"], false) then
-                    table.insert(aoe.miniatures, miniature)
+                if LoS.coordinate(center_coordinate, character.get("coordinate"), false) then
+                    table.insert(aoe.characters, character)
                 end
             end
         end
@@ -368,7 +365,7 @@ function AoE.update_line(player_color, aoe)
 
     -- calculate the end position of the line
     local normalize_direction = direction:normalize()
-    aoe.end_position = normalize_direction:scale(aoe.board_scale * aoe.range) + position
+    aoe.end_position = normalize_direction:scale(Board.board_scale * aoe.range) + position
 
     -- now display the targets
     -- first highlight off
@@ -418,9 +415,8 @@ function AoE.update_splash(player_color, aoe)
     direction[2] = 0
     local magnitude = direction:magnitude()
 
-    if magnitude > aoe.range * aoe.board_scale then
+    if magnitude > aoe.range * Board.board_scale then
         aoe.is_valid = false
-        --direction:scale((splash.range * splash.board_scale) / magnitude)
     end
 
     -- remove y component
@@ -508,7 +504,7 @@ function AoE.update_attack(player_color, aoe)
     splash_object.setRotation({ 0, angle, 0 }) -- void angle rounding issue
     miniature_object.setRotation({ 0, angle + 180, 0 }) -- void angle rounding issue
 
-    splash_object.setPosition(Board.get_position(coordinate[1], coordinate[2]))
+    splash_object.setPosition(Board.get_position(coordinate))
 
     local targets = AoE.targets_attack(aoe)
     -- only valid if a single target
@@ -538,15 +534,15 @@ end
 
 function AoE.highlight_off(aoe)
     -- turn highlight off on all
-    for _, miniature in pairs(aoe.miniatures) do
+    for _, character in pairs(aoe.characters) do
         -- get the object, make sure it exist
-        local object = getObjectFromGUID(miniature.guid)
+        local miniature = character.getMiniature()
         -- make sure the miniature still exist
-        if object ~= nil then
+        if miniature ~= nil then
             -- turn off the highlight
-            object.highlightOff({ 1, 0, 0 })
+            miniature.highlightOff({ 1, 0, 0 })
             -- make sure they re become interactable
-            object.interactable = true
+            miniature.interactable = true
         end
     end
 end
@@ -554,15 +550,16 @@ end
 function AoE.highlight_on(aoe)
     local targets = AoE.targets(aoe)
     -- turn highlightOn on target
-    for _, miniature in pairs(targets) do
+    for _, guid in pairs(targets) do
+        local character = Board.characters[guid]
         -- get the object, make sure it exist
-        local object = getObjectFromGUID(miniature.guid)
+        local miniature = character.getMiniature()
         -- make sure the miniature still exist
-        if object ~= nil then
+        if miniature ~= nil then
             -- turn on the highlight
-            object.highlightOn({ 1, 0, 0 })
+            miniature.highlightOn({ 1, 0, 0 })
             -- make them not interactable so we can click through
-            object.interactable = false
+            miniature.interactable = false
         end
     end
 end
@@ -581,16 +578,16 @@ end
 
 function AoE.targets_cone(aoe)
     local targets = {}
-    for _, miniature in ipairs(aoe.miniatures) do
+    for _, character in ipairs(aoe.characters) do
         -- get the object, make sure it exist
-        local object = getObjectFromGUID(miniature.guid)
+        local miniature = character.getMiniature()
         -- make sure the miniature still exist
-        if object ~= nil then
+        if miniature ~= nil then
             -- calculate the angle
-            local guid_angle = angle_coordinate(aoe.coordinate, miniature.coordinate)
+            local guid_angle = angle_coordinate(aoe.coordinate, character.get("coordinate"))
             -- make sure it's inside the cone
             if angle_between_2_angles(guid_angle + 180, aoe.pointing_angle - aoe.angle / 2, aoe.pointing_angle + aoe.angle / 2) then
-                table.insert(targets, miniature)
+                table.insert(targets, character.getGUID()) -- only the guid is needed
             end
         end
     end
@@ -600,25 +597,25 @@ end
 function AoE.targets_line(aoe)
     local targets = {}
     local line_object = getObjectFromGUID(AoE.objects_guid.LINE)
-    for _, miniature in pairs(aoe.miniatures) do
+    for _, character in pairs(aoe.characters) do
         -- get the object, make sure it exist
-        local object = getObjectFromGUID(miniature.guid)
+        local miniature = character.getMiniature()
         -- make sure the miniature still exist
-        if object ~= nil then
+        if miniature ~= nil then
             -- calculate the distance between the line and the miniature
-            local position = object.getPosition() - line_object.getPosition()
+            local position = miniature.getPosition() - line_object.getPosition()
             local direction = aoe.end_position - line_object.getPosition()
             local projection = position:project(direction)
             -- make sure the projection is inside the line
             if is_between(projection[1], 0, direction[1]) and is_between(projection[2], 0, direction[2]) then
                 --  reset position
-                position = object.getPosition() - line_object.getPosition()
+                position = miniature.getPosition() - line_object.getPosition()
                 local distance = Vector.distance(projection, position)
                 -- scale the distance to the board
-                distance = distance / aoe.board_scale
+                distance = distance / Board.board_scale
                 -- if the distance is lower than half of the width + some padding, consider the target valid
                 if distance < aoe.width / 2 + LINE_THRESHOLD then
-                    table.insert(targets, miniature)
+                    table.insert(targets, character.getGUID())
                 end
             end
         end
@@ -631,18 +628,18 @@ function AoE.targets_splash(aoe)
     local splash_coordinate = Board.get_coordinate(aoe.center, true)
     splash_coordinate[1] = splash_coordinate[1] + 0.5
     splash_coordinate[2] = splash_coordinate[2] + 0.5
-    for _, miniature in pairs(aoe.miniatures) do
+    for _, character in pairs(aoe.characters) do
         -- get the object, make sure it exist
-        local object = getObjectFromGUID(miniature.guid)
+        local miniature = character.getMiniature()
         -- make sure the miniature still exist
-        if object ~= nil then
-            local position = object.getPosition()
+        if miniature ~= nil then
+            local position = miniature.getPosition()
             local distance = Vector.distance(position, aoe.center)
             -- apply the board_scale
-            distance = distance / aoe.board_scale
+            distance = distance / Board.board_scale
             if distance < aoe.radius + SPLASH_THRESHOLD then
-                if LoS.coordinate_splash(splash_coordinate, miniature["coordinate"]) then
-                    table.insert(targets, miniature)
+                if LoS.coordinate_splash(splash_coordinate, character.get("coordinate")) then
+                    table.insert(targets, character.getGUID())
                 end
             end
         end
@@ -653,9 +650,9 @@ end
 function AoE.targets_attack(aoe)
     local targets = {}
     local coordinate = Board.get_coordinate(aoe.center)
-    for _, miniature in pairs(aoe.miniatures) do
-        if miniature["coordinate"][1] == coordinate[1] and miniature["coordinate"][2] == coordinate[2] then
-            table.insert(targets, miniature)
+    for _, character in pairs(aoe.characters) do
+        if character.get("coordinate")[1] == coordinate[1] and character.get("coordinate")[2] == coordinate[2] then
+            table.insert(targets, character.getGUID())
         end
     end
     return targets

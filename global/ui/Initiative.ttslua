@@ -137,7 +137,7 @@ end
 function Initiative.character(line_nb, character, waiting)
     -- create a character line, name, hp, actions buttons ...
     -- change the background color if the character has played or is currently waiting
-    if character["played"] or (character["waited"] and not waiting) then
+    if character.get("played") or (character.get("waited") and not waiting) then
         color = "#AAAAAA"
     else
         color = "#FFFFFF"
@@ -153,10 +153,10 @@ function Initiative.character(line_nb, character, waiting)
                 position = -(LINE_WIDTH * 3 / 20) .. " " .. -(line_nb * LINE_HEIGHT) .. " 0",
                 color = color,
                 textColor = "Black",
-                onClick = "Initiative_play(" .. character["guid"] .. ")",
+                onClick = "Initiative_play(" .. character.getGUID() .. ")",
                 -- This will highlight the character
-                onMouseEnter = "Initiative_mouse_enter(" .. character["guid"] .. ")",
-                onMouseExit = "Initiative_mouse_exit(" .. character["guid"] .. ")",
+                onMouseEnter = "Initiative_mouse_enter(" .. character.getGUID() .. ")",
+                onMouseExit = "Initiative_mouse_exit(" .. character.getGUID() .. ")",
             }
         }
     }
@@ -169,16 +169,16 @@ function Initiative.character(line_nb, character, waiting)
             fontSize = 30,
             position = -(LINE_WIDTH * 2 / 10) .. " " .. -(line_nb * LINE_HEIGHT) .. " 0",
             color = "Black",
-            text = "  " .. character[NAME],
+            text = "  " .. character.get("NAME"),
             alignment = "MiddleLeft",
         }
     })
 
     -- Current hp
-    local percentage = (character["current_hp"] * 100) / character["max_hp"]
+    local percentage = (character.get("CURRENT_HP") * 100) / character.get("MAX_HP")
     local current_hp = math.tointeger(percentage) .. "%"
-    if character["identified"] or character["player"] then
-        current_hp = character["current_hp"] .. " / " .. character["max_hp"]
+    if character.get("identified") or character.get("player") then
+        current_hp = character.get("CURRENT_HP") .. " / " .. character.get("MAX_HP")
     end
 
     table.insert(line, {
@@ -209,14 +209,14 @@ function Initiative.character(line_nb, character, waiting)
     table.insert(line, {
         tag = "Button",
         attributes = {
-            id = character["guid"],
+            id = character.getGUID(),
             width = LINE_WIDTH / 10,
             height = LINE_HEIGHT,
             fontSize = 35,
             position = (5 * LINE_WIDTH / 20) .. " " .. -(line_nb * LINE_HEIGHT) .. " 0",
             color = "White",
             textColor = "Black",
-            onClick = "Attack_character(" .. character["guid"] .. ")",
+            onClick = "Attack_character(" .. character.getGUID() .. ")",
             icon = "attack",
             iconColor = "#444444",
         }
@@ -226,14 +226,14 @@ function Initiative.character(line_nb, character, waiting)
     table.insert(line, {
         tag = "Button",
         attributes = {
-            id = character["guid"],
+            id = character.getGUID(),
             width = LINE_WIDTH / 10,
             height = LINE_HEIGHT,
             fontSize = 35,
             position = (7 * LINE_WIDTH / 20) .. " " .. -(line_nb * LINE_HEIGHT) .. " 0",
             color = "white",
             textColor = "Black",
-            onClick = "Detail_switch(" .. character["guid"] .. ")",
+            onClick = "Detail_switch(" .. character.getGUID() .. ")",
             icon = "detail",
             iconColor = "#444444",
         }
@@ -241,7 +241,7 @@ function Initiative.character(line_nb, character, waiting)
 
     -- Wait button
     -- only display the wait button it the player has not played and is not waiting
-    if not character["played"] and (not character["waited"] or waiting) then
+    if not character.get("played") and (not character.get("waited") or waiting) then
         table.insert(line, {
             tag = "Button",
             attributes = {
@@ -251,7 +251,7 @@ function Initiative.character(line_nb, character, waiting)
                 position = (9 * LINE_WIDTH / 20) .. " " .. -(line_nb * LINE_HEIGHT) .. " 0",
                 color = "white",
                 textColor = "Black",
-                onClick = "Initiative_wait(" .. character["guid"] .. ")",
+                onClick = "Initiative_wait(" .. character.getGUID() .. ")",
                 icon = "wait",
                 iconColor = "#444444",
             }
@@ -277,15 +277,15 @@ function Initiative.init()
     -- right now it doesn't differentiate player and monster, it should one day
     Initiative.list_initiative = {}
     -- loop through all characters
-    for _, character in pairs(UI.miniatures) do
+    for _, character in pairs(MainUI.characters) do
         -- Get the initiative as a string, because otherwise it would make a list
-        local init = tostring(character[INITIATIVE])
+        local init = tostring(character.get("INITIATIVE"))
         -- add the character at this initiative
         Initiative.add_character(init, character)
 
         -- Handle character that are waiting twice, once at the base initiative, once at the negative initiative
-        if character["waited"] then
-            init = tostring(-character[INITIATIVE])
+        if character.get("waited") then
+            init = tostring(-character.get("INITIATIVE"))
             -- add the character at this initiative
             Initiative.add_character(init, character)
         end
@@ -318,41 +318,38 @@ end
 
 function Initiative_wait(_, guid)
     -- need to send to the Board
-    UI.miniatures[guid]["waited"] = not UI.miniatures[guid]["waited"]
-    UI.board_object.call("Board_update_miniature_data", { guid, "waited", UI.miniatures[guid]["waited"] })
-    UI.refresh()
+    MainUI.characters[guid].update({ waited = not MainUI.characters[guid].get("waited") }, self.getGUID())
+    MainUI.refresh()
 end
 
 function Initiative_close()
     is_in_turn = false
-    UI.refresh()
-    UI.board_object.call("Board_end_turn")
+    MainUI.refresh()
+    MainUI.board_object.call("Board_end_turn")
 end
 
 function Initiative_refresh()
     Initiative.reset()
     -- refresh the complete ui
-    UI.refresh()
+    MainUI.refresh()
 end
 
 function Initiative_new_round()
     -- make sure the game is currently playing
     is_in_turn = true
     -- make sure every character has both played and waited flag turned off
-    for guid, _ in pairs(UI.miniatures) do
-        UI.board_object.call("Board_update_miniature_data", { guid, "waited", false })
-        UI.board_object.call("Board_update_miniature_data", { guid, "played", false })
+    for _, character in pairs(MainUI.characters) do
+        character.update({waited=false, played=false}, self.getGUID())
     end
     -- refresh the complete ui
-    UI.refresh()
+    MainUI.refresh()
     -- refresh the ui
     Wait.frames(Initiative.reset, 2)
-    UI.board_object.call("Board_start_turn")
+    MainUI.board_object.call("Board_start_turn")
 end
 
 function Initiative_play(_, guid)
-    UI.miniatures[guid]["played"] = not UI.miniatures[guid]["played"]
-    UI.board_object.call("Board_update_miniature_data", { guid, "played", UI.miniatures[guid]["played"] })
-    UI.refresh()
+    MainUI.characters[guid].update({ played = not MainUI.characters[guid].get("played") }, self.getGUID())
+    MainUI.refresh()
 end
 

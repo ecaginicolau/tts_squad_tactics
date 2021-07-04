@@ -1,49 +1,30 @@
 -- Basic functions of every miniature
 Miniature = {
-    data = {}, -- should never contains Game Object, since it needs to be serialized
-    board_object = nil, -- not really useful, but add to pycharm structure
+     -- not really useful, but add to pycharm structure
+    character = nil,
+    board_object = nil,
+    board_guid =  nil,
 }
 
-function Miniature.setup(data)
+function Miniature.setup(character)
     -- Setup from the data
-    Miniature.data = data
+    Miniature.character = character
 
     -- make sure to update the guid
-    Miniature.data.guid = self.getGUID()
+    Miniature.character.guid = self.getGUID()
 
     -- make sure to update the guid
-    Miniature.data.NAME = self.getName()
+    self.setName(Miniature.character.get("NAME"))
 
     -- Find the board
     Miniature.find_board()
 
-    -- Parse the GM Notes, get the owner and the Team right now
-    Miniature.parseGMNotes()
 end
 
 function Miniature.find_board()
     -- Quick lookup
     Miniature.board_object = getObjectsWithTag("board")[1]
-    Miniature.data.board_guid = Miniature.board_object.getGUID()
-end
-
-function Miniature.parseGMNotes()
-    -- we need to find the team and player that owns this miniature
-    -- try to read in GM Notes
-    local notes = self.getGMNotes()
-    if notes ~= nil and notes ~= "" then
-        local tab = split(notes, "|")
-        Miniature.data.owner = tab[1]
-        -- if not set, set to Black by default
-        if Miniature.data.owner == nil or Miniature.data.owner == "" then
-            Miniature.data.owner = "Black"
-        end
-        Miniature.data.team = tab[2]
-        -- If not set, set to Enemies by default
-        if Miniature.data.team == nil or Miniature.data.team == "" then
-            Miniature.data.team = "Enemies"
-        end
-    end
+    Miniature.board_guid = Miniature.board_object.getGUID()
 end
 
 return Miniature

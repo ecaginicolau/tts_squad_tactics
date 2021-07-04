@@ -1,0 +1,10 @@
+require("tts_squad_tactics.common.Constant")
+require("tts_squad_tactics.common.Utils")
+require("tts_squad_tactics.common.Character")
+require("tts_squad_tactics.listener.Listener")
+
+
+function onLoad()
+    -- read some data from the GM notes
+    Listener.register()
+end
