@@ -22,6 +22,8 @@ function MainUI.refresh()
             table.insert(list_panel, Detail.create(player.color))
             table.insert(list_panel, Attack.create(player.color))
             table.insert(list_panel, Action.create(player.color))
+            table.insert(list_panel, Damage.create(player.color))
+            table.insert(list_panel, Damage.create_validation(player.color))
         end
     end
 

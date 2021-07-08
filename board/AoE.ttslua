@@ -17,6 +17,7 @@ AoE = {
         LINE = "58fad9",
         SPLASH = "d49d6c",
         ATTACK = "d49d6c",
+        BOUNCE = "d49d6c",
     },
 }
 
@@ -281,17 +282,103 @@ function AoE.create_attack(player_color, guid, range, position, center_coordinat
 
 end
 
+function AoE.create_bounce(player_color, guid, range, position, center_coordinate)
+    AoE.reset(player_color)
+    local aoe = {
+        type = "BOUNCE",
+        range = range,
+        player_color = player_color,
+        position = position,
+        coordinate = center_coordinate,
+        start_position = Board.get_position(center_coordinate) + Vector.new(0, 0.1, 0),
+        guid = guid,
+        running = true,
+        characters = {},
+        map_characters = {},
+        old_position = Vector.new(0, 0, 0)
+    }
+
+    ---- get the Line object
+    local splash = getObjectFromGUID(AoE.objects_guid.SPLASH)
+    -- lock it, avoid any movement
+    splash.setLock(true)
+    local boxCollider = splash.getComponentInChildren("BoxCollider")
+    -- Disable the BoxCollider Component
+    boxCollider.set("enabled", false)
+
+    -- get the root component, will be faster next time
+    splash.createButton({
+        label = "",
+        click_function = "AoE_click",
+        function_owner = self,
+        position = { 0, 0, 0 },
+        height = 1000,
+        width = 1000,
+        --color = { 0, 1, 0, 0.5 },
+        color = { 0, 0, 0, 0.0 },
+        scale = { 1, 1, 1 },
+    })
+    -- make it transparent
+    splash.setColorTint(Color.new(0, 0, 0, 0))
+    --scale the Splash to it's range
+    splash.setScale({ Board.board_scale * 0.5, Board.board_scale * 0.5, Board.board_scale * 0.5 })
+    --set it's position
+    splash.setPosition(position + Vector.new(0, 0.1, 0))
+
+    -- draw the radius, attached to the miniature
+    local lines = {
+        {
+            points = { aoe["start_position"], aoe["start_position"] },
+            color = { 1, 0, 0, 0.8 },
+            thickness = 0.05,
+            rotation = { 0, 0, 0 },
+        }
+    }
+    LineDrawer.add_lines("bounce_" .. player_color, lines, "All")
+    -- We will need a fast lookup for the miniature by coordinate so place the miniature in a grid
+    aoe.characters = {}
+    aoe.map_characters = {}
+    for y = 1, Board.size_y, 1 do
+        aoe.map_characters[y] = {}
+        for x = 1, Board.size_x, 1 do
+            -- since we still can't put nil, put empty string
+            aoe.map_characters[y][x] = ""
+        end
+    end
+
+    -- create a first filter, remove all miniatures who are too far
+    for _, character in pairs(Board.characters) do
+        if character.getGUID() ~= aoe.guid then
+            local miniature_coordinate = character.get("coordinate")
+
+            local distance = distance_coordinate(center_coordinate, miniature_coordinate)
+            -- if the distance is good, then check the angle
+            if distance < aoe.range + ATTACK_THRESHOLD then
+                -- insert into the filtered table of miniatures
+                table.insert(aoe.characters, character)
+                aoe.map_characters[miniature_coordinate[2]][miniature_coordinate[1]] = character
+            end
+        end
+    end
+
+    -- Store the aoe
+    AoE.player_color[player_color] = aoe
+
+end
+
 function AoE.update()
     for player_color, aoe in pairs(AoE.player_color) do
         if aoe["running"] ~= nil then
-            if aoe["type"] == "CONE" then
+            if aoe["type"] == Constant.CONE then
                 AoE.update_cone(player_color, aoe)
-            elseif aoe["type"] == "SPLASH" then
+            elseif aoe["type"] == Constant.SPLASH then
                 AoE.update_splash(player_color, aoe)
-            elseif aoe["type"] == "LINE" then
+            elseif aoe["type"] == Constant.LINE then
                 AoE.update_line(player_color, aoe)
-            elseif aoe["type"] == "ATTACK" then
+            elseif aoe["type"] == Constant.ATTACK then
                 AoE.update_attack(player_color, aoe)
+            elseif aoe["type"] == Constant.BOUNCE then
+                AoE.update_bounce(player_color, aoe)
             end
         end
     end
@@ -532,6 +619,65 @@ function AoE.update_attack(player_color, aoe)
     end
 end
 
+function AoE.update_bounce(player_color, aoe)
+    -- get the position of the player cursor
+    local cursor_position = Player[player_color].getPointerPosition()
+    if cursor_position:distance(aoe.old_position) < 0.05 then
+        return
+    end
+    aoe.old_position = cursor_position
+    local cursor_coordinate = Board.get_coordinate(cursor_position, true)
+    local start_coordinate = Vector2(aoe.coordinate)
+    local direction = Vector2(cursor_coordinate).sub(start_coordinate)
+    direction.normalize()
+
+    local list_collision
+    list_collision, aoe.target = table.unpack(AoE.calculate_bounce(start_coordinate, direction, aoe.range, aoe.map_characters))
+    local points = {}
+    for _, coordinate in pairs(list_collision) do
+        local position = Board.get_position(coordinate) + Vector.new(0, 0.01, 0)
+        table.insert(points, position)
+    end
+
+    local lines = {
+        {
+            points = points,
+            color = { 1, 0, 0, 0.8 },
+            thickness = 0.08,
+            rotation = { 0, 0, 0 },
+        },
+    }
+    LineDrawer.add_lines("bounce_" .. player_color, lines, "All")
+
+    --  calculate the direction vector
+    local miniature_object = getObjectFromGUID(aoe["guid"])
+    direction = cursor_position - miniature_object.getPosition()
+
+    -- remove y component
+    direction[2] = 0
+    -- create an up vector to calculate the angle
+    local up = Vector.new(0, 0, -1)
+    -- calculate the angle
+    local angle = Vector.angle(direction, up)
+    -- the function only handle angle between 0 and 180, make it works for 0 360
+    if direction[1] > 0 then
+        angle = 360 - angle
+    end
+
+    -- Store the new center
+    aoe.center = direction + miniature_object.getPosition()
+
+    -- rotate the miniature
+    miniature_object.setRotation({ 0, angle + 180, 0 }) -- void angle rounding issue
+    AoE.highlight_off(aoe)
+
+    AoE.highlight_on(aoe)
+
+    local splash_object = getObjectFromGUID(AoE.objects_guid.SPLASH)
+    splash_object.setPosition(cursor_position)
+
+end
+
 function AoE.highlight_off(aoe)
     -- turn highlight off on all
     for _, character in pairs(aoe.characters) do
@@ -573,6 +719,8 @@ function AoE.targets(aoe)
         return AoE.targets_splash(aoe)
     elseif aoe["type"] == "ATTACK" then
         return AoE.targets_attack(aoe)
+    elseif aoe["type"] == "BOUNCE" then
+        return AoE.targets_bounce(aoe)
     end
 end
 
@@ -594,6 +742,23 @@ function AoE.targets_cone(aoe)
     return targets
 end
 
+function AoE.distance_point_segment(pointA, pointB, pointC)
+    -- calculate the distance of the point C to the segment AB, will return nil if the projection is outside AB
+    local position = pointC - pointA
+    local direction = pointB - pointA
+    local projection = position:project(direction)
+    -- make sure the projection is inside the line
+    if is_between(projection[1], 0, direction[1]) and is_between(projection[2], 0, direction[2]) then
+        --  reset position
+        position = pointC - pointA
+        local distance = Vector.distance(projection, position)
+        -- scale the distance to the board
+        distance = distance / Board.board_scale
+        return distance
+    end
+    return nil
+end
+
 function AoE.targets_line(aoe)
     local targets = {}
     local line_object = getObjectFromGUID(AoE.objects_guid.LINE)
@@ -602,21 +767,10 @@ function AoE.targets_line(aoe)
         local miniature = character.getMiniature()
         -- make sure the miniature still exist
         if miniature ~= nil then
-            -- calculate the distance between the line and the miniature
-            local position = miniature.getPosition() - line_object.getPosition()
-            local direction = aoe.end_position - line_object.getPosition()
-            local projection = position:project(direction)
-            -- make sure the projection is inside the line
-            if is_between(projection[1], 0, direction[1]) and is_between(projection[2], 0, direction[2]) then
-                --  reset position
-                position = miniature.getPosition() - line_object.getPosition()
-                local distance = Vector.distance(projection, position)
-                -- scale the distance to the board
-                distance = distance / Board.board_scale
-                -- if the distance is lower than half of the width + some padding, consider the target valid
-                if distance < aoe.width / 2 + LINE_THRESHOLD then
-                    table.insert(targets, character.getGUID())
-                end
+            local distance = AoE.distance_point_segment(line_object.getPosition(), aoe.end_position, miniature.getPosition())
+            -- if the distance is lower than half of the width + some padding, consider the target valid
+            if distance ~= nil and distance < aoe.width / 2 + LINE_THRESHOLD then
+                table.insert(targets, character.getGUID())
             end
         end
     end
@@ -656,6 +810,14 @@ function AoE.targets_attack(aoe)
         end
     end
     return targets
+end
+
+function AoE.targets_bounce(aoe)
+    if aoe.target ~= nil then
+        return { aoe.target }
+    else
+        return {}
+    end
 end
 
 function AoE.draw_radius(aoe, miniature)
@@ -760,11 +922,52 @@ function AoE_click(_, player_color, alt_click)
     -- get the targets
     local targets = AoE.targets(aoe)
 
+    -- remove bounce line if needed
+    if aoe.type == Constant.BOUNCE then
+        LineDrawer.remove_visibility("bounce_" .. player_color, "All")
+    end
+
     AoE.reset(player_color)
 
     if #targets > 0 then
-        Global.call("Attack_set_targets", { player_color, targets, aoe["type"] })
+        Global.call("Attack_set_targets", { player_color, aoe.guid, targets, aoe["type"] })
     end
+end
+
+function AoE.calculate_bounce_rec(start_coordinate, direction, range, list_collision, characters)
+    local end_coordinate = Vector2.scale(direction, range).add(start_coordinate)
+    local collision_coordinate
+    local hit
+    collision_coordinate, hit = table.unpack(LoS.raytrace_collision(start_coordinate, end_coordinate, characters))
+    --print("Collision: " .. tostring(collision_coordinate))
+    --print("Collision plane: " .. tostring(hit))
+    if collision_coordinate == nil then
+        -- no collision, end the ray
+        table.insert(list_collision, end_coordinate)
+        return nil
+    else
+        table.insert(list_collision, collision_coordinate)
+        local distance = distance_coordinate(start_coordinate, collision_coordinate)
+        local direction_bounce
+        if hit == "x" then
+            direction_bounce = Vector2(direction[1], -direction[2])
+        elseif hit == "y" then
+            direction_bounce = Vector2(-direction[1], direction[2])
+        else
+            return hit
+        end
+        if range - distance > 0 then
+            return AoE.calculate_bounce_rec(collision_coordinate, direction_bounce, range - distance, list_collision, characters)
+        else
+            return nil
+        end
+    end
+end
+
+function AoE.calculate_bounce(start_coordinate, direction, range, characters)
+    local list_collision = { start_coordinate }
+    local target_guid = AoE.calculate_bounce_rec(start_coordinate, direction, range, list_collision, characters)
+    return { list_collision, target_guid }
 end
 
 return AoE

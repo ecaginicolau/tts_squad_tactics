@@ -279,7 +279,7 @@ function Initiative.init()
     -- loop through all characters
     for _, character in pairs(MainUI.characters) do
         -- Get the initiative as a string, because otherwise it would make a list
-        local init = tostring(character.get("INITIATIVE"))
+        local init = tostring(character.get("INITIATIVE") + character.get("INITIATIVE") )
         -- add the character at this initiative
         Initiative.add_character(init, character)
 

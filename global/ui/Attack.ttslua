@@ -361,23 +361,24 @@ function Attack.reset(player_color)
     Attack.covers[player_color] = {}
 end
 
-function Attack.set_targets(player_color, targets, attack_type)
+function Attack.set_targets(player_color, guid, targets, attack_type)
     -- right now disable cover for splash
+    Attack.damage_player[player_color]["guid"] = guid
     Attack.damage_player[player_color]["use_cover"] = attack_type ~= "SPLASH"
     Attack.set_use_cover(player_color)
 
     Attack.targets[player_color] = targets
     -- first disable all miniature
-    for guid, _ in pairs(MainUI.characters) do
-        self.UI.setAttribute("target_row_" .. player_color .. "_" .. guid, "active", false)
-        Attack.hits[player_color][guid] = true
-        self.UI.setAttribute("target_button_" .. player_color .. "_" .. guid, "text", "X")
+    for target_guid, _ in pairs(MainUI.characters) do
+        self.UI.setAttribute("target_row_" .. player_color .. "_" .. target_guid, "active", false)
+        Attack.hits[player_color][target_guid] = true
+        self.UI.setAttribute("target_button_" .. player_color .. "_" .. target_guid, "text", "X")
 
     end
 
     -- then enable the targets
-    for _, guid in pairs(targets) do
-        self.UI.setAttribute("target_row_" .. player_color .. "_" .. guid, "active", true)
+    for _, target_guid in pairs(targets) do
+        self.UI.setAttribute("target_row_" .. player_color .. "_" .. target_guid, "active", true)
     end
     -- display the Attack panel
     self.UI.setAttribute("panel_damage_" .. player_color, "active", true)
@@ -456,7 +457,7 @@ end
 function Attack_character(player, guid)
     local player_color = player.color
     -- set the miniature
-    Attack.set_targets(player_color, { guid })
+    Attack.set_targets(player_color, Action.selected_character[player.color].getGUID(), { guid })
     -- Toggle on/off the panel
     if Attack.damage_player[player_color]["guid"] == nil then
         Attack.damage_player[player_color]["guid"] = guid
@@ -521,20 +522,57 @@ end
 
 function Attack_compute(player)
     local player_color = player.color
-    print("player launching attack: " .. player_color)
-    print("damage: " .. Attack.damage_player[player_color]["damage"])
-    print("IMPACT: " .. tostring(Attack.damage_player[player_color]["IMPACT"]))
-    print("FIRE: " .. tostring(Attack.damage_player[player_color]["FIRE"]))
-    print("COLD: " .. tostring(Attack.damage_player[player_color]["COLD"]))
-    print("ELECTRIC: " .. tostring(Attack.damage_player[player_color]["ELECTRIC"]))
-    print("BLIGHT: " .. tostring(Attack.damage_player[player_color]["BLIGHT"]))
-    print("DIRECT: " .. tostring(Attack.damage_player[player_color]["DIRECT"]))
-    print("To targets: ")
-    for _, character in ipairs(Attack.targets[player_color]) do
-        if Attack.hits[player_color][character.getGUID()] then
-            print(character["NAME"])
+    --print("player launching attack: " .. player_color)
+    --print("FROM: " .. tostring(Attack.damage_player[player_color]["guid"]))
+    --print("damage: " .. Attack.damage_player[player_color]["damage"])
+    --print("IMPACT: " .. tostring(Attack.damage_player[player_color]["IMPACT"]))
+    --print("FIRE: " .. tostring(Attack.damage_player[player_color]["FIRE"]))
+    --print("COLD: " .. tostring(Attack.damage_player[player_color]["COLD"]))
+    --print("ELECTRIC: " .. tostring(Attack.damage_player[player_color]["ELECTRIC"]))
+    --print("BLIGHT: " .. tostring(Attack.damage_player[player_color]["BLIGHT"]))
+    --print("DIRECT: " .. tostring(Attack.damage_player[player_color]["DIRECT"]))
+    --print("To targets: ")
+
+    local player_damage = {}
+    for _, guid in ipairs(Attack.targets[player_color]) do
+        if Attack.hits[player_color][guid] then
+            local character = MainUI.characters[guid]
+            --print(character.get("NAME"))
+            local from_character = MainUI.characters[Attack.damage_player[player_color]["guid"]]
+            local damage_info = {
+                DAMAGE = Attack.damage_player[player_color]["damage"],
+                TYPE = {},
+                CONFUSION = false,
+                PARALYSIS = false,
+                PURSUIT = nil,
+                DECAY = nil,
+                FROM = {
+                    NAME = from_character.get("NAME"),
+                    guid = Attack.damage_player[player_color]["guid"],
+                },
+                TO = {
+                    NAME = character.get("NAME"),
+                    guid = guid,
+                }
+            }
+            for _, damage_type in pairs(Constant.DAMAGES) do
+                if Attack.damage_player[player_color][damage_type] then
+                    table.insert(damage_info.TYPE, damage_type)
+                end
+            end
+
+            if player_damage[character.get("owner")] == nil then
+                player_damage[character.get("owner")] = {}
+            end
+            table.insert(player_damage[character.get("owner")], damage_info)
         end
     end
+
+    for target_player_color, list_damages in pairs(player_damage) do
+        Damage.add(target_player_color, list_damages)
+    end
+    -- Hide the attack window
+    Attack_hide(player)
 end
 
 function Attack_set_precision(params)

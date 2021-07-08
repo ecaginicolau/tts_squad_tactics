@@ -58,6 +58,78 @@ function LoS.raytrace(x0, y0, x1, y1)
     return list_visited_tile
 end
 
+function LoS.raytrace_collision(coordinate1, coordinate2, characters)
+    local list_visited_tile = LoS.raytrace(coordinate1[1] + 0.5, coordinate1[2] + 0.5, coordinate2[1] + 0.5, coordinate2[2] + 0.5)
+    local collision
+    local before_collision = list_visited_tile[1]
+    table.remove(list_visited_tile, 1)
+    local hit -- if w bounce from a x or y oriented wall
+
+    for _, coordinate in ipairs(list_visited_tile) do
+        -- since we can't break, only continue if we didn't find the collision tile yet
+        if collision == nil then
+            if not Board.is_inside(coordinate) then
+                collision = coordinate
+            else
+                local tile_value = Board.data[coordinate[2]][coordinate[1]]
+                if Constant[tile_value].cover == 2 then
+                    -- cover_value at 2 means we can't see through
+                    collision = coordinate
+                end
+                if characters[coordinate[2]][coordinate[1]] ~= "" then
+                    collision = coordinate
+                    hit = characters[coordinate[2]][coordinate[1]].getGUID()
+                end
+            end
+        end
+        -- if no collision found , move before_collision tile
+        if collision == nil then
+            before_collision = coordinate
+        end
+    end
+    -- here we should have a collision
+    if collision == nil then
+        return { nil, "x" }
+    end
+    -- find which wll is hit
+    local dx = coordinate2[1] - coordinate1[1]
+    local dy = coordinate2[2] - coordinate1[2]
+    -- collision coordinate
+    local cx
+    local cy
+    if hit == nil then
+        if before_collision[2] == collision[2] then
+            cx = collision[1] - (dx / math.abs(dx)) / 2
+            hit = "y"
+        else
+            -- don't check corner, it would make hard bounce case
+            cy = collision[2] - (dy / math.abs(dy)) / 2
+            hit = "x"
+        end
+    else
+        if before_collision[2] == collision[2] then
+            cx = collision[1] - (dx / math.abs(dx)) / 2
+        else
+            -- don't check corner, it would make hard bounce case
+            cy = collision[2] - (dy / math.abs(dy)) / 2
+        end
+
+    end
+    -- here we have either cx or cy
+    if cx ~= nil then
+
+        local n = (cx - coordinate1[1]) / dx
+        cy = coordinate1[2] + n * dy
+
+    else
+        local n = (cy - coordinate1[2]) / dy
+        cx = coordinate1[1] + n * dx
+    end
+    -- return the collision coordinate
+    return { Vector2(cx, cy), hit }
+
+end
+
 function LoS.calculate_all()
     for guid1, _ in pairs(Board.miniature) do
         LoS.calculate(guid1)

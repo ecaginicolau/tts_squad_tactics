@@ -19,6 +19,9 @@ BoardPanel = {}
 -- This function recreate the whole board panel
 -- it should only been called once when playing and from time to time when editing
 function BoardPanel.create(mode)
+    -- Reset all the Player's Panel buttons etc
+    PlayerPanel.reset()
+
     -- the panel size depends on the Board size
     if Board.size_x == Board.size_y then
         BoardPanel.panel_x = 3750

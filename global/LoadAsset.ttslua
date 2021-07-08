@@ -112,16 +112,33 @@ function update_asset()
             name = "splash",
             url = "http://cloud-3.steamusercontent.com/ugc/1687143991063603327/A93D1109043B599DF17563A7D68B8BB1531F1408/",
         },
+        {
+            name = "bounce",
+            url = "http://cloud-3.steamusercontent.com/ugc/1687144294413503337/260D3E208E7F3B5AE9380E5ABA47A8EA5A211022/",
+        },
 
         --background detail
         {
             name = "monster_detail",
             url = "http://cloud-3.steamusercontent.com/ugc/1709660756465799627/DCE015A67697B87FFB51FA66037FC4242D50EE61/",
-            --url = "http://cloud-3.steamusercontent.com/ugc/1687143729670041705/49A0156EFED68BE0728648D157A3816C4C293318/",
-
         },
-
-
+        -- battle status
+        {
+            name = "pursuit",
+            url = "http://cloud-3.steamusercontent.com/ugc/1687144359181654550/1E8BD3B88C0EE8CCC0CA934F07D4ABC764A4B99B/",
+        },
+        {
+            name = "decay",
+            url = "http://cloud-3.steamusercontent.com/ugc/1687144359181656489/D665776630086DF990681995C203DBC2E77CB529/",
+        },
+        {
+            name = "confusion",
+            url = "http://cloud-3.steamusercontent.com/ugc/1687144359181823355/66C598B469D58671998C0AAAE43E03FDEB6252CB/",
+        },
+        {
+            name = "paralysis",
+            url = "http://cloud-3.steamusercontent.com/ugc/1687144359181674053/D1C7021BB581065D633FD55F5B4F8580463F71B4/",
+        },
     }
 
     local new_asset = table.clone(assets)

@@ -1,6 +1,93 @@
 ------------------------------------------
 --- Multiple Constants that should be useful in many places
 
+HINDER_COLOR = "#FFFF50"
+
+-- Recreate the keys outside faster text input
+EVASION = "EVASION"
+-- ATTACK/DEFENSE
+IMPACT = "IMPACT"
+FIRE = "FIRE"
+COLD = "COLD"
+ELECTRIC = "ELECTRIC"
+BLIGHT = "BLIGHT"
+-- only exist in ATTACK
+DIRECT = "DIRECT"
+
+-- STATS
+NAME = "NAME"
+LEVEL = "LEVEL"
+CLASS = "CLASS"
+TAGS = "TAGS"
+INITIATIVE = "INITIATIVE"
+SPEED = "SPEED"
+WEAPON_SLOT = "WEAPON_SLOT"
+
+IDENTIFICATION = "IDENTIFICATION"
+
+-- HP
+HP = "HP"
+MAX_HP = "MAX_HP"
+CURRENT_HP = "CURRENT_HP"
+FATIGUE = "FATIGUE"
+HATE = "HATE"
+FATE = "FATE"
+MAX_FATE = "MAX_FATE"
+CURRENT_FATE = "CURRENT_FATE"
+
+-- ATTACK
+DAMAGE = "DAMAGE"
+AMMO = "AMMO"
+CURRENT_AMMO = "CURRENT_AMMO"
+MAX_AMMO = "MAX_AMMO"
+ACCURACY = "ACCURACY"
+RANGE = "RANGE"
+
+-- Characteristics
+STRENGTH = "STRENGTH"
+DEXTERITY = "DEXTERITY"
+INTELLIGENCE = "INTELLIGENCE"
+WISDOM = "WISDOM"
+CHARISMA = "CHARISMA"
+
+-- capacities
+-- strength
+ATHLETICS = "ATHLETICS"
+INTIMIDATION = "INTIMIDATION"
+ENDURANCE = "ENDURANCE"
+DESTRUCTION = "DESTRUCTION"
+-- dexterity
+MANIPULATION = "MANIPULATION"
+SECURITY = "SECURITY"
+STEALTH = "STEALTH"
+ACROBATICS = "ACROBATICS"
+-- intelligence
+INVESTIGATION = "INVESTIGATION"
+TECHNOLOGY = "TECHNOLOGY"
+MEDIC = "MEDIC"
+SCIENCE = "SCIENCE"
+-- wisdom
+EMPATHY = "EMPATHY"
+PERCEPTION = "PERCEPTION"
+SURVIVAL = "SURVIVAL"
+CRAFT = "CRAFT"
+-- charisma
+PERSUASION = "PERSUASION"
+REPRESENTATION = "REPRESENTATION"
+DECEPTION = "DECEPTION"
+ANIMAL = "ANIMAL"
+
+DECAL = {
+    IMPACT = "http://cloud-3.steamusercontent.com/ugc/1687143819155943010/1B6424A774FFEE865F4C9B2AADCC11E0DED6E62B/",
+    FIRE = "http://cloud-3.steamusercontent.com/ugc/1687143819155942799/4C96368CACDB118AE951E368274C2390B73F27CA/",
+    COLD = "http://cloud-3.steamusercontent.com/ugc/1687143819155942910/A245171DF35AC95193C4FBD29BAA68E86F1315C0/",
+    ELECTRIC = "http://cloud-3.steamusercontent.com/ugc/1687143819155942704/C7D9AF73A4DC1561D52E788391A1F49DBF6131E5/",
+    BLIGHT = "http://cloud-3.steamusercontent.com/ugc/1687143819155942567/97ABC74A6F284C8A0B5CC57B9403E14890D7E0F1/",
+}
+
+COVER_BONUS = 2 -- multiplicative ratio
+
+NB_TAGS = 4
 
 Constant = {
     -- not really a terrain but same structure
@@ -145,14 +232,182 @@ Constant = {
         image = "direct", -- the icon
         value = "DIRECT", -- UNIQUE ID
     },
+    -- Battle status
+    CONFUSION = {
+        color = "#121212", -- the color, both in the editor or the player panel
+        text = "Confusion", -- the text displayed when needed
+        image = "confusion", -- the icon
+        value = "CONFUSION", -- UNIQUE ID
+    },
+    PARALYSIS = {
+        color = "#864335", -- the color, both in the editor or the player panel
+        text = "Paralysie", -- the text displayed when needed
+        image = "paralysis", -- the icon
+        value = "PARALYSIS", -- UNIQUE ID
+    },
+    PURSUIT = {
+        color = "#128012", -- the color, both in the editor or the player panel
+        text = "Poursuite", -- the text displayed when needed
+        image = "pursuit", -- the icon
+        value = "PURSUIT", -- UNIQUE ID
+    },
+    DECAY = {
+        color = "#7f2897", -- the color, both in the editor or the player panel
+        text = "Affaibli", -- the text displayed when needed
+        image = "decay", -- the icon
+        value = "DECAY", -- UNIQUE ID
+    },
+    -- Stats, use same color code than damage/defenses
+    STRENGTH = {
+        color = "#121212", -- the color, both in the editor or the player panel
+        text = "Force", -- the text displayed when needed
+        mod = "FOR", -- the text displayed when needed
+        image = "strength", -- the icon
+        value = "STRENGTH", -- UNIQUE ID
+    },
+    DEXTERITY = {
+        color = "#121280", -- the color, both in the editor or the player panel
+        text = "Dextérité", -- the text displayed when needed
+        mod = "DEX", -- the text displayed when needed
+        image = "dexterity", -- the icon
+        value = "DEXTERITY", -- UNIQUE ID
+    },
+    INTELLIGENCE = {
+        color = "#AAAA12", -- the color, both in the editor or the player panel
+        text = "Intelligence", -- the text displayed when needed
+        mod = "INT", -- the text displayed when needed
+        image = "intelligence", -- the icon
+        value = "INTELLIGENCE", -- UNIQUE ID
+    },
+    WISDOM = {
+        color = "#801212", -- the color, both in the editor or the player panel
+        text = "Sagesse", -- the text displayed when needed
+        mod = "SAG", -- the text displayed when needed
+        image = "wisdom", -- the icon
+        value = "WISDOM", -- UNIQUE ID
+    },
+    CHARISMA = {
+        color = "#128012", -- the color, both in the editor or the player panel
+        text = "Charisme", -- the text displayed when needed
+        image = "charisma", -- the icon
+        value = "CHARISMA", -- UNIQUE ID
+    },
+
+    -- Capacities
+    -- Strength
+    ATHLETICS = {
+        text = "Athlétisme", -- the text displayed when needed
+        mod = STRENGTH,
+    },
+    INTIMIDATION = {
+        text = "Intimidation", -- the text displayed when needed
+        mod = STRENGTH,
+    },
+    ENDURANCE = {
+        text = "Endurance", -- the text displayed when needed
+        mod = STRENGTH,
+    },
+    DESTRUCTION = {
+        text = "Destruction", -- the text displayed when needed
+        mod = STRENGTH,
+    },
+    -- DEXTERITY
+    MANIPULATION = {
+        text = "Manipulation", -- the text displayed when needed
+        mod = DEXTERITY,
+    },
+    SECURITY = {
+        text = "Sécurité", -- the text displayed when needed
+        mod = DEXTERITY,
+    },
+    STEALTH = {
+        text = "Furtivité", -- the text displayed when needed
+        mod = DEXTERITY,
+    },
+    ACROBATICS = {
+        text = "Acrobatie", -- the text displayed when needed
+        mod = DEXTERITY,
+    },
+    -- INTELLIGENCE
+    INVESTIGATION = {
+        text = "Investigation", -- the text displayed when needed
+        mod = INTELLIGENCE,
+    },
+    TECHNOLOGY = {
+        text = "Technologie", -- the text displayed when needed
+        mod = INTELLIGENCE,
+    },
+    MEDIC = {
+        text = "Médecine", -- the text displayed when needed
+        mod = INTELLIGENCE,
+    },
+    SCIENCE = {
+        text = "Science", -- the text displayed when needed
+        mod = INTELLIGENCE,
+    },
+    -- WISDOM
+    EMPATHY = {
+        text = "Empathie", -- the text displayed when needed
+        mod = WISDOM,
+    },
+    PERCEPTION = {
+        text = "Perception", -- the text displayed when needed
+        mod = WISDOM,
+    },
+    SURVIVAL = {
+        text = "Survie", -- the text displayed when needed
+        mod = WISDOM,
+    },
+    CRAFT = {
+        text = "Artisanat", -- the text displayed when needed
+        mod = WISDOM,
+    },
+    -- CHARISMA
+    PERSUASION = {
+        text = "Persuasion", -- the text displayed when needed
+        mod = CHARISMA,
+    },
+    REPRESENTATION = {
+        text = "Représentation", -- the text displayed when needed
+        mod = CHARISMA,
+    },
+    DECEPTION = {
+        text = "Tromperie", -- the text displayed when needed
+        mod = CHARISMA,
+    },
+    ANIMAL = {
+        text = "Animaux", -- the text displayed when needed
+        mod = CHARISMA,
+    },
+
+    -- the list of characteristic for easier iteration
+    CHARACTERISTICS = { STRENGTH, DEXTERITY, INTELLIGENCE, WISDOM, CHARISMA },
+
+    -- CHARACTERISTICS - CAPACITIES
+    CHARACTERISTICS_CAPACITIES = {
+        STRENGTH = { ATHLETICS, INTIMIDATION, ENDURANCE, DESTRUCTION },
+        DEXTERITY = { MANIPULATION, SECURITY, STEALTH, ACROBATICS },
+        INTELLIGENCE = { INVESTIGATION, TECHNOLOGY, MEDIC, SCIENCE },
+        WISDOM = { EMPATHY, PERCEPTION, SURVIVAL, CRAFT },
+        CHARISMA = { PERSUASION, REPRESENTATION, DECEPTION, ANIMAL },
+    },
+
+    -- capacities
+    CAPACITIES = {
+        ATHLETICS, INTIMIDATION, ENDURANCE, DESTRUCTION,
+        MANIPULATION, SECURITY, STEALTH, ACROBATICS,
+        INVESTIGATION, TECHNOLOGY, MEDIC, SCIENCE,
+        EMPATHY, PERCEPTION, SURVIVAL, CRAFT,
+        PERSUASION, REPRESENTATION, DECEPTION, ANIMAL,
+    },
 
     -- The list of stats, for easier iteration
-    STATS = { "EVASION", "HATE", "INITIATIVE", "IDENTIFICATION" },
+    STATS = { EVASION, HATE, INITIATIVE, IDENTIFICATION },
 
     -- The list of defenses, for easier iteration
-    DEFENSES = { "IMPACT", "FIRE", "ELECTRIC", "BLIGHT", "COLD" },
+    DEFENSES = { IMPACT, FIRE, ELECTRIC, BLIGHT, COLD },
     -- The list of damages, for easier iteration
-    DAMAGES = { "IMPACT", "FIRE", "ELECTRIC", "BLIGHT", "COLD", "DIRECT" },
+    DAMAGES = { IMPACT, FIRE, ELECTRIC, BLIGHT, COLD, DIRECT },
 
     DEFENSE_NEUTRAL_COLOR = "#121212",
     DEFENSE_POSITIVE_COLOR = "#801212",
@@ -168,8 +423,10 @@ Constant = {
     CONE = "CONE",
     SPLASH = "SPLASH",
     LINE = "LINE",
+    BOUNCE = "BOUNCE",
+
     -- list for easier loop
-    ACTIONS = { "SAFE_MOVE", "MOVE", "ATTACK", "CONE", "SPLASH", "LINE" },
+    ACTIONS = { "SAFE_MOVE", "MOVE", "ATTACK", "CONE", "SPLASH", "LINE", "BOUNCE" },
 
     DIRECTIONS = {
         { 0, 1, false }, -- x, y, diagonal
@@ -184,48 +441,10 @@ Constant = {
 
 }
 
-HINDER_COLOR = "#FFFF50"
-
--- Recreate the keys outside faster text input
--- ATTACK/DEFENSE
-IMPACT = "IMPACT"
-FIRE = "FIRE"
-COLD = "COLD"
-ELECTRIC = "ELECTRIC"
-BLIGHT = "BLIGHT"
--- only exist in ATTACK
-DIRECT = "DIRECT"
-
--- STATS
-NAME = "NAME"
-LEVEL = "LEVEL"
-TAGS = "TAGS"
-EVASION = "EVASION"
-HATE = "HATE"
-INITIATIVE = "INITIATIVE"
-IDENTIFICATION = "IDENTIFICATION"
-
--- ATTACK
-DAMAGE = "DAMAGE"
-AMMO = "AMMO"
-ACCURACY = "ACCURACY"
-RANGE = "RANGE"
 
 -- add an index for faster lookup
 for i, TERRAIN in ipairs(Constant.TERRAINS) do
     Constant[TERRAIN].index = i
 end
-
-DECAL = {
-    IMPACT = "http://cloud-3.steamusercontent.com/ugc/1687143819155943010/1B6424A774FFEE865F4C9B2AADCC11E0DED6E62B/",
-    FIRE = "http://cloud-3.steamusercontent.com/ugc/1687143819155942799/4C96368CACDB118AE951E368274C2390B73F27CA/",
-    COLD = "http://cloud-3.steamusercontent.com/ugc/1687143819155942910/A245171DF35AC95193C4FBD29BAA68E86F1315C0/",
-    ELECTRIC = "http://cloud-3.steamusercontent.com/ugc/1687143819155942704/C7D9AF73A4DC1561D52E788391A1F49DBF6131E5/",
-    BLIGHT = "http://cloud-3.steamusercontent.com/ugc/1687143819155942567/97ABC74A6F284C8A0B5CC57B9403E14890D7E0F1/",
-}
-
-COVER_BONUS = 2 -- multiplicative ratio
-
-NB_TAGS = 4
 
 return Constant

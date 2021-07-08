@@ -25,7 +25,7 @@ Inventory = {
         BLIGHT = 0,
         INITIATIVE = 0,
         DAMAGE = 0,
-        AMMO = 0,
+        MAX_AMMO = 0,
         ACCURACY = 0,
         RANGE = 0,
         TYPE1 = IMPACT,
@@ -33,10 +33,22 @@ Inventory = {
         CHANGE_TYPE = nil,
         ADD_TYPE = nil,
         value = 100,
-        description = ""
+        description = "",
+        STRENGTH = 0,
+        DEXTERITY = 0,
+        INTELLIGENCE = 0,
+        WISDOM = 0,
+        CHARISMA = 0,
     },
     mods = {}
 }
+
+for _, characteristic in pairs(Constant.CHARACTERISTICS) do
+    Inventory.data[characteristic] = 0
+end
+for _, capacity in pairs(Constant.CAPACITIES) do
+    Inventory.data[capacity] = 0
+end
 
 function Inventory.create()
     self.clearButtons()
@@ -188,13 +200,18 @@ end
 function onLoad(saved_data)
     if load_disabled == false and saved_data ~= "" then
         local loaded_data = JSON.decode(saved_data)
-        Inventory.data = loaded_data["data"]
+        for key, value in pairs(loaded_data["data"]) do
+            Inventory.data[key] = value
+        end
+
         Inventory.mods = loaded_data["mods"]
     end
 
     local notes = self.getGMNotes()
     if notes ~= nil and notes ~= "" then
-        Inventory.data = JSON.decode(notes)
+        for key, value in pairs(JSON.decode(notes)) do
+            Inventory.data[key] = value
+        end
     end
 
     Inventory.create()
@@ -206,6 +223,8 @@ function updateSave()
     self.script_state = saved_data
 end
 
-
+function Inventor_get_data()
+    return Inventory.data
+end
 
 return Inventory

@@ -31,10 +31,10 @@ layout = {
         value = DAMAGE,
         color = { 0, 0, 0 },
     },
-    AMMO = {
+    MAX_AMMO = {
         pos = { 0.85, 0.3, -0.13 },
         font_size = 600,
-        value = AMMO,
+        value = MAX_AMMO,
         color = { 0, 0, 0 },
     },
     ACCURACY = {

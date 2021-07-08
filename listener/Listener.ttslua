@@ -2,6 +2,7 @@ Listener = {
     _manager = nil,
     characters = {}, -- list all characters
     interest = nil, -- right now can look for one character or all
+    callbacks = {}
 }
 
 function Listener.getManager()
@@ -47,29 +48,28 @@ function Manager_register_notification(data)
 end
 
 function Manager_update_notification(params)
-    --print("Manager_update_notification")
     local guid = params["guid"]
     local data = params["data"]
     local origin = params["origin"]
-    -- update the character without triggering a new event
-    --print("interest" .. tostring(Listener.interest))
+    local character
     if Listener.interest == nil then
-        local character = Listener.characters[guid]
-        --print("character: " .. tostring(character))
-        if character ~= nil then
-            --print("character.change")
-            character.change(data)
-        --else
-        --    print("character. create")
-        --    local character = Character(data)
-        --    for key, value in pairs(data) do
-        --        print(" key : " .. tostring(key) .. "  value: " .. tostring(value))
-        --    end
-        --    Listener.characters[character.getGUID()] = character
-        end
+        character = Listener.characters[guid]
     else
-        Listener.interest.change(data)
+        character = Listener.interest
     end
+    -- if a character has been found
+    if character ~= nil then
+        -- change it
+        character.change(data)
+        -- call the monitoring function if needed
+        for key, _ in pairs(data) do
+            if Listener.callbacks[key] ~= nil then
+                Listener.callbacks[key](guid, key)
+            end
+        end
+    end
+
+
 end
 
 return Listener

@@ -1,3 +1,5 @@
+require("tts_squad_tactics.common.Constant")
+
 Character = {}
 
 setmetatable(Character, {
@@ -7,42 +9,118 @@ setmetatable(Character, {
             _data = {
                 NAME = "Nom",
                 LEVEL = 10,
+                CLASS = "Civil",
 
                 -- Characteristics
-                STR = 10,
-                DEX = 10,
-                INT = 10,
-                SAG = 10,
-                CHA = 10,
+                STRENGTH = {
+                    BASE = 10,
+                    BONUS = 0,
+                },
+                DEXTERITY = {
+                    BASE = 10,
+                    BONUS = 0,
+                },
+                INTELLIGENCE = {
+                    BASE = 10,
+                    BONUS = 0,
+                },
+                WISDOM = {
+                    BASE = 10,
+                    BONUS = 0,
+                },
+                CHARISMA = {
+                    BASE = 10,
+                    BONUS = 0,
+                },
 
                 -- Tags
                 TAGS = { "", "", "", "" },
 
                 -- HP Related
-                MAX_HP = 100,
+                MAX_HP = {
+                    BASE = 100,
+                    BONUS = 0,
+                },
                 CURRENT_HP = 100,
                 FATIGUE = 0, -- should stay at 0 for most
+                CURRENT_FATE = 5,
+                MAX_FATE = {
+                    BASE = 5,
+                    BONUS = 0,
+                },
+
+                -- weapon slot
+                WEAPON_SLOT = 1,
 
                 -- WEAPON
-                DAMAGE = 10, -- could be 0-2 and weapon only give dices + third of dice fixed
-                AMMO = 4,
-                RANGE = 8,
+                DAMAGE = {
+                    BASE = 0,
+                    BONUS = 0,
+                },
+                MAX_AMMO = {
+                    BASE = 4,
+                    BONUS = 0,
+                },
+                CURRENT_AMMO = 4,
+                RANGE = {
+                    BASE = 0,
+                    BONUS = 0,
+                },
+                ACCURACY = {
+                    BASE = 0,
+                    BONUS = 0,
+                }, -- should be 75%+ hit chance with 3D + accuracy vs evasion
 
                 -- Stats
-                SPEED = 4,
-                ACCURACY = 3, -- should be 75%+ hit chance with 3D + accuracy vs evasion
-                EVASION = 10, -- no dice, should be around 2D + accuracy
-                INITIATIVE = 10, -- With 10 it should go from 0 to 20 with equipments
-                IDENTIFICATION = 10,
-                HATE = 0, -- can be both the HATE score or HATE multiplier
+                SPEED = {
+                    BASE = 4,
+                    BONUS = 0,
+                },
+                EVASION = {
+                    BASE = 0,
+                    BONUS = 0,
+                }, -- no dice, should be around 2D + accuracy
+
+                INITIATIVE = {  -- With 10 it should go from 0 to 20 with equipments
+                    BASE = 0,
+                    bONUS = 0,
+                },
+
+                -- these 2 doesn't need bonus
+                IDENTIFICATION = {
+                    BASE = 0,
+                    BONUS = 0,
+                },
+                HATE = {
+                    BASE = 0,
+                    BONUS = 0,
+                }, -- can be both the HATE score or HATE multiplier
 
                 -- Armors
-                IMPACT = 0,
-                FIRE = 0,
-                COLD = 0,
-                ELECTRIC = 0,
-                BLIGHT = 0,
-                DIRECT = 0, -- should never be changed
+                IMPACT = {
+                    BASE = 0,
+                    BONUS = 0,
+                },
+                FIRE = {
+                    BASE = 0,
+                    BONUS = 0,
+                },
+                COLD = {
+                    BASE = 0,
+                    BONUS = 0,
+                },
+                ELECTRIC = {
+                    BASE = 0,
+                    BONUS = 0,
+                },
+                BLIGHT = {
+                    BASE = 0,
+                    BONUS = 0,
+                },
+                DIRECT = {
+                    BASE = 0,
+                    BONUS = 0,
+                },
 
                 -- List available move, for the UI
                 AVAILABLE_MOVE = { 4, 8 },
@@ -62,13 +140,120 @@ setmetatable(Character, {
                 generate_hate = true, -- true if it's a player or it's pet, false for monster and npc
                 can_use_cover = true, -- could be false for giant
                 waited = false,
-                played = true,
+                played = false,
                 identified = false, -- should be true for player's characters
                 on_board = true, -- store if it's on the board or not
 
                 -- miniature
                 guid = nil,
                 coordinate = { 20, 20 },
+
+                -- skill
+                -- Strength
+                ATHLETICS = {
+                    BASE = 0,
+                    BONUS = 0,
+                    MOD = STRENGTH,
+                },
+                INTIMIDATION = {
+                    BASE = 0,
+                    BONUS = 0,
+                    MOD = STRENGTH,
+                },
+                ENDURANCE = {
+                    BASE = 0,
+                    BONUS = 0,
+                    MOD = STRENGTH,
+                },
+                DESTRUCTION = {
+                    BASE = 0,
+                    BONUS = 0,
+                    MOD = STRENGTH,
+                },
+                -- Dexterity
+                MANIPULATION = {
+                    BASE = 0,
+                    BONUS = 0,
+                    MOD = DEXTERITY,
+                },
+                SECURITY = {
+                    BASE = 0,
+                    BONUS = 0,
+                    MOD = DEXTERITY,
+                },
+                STEALTH = {
+                    BASE = 0,
+                    BONUS = 0,
+                    MOD = DEXTERITY,
+                },
+                ACROBATICS = {
+                    BASE = 0,
+                    BONUS = 0,
+                    MOD = DEXTERITY,
+                },
+                -- INTELLIGENCE
+                INVESTIGATION = {
+                    BASE = 0,
+                    BONUS = 0,
+                    MOD = INTELLIGENCE,
+                },
+                TECHNOLOGY = {
+                    BASE = 0,
+                    BONUS = 0,
+                    MOD = INTELLIGENCE,
+                },
+                MEDIC = {
+                    BASE = 0,
+                    BONUS = 0,
+                    MOD = INTELLIGENCE,
+                },
+                SCIENCE = {
+                    BASE = 0,
+                    BONUS = 0,
+                    MOD = INTELLIGENCE,
+                },
+                -- WISDOM
+                EMPATHY = {
+                    BASE = 0,
+                    BONUS = 0,
+                    MOD = WISDOM,
+                },
+                PERCEPTION = {
+                    BASE = 0,
+                    BONUS = 0,
+                    MOD = WISDOM,
+                },
+                SURVIVAL = {
+                    BASE = 0,
+                    BONUS = 0,
+                    MOD = WISDOM,
+                },
+                CRAFT = {
+                    BASE = 0,
+                    BONUS = 0,
+                    MOD = WISDOM,
+                },
+                -- CHARISMA
+                PERSUASION = {
+                    BASE = 0,
+                    BONUS = 0,
+                    MOD = CHARISMA,
+                },
+                REPRESENTATION = {
+                    BASE = 0,
+                    BONUS = 0,
+                    MOD = CHARISMA,
+                },
+                DECEPTION = {
+                    BASE = 0,
+                    BONUS = 0,
+                    MOD = CHARISMA,
+                },
+                ANIMAL = {
+                    BASE = 0,
+                    BONUS = 0,
+                    MOD = CHARISMA,
+                },
             }
         }
 
@@ -97,7 +282,14 @@ setmetatable(Character, {
         -- should only be used by the manager or the manager event
         function self.change(new_data)
             for key, value in pairs(new_data) do
-                self._data[key] = value
+                if type(value) == "table" then
+                    for key2, value2 in pairs(value) do
+                        --print("SUB: " .. tostring(key) .. " | " .. tostring(key2) .. " : " .. tostring(value2))
+                        self._data[key][key2] = value2
+                    end
+                else
+                    self._data[key] = value
+                end
             end
         end
 
@@ -117,16 +309,27 @@ setmetatable(Character, {
 
         function self.getManager()
             return Global
-            --if self._manager == nil then
-            --    local guid = "0d5151"
-            --    -- Should be global after dev/debug
-            --    self._manager = getObjectFromGUID(guid)
-            --end
-            --return self._manager
-
         end
 
+        function self.get_mod(key)
+            return math.floor(self.get(key) / 3)
+        end
         function self.get(key)
+            if type(self._data[key]) == "table" then
+                -- check if we need to sum base and bonus and mod
+                if self._data[key]["BASE"] ~= nil then
+                    local value = self._data[key]["BASE"]
+                    -- if bonus is not nil, then add it
+                    if self._data[key]["BONUS"] ~= nil then
+                        value = value + self._data[key]["BONUS"]
+                    end
+                    -- if MOD is nil then add the characteristic's mod
+                    if self._data[key]["MOD"] ~= nil then
+                        value = value + self.get_mod(self._data[key]["MOD"])
+                    end
+                    return value
+                end
+            end
             return self._data[key]
         end
 

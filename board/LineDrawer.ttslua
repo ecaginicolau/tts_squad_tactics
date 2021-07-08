@@ -51,7 +51,11 @@ function LineDrawer.add_lines(key, lines, visibility)
         visibility = {}
     end
     if type(visibility) == "string" then
-        visibility = { visibility }
+        if visibility == "All" then
+            visibility = list_all_color
+        else
+            visibility = { visibility }
+        end
     end
     LineDrawer.lines[key] = {
         lines = lines,
@@ -177,16 +181,16 @@ function LineDrawer.draw_circle(player_color, center, radius, color, thickness)
         local vector = Vector.new(table.unpack(point))
         -- scale to radius
         vector:scale(radius)
-        vector =  vector + center
+        vector = vector + center
         table.insert(list_vector, vector)
     end
 
-    local lines = {{
-        points = list_vector,
-        color = color,
-        thickness = thickness,
-        rotation = { 0, 0, 0 },
-    }}
+    local lines = { {
+                        points = list_vector,
+                        color = color,
+                        thickness = thickness,
+                        rotation = { 0, 0, 0 },
+                    } }
 end
 
 return LineDrawer

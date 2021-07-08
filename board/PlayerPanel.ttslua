@@ -2,22 +2,26 @@
 --- Handle the players GUI Panel for the Board
 --- Create and handle one panel for each player seated
 
--- No local, make it a global
-PlayerPanel = {
-
-}
-
 -- We create some Unity buttons, so few data needs to be store
 local input_id = 0  -- the next id of the button (incremented each time)
 local input = {} -- input by player_color
 local BUTTON_SIZE = 60 -- magic number for a tile ? strange
 
+-- No local, make it a global
+PlayerPanel = {
+
+}
+
+function PlayerPanel.reset()
+    -- reset input_id
+    input_id = 0
+    self.clearButtons()
+end
+
 function PlayerPanel.create(player_color)
     -- setup the BUTTON SIZE, seems to be relative to tile_size, not sure why
     BUTTON_SIZE = BoardPanel.tile_size_x / 2
 
-    -- reset input_id
-    input_id = 0
 
     -- at creation no need to make complex coordinate
     local player_panel = {
@@ -76,11 +80,11 @@ function PlayerPanel_click(_, color, alt_click, player_color)
     if color ~= player_color then
         return
     end
+
     if alt_click then
         return
     end
     local coordinate = Board.get_coordinate(Player[player_color].getPointerPosition())
-    print("coordinate: " .. coordinate[1] .. ":" .. coordinate[2])
     if Board.is_inside(coordinate) then
         -- check if it's a stoppable tile
         local tile_value = Board.data[coordinate[2]][coordinate[1]]

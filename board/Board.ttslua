@@ -101,7 +101,7 @@ function Board.get_position(x_or_coordinate, y)
     local center = bounds['center']
     -- the initial position will be the top left corner
     local pos_x = center[1] - size[1] / 2
-    local pos_y = center[2] + size[2] / 2 + 0.1
+    local pos_y = center[2] + size[2] / 2
     local pos_z = center[3] + size[3] / 2
     -- now add the x and y
     pos_x = pos_x + (x - 0.5) * (size[1] / Board.size_x)
@@ -320,6 +320,12 @@ function Board.start_action(player_color, guid, action, value)
         local range = tonumber(value)
         AoE.create_attack(player_color, guid, range, position, coordinate)
     end
+    if action == Constant.BOUNCE then
+        position[2] = position[2] + 0.05-- raise the cone a bit higher than the board
+
+        local range = tonumber(value)
+        AoE.create_bounce(player_color, guid, range, position, coordinate)
+    end
 
 end
 
@@ -332,6 +338,42 @@ function Board.move_start(player_color, guid, nb_move, safe)
     PlayerPanel.start_move(player_color, guid, nb_move)
 end
 
+function Board.draw_path(player_color, coordinate)
+    local action = Board.actions[player_color]
+    if action == nil then
+        print("ERROR: no action started")
+        return
+    end
+    local guid = action.guid
+    local miniature = getObjectFromGUID(guid)
+    local current_position = miniature.getPosition()
+    local path_coordinates = Board.find_path(guid, coordinate)
+
+    if path_coordinates ~= nil then
+        -- move the miniature along the path
+        -- convert to position path
+        local path = {}
+        for _, path_coordinate in ipairs(path_coordinates) do
+            local path_position = Board.get_position(path_coordinate)
+            -- make sure to always set the y position to the miniature  position
+            path_position[2] = current_position[2] + 0.05
+            -- insert into the position path
+            table.insert(path, path_position)
+        end
+        local lines = {
+            {
+                points = path,
+                color = { 0.2, 0.8, 0.2 },
+                thickness = 0.1,
+                rotation = { 0, 0, 0 },
+            }
+        }
+
+        LineDrawer.add_lines("miniature_path_" .. player_color, lines, player_color)
+
+    end
+end
+
 function Board.move_to(player_color, coordinate)
     -- Hide the PlayerPanel
     PlayerPanel.display(player_color, false)
@@ -341,6 +383,8 @@ function Board.move_to(player_color, coordinate)
         print("ERROR: no action started")
         return
     end
+
+    LineDrawer.remove_visibility("miniature_path_" .. player_color, player_color)
 
     local guid = action.guid
     local miniature = getObjectFromGUID(guid)
@@ -428,7 +472,6 @@ function Board.find_path(guid, coordinate)
 end
 
 function Board.move_end(player_color, guid)
-    print("Board.move_end")
     local character = Board.characters[guid]
     -- move the miniature on the board
     Board.move_character(character)
@@ -497,15 +540,6 @@ function Board_end_turn()
             miniature.setLock(false)
         end
     end
-end
-
--- Called by UI to update a miniature
-function Board_update_miniature_data(params)
-    error("[FORBIDDEN] Board_update_miniature_data ")
-end
-
-function Board_update_miniature(params)
-    error("[FORBIDDEN] Board_update_miniature_data ")
 end
 
 return Board

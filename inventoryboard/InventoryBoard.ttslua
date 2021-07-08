@@ -1,3 +1,7 @@
+local list_summable_data = {
+    MAX_AMMO, DAMAGE, ACCURACY, RANGE,MAX_HP, MAX_FATE
+}
+
 InventoryBoard = {
     zones = {},
     character = nil,
@@ -6,6 +10,20 @@ InventoryBoard = {
 }
 
 function InventoryBoard.init()
+
+    for _, characteristic in pairs(Constant.CHARACTERISTICS) do
+        table.insert(list_summable_data, characteristic)
+    end
+    for _, capacity in pairs(Constant.CAPACITIES) do
+        table.insert(list_summable_data, capacity)
+    end
+    for _, defense in pairs(Constant.DEFENSES) do
+        table.insert(list_summable_data, defense)
+    end
+    for _, stat in pairs(Constant.STATS) do
+        table.insert(list_summable_data, stat)
+    end
+
     InventoryBoard.create_scripting_zones()
 
     -- Get player color from note from now
@@ -42,8 +60,6 @@ local zones = {
         scale = Vector.new(1.68, 0.2, 4.00),
     },
 }
-
-local list_summable_data = { IMPACT, FIRE, COLD, ELECTRIC, BLIGHT, AMMO, DAMAGE, ACCURACY, RANGE }
 
 function InventoryBoard.create_scripting_zones()
     local scale = self.getScale()[1] --  only need one scale dimension since token can't truly be scaled
@@ -95,26 +111,31 @@ function InventoryBoard.compute_armors()
     -- sum all summable data from all armor's cards
     local data_sum = {}
     for _, key in ipairs(list_summable_data) do
-        data_sum[key] = 0
+        data_sum[key] = { BONUS = 0 }
     end
     -- get the list of cards in the zone
     local list_card = InventoryBoard.zones[zone_name].getObjects()
     -- get the data for every cards
     for _, card_info in ipairs(list_card) do
         local card = getObjectFromGUID(card_info["guid"])
-        local data = card.getTable("data")
+        --local data = card.getTable("data")
+        local data = card.call("Inventor_get_data", {})
         if data ~= nil then
             for _, key in ipairs(list_summable_data) do
                 if data[key] ~= nil then
-                    data_sum[key] = data_sum[key] + data[key]
+                    data_sum[key]["BONUS"] = data_sum[key]["BONUS"] + data[key]
                 end
             end
 
         end
     end
 
+    --for key, value in pairs(data_sum) do
+    --    print(key .. " : " .. data_sum[key]["BONUS"])
+    --end
+
     -- send to the miniature if it's linked
-    if InventoryBoard.miniature ~= nil then
+    if Listener.interest ~= nil then
         -- Update the character
         InventoryBoard.character.update(data_sum, self.getGUID())
     end

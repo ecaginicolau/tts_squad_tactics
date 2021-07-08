@@ -1,0 +1,532 @@
+local DAMAGE_HEIGHT = 200
+local DAMAGE_NUMBER = 4
+Damage = {
+    player_color = {}
+}
+
+function Damage.create(player_color)
+    local panel = {
+        tag = "Panel",
+        attributes = {
+            id = "damage_" .. player_color,
+            rectAlignment = "MiddleRight",
+            --color = "#444444",
+            width = 700,
+            minHeight = DAMAGE_HEIGHT,
+            scale = "0.5 0.5 0.5",
+        },
+        children = {
+            {
+                tag = "VerticalLayout",
+                attributes = {
+                    spacing = 10,
+                    --childAlignment="LowerCenter",
+                },
+                children = {
+                }
+            }
+
+        }
+    }
+    for i = 1, DAMAGE_NUMBER, 1 do
+        table.insert(panel["children"][1]["children"], Damage.create_damage(player_color, i))
+    end
+
+    Wait.frames(function()
+        Damage.update(player_color)
+    end, 2)
+
+    return panel
+end
+
+function Damage.create_validation(player_color)
+    local panel = {
+        tag = "Panel",
+        attributes = {
+            id = "damage_validation_" .. player_color,
+            rectAlignment = "MiddleCenter",
+            color = "#BBBBBB",
+            width = 550,
+            height = 250,
+            scale = "0.5 0.5 0.5",
+            padding = "20 20 20 20",
+            active = false,
+        },
+        children = {
+            {
+                tag = "VerticalLayout",
+                children = {
+                    {
+                        tag = "Text",
+                        attributes = {
+                            text = "Appliquer",
+                            fontSize = 80,
+                        }
+                    },
+                    {
+                        tag = "HorizontalLayout",
+                        attributes = {
+                            spacing = 25,
+                            --childAlignment="LowerCenter",
+                        },
+                        children = {
+                            {
+                                tag = "Button",
+                                attributes = {
+                                    text = "Auto",
+                                    fontSize = 40,
+                                    textColor = "black",
+
+                                    onClick = "Damage_apply(" .. player_color .. ")",
+                                }
+                            },
+                            {
+                                tag = "Button",
+                                attributes = {
+                                    text = "Manuel",
+                                    fontSize = 40,
+                                    onClick = "Damage_manual(" .. player_color .. ")",
+                                }
+                            },
+                            {
+                                tag = "Button",
+                                attributes = {
+                                    text = "Cancel",
+                                    fontSize = 40,
+                                    onClick = "Damage_cancel(" .. player_color .. ")",
+                                }
+                            },
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return panel
+end
+
+function Damage.create_damage(player_color, num)
+    local color = "#FFFFFF"
+    if num % 2 == 0 then
+        color = "#BBBBBB"
+    end
+    local onClick
+    if num == 1 then
+        onClick = "Damage_click(" .. player_color .. ")"
+    end
+    local table = {
+        tag = "Button",
+        attributes = {
+            color = color,
+            onClick = onClick,
+            id = "damage_" .. player_color .. "_" .. num,
+            active = false,
+
+        },
+        children = {
+            {
+                tag = "TableLayout",
+                attributes = {
+                    cellBackgroundImage = "",
+                    cellPadding = "5 5 5 5",
+                    height = DAMAGE_HEIGHT,
+                },
+                children = {
+                    -- 1st line, the name of the miniature dealing damage and the name of the miniature receiving damage
+                    {
+                        tag = "Row",
+                        children = {
+                            {
+                                tag = "Cell",
+                                attributes = {
+                                    columnSpan = 4
+                                },
+                                children = {
+                                    {
+                                        tag = "Text",
+                                        attributes = {
+                                            id = "from_" .. player_color .. "_" .. num,
+                                            resizeTextForBestFit = true,
+                                            text = "From",
+                                            alignment = "MiddleLeft",
+                                            fontSize = 40,
+                                        }
+                                    },
+
+                                }
+                            },
+                            {
+                                tag = "Cell",
+                                children = {
+                                    {
+                                        tag = "Text",
+                                        attributes = {
+                                            text = "->",
+                                            fontSize = 40,
+                                        }
+                                    },
+
+                                }
+                            },
+                            {
+                                tag = "Cell",
+                                attributes = {
+                                    columnSpan = 4
+                                },
+                                children = {
+                                    {
+                                        tag = "Text",
+                                        attributes = {
+                                            id = "to_" .. player_color .. "_" .. num,
+
+                                            resizeTextForBestFit = true,
+                                            alignment = "MiddleLeft",
+                                            text = "To",
+                                            fontSize = 40,
+                                        }
+                                    },
+
+                                }
+                            },
+
+                        }
+                    },
+                    -- 2nd line, the damage value
+                    {
+                        tag = "Row",
+                        children = {
+                            {
+                                tag = "Cell",
+                                attributes = {
+                                    columnSpan = 3
+                                },
+                                children = {
+                                    {
+                                        tag = "Text",
+                                        attributes = {
+                                            alignment = "MiddleLeft",
+                                            resizeTextForBestFit = true,
+                                            text = "Damage: ",
+                                            fontSize = 40,
+                                        }
+                                    },
+
+                                }
+                            },
+                            {
+                                tag = "Cell",
+                                children = {
+                                    {
+                                        tag = "Text",
+                                        attributes = {
+                                            id = "value_" .. player_color .. "_" .. num,
+                                            text = "99",
+                                            fontSize = 40,
+                                        }
+                                    },
+
+                                }
+                            },
+                            {
+                                tag = "Cell",
+                                children = {
+                                    {
+                                        tag = "Image",
+                                        attributes = {
+                                            id = "elem1_" .. player_color .. "_" .. num,
+                                            image = "impact",
+                                            preserveAspect = true,
+                                        }
+                                    },
+
+                                }
+                            },
+                            {
+                                tag = "Cell",
+                                children = {
+                                    {
+                                        tag = "Image",
+                                        attributes = {
+                                            id = "elem2_" .. player_color .. "_" .. num,
+                                            image = "fire",
+                                            preserveAspect = true,
+                                        }
+                                    },
+
+                                }
+                            },
+                            {
+                                tag = "Cell",
+                                children = {
+                                    {
+                                        tag = "Image",
+                                        attributes = {
+                                            id = "elem3_" .. player_color .. "_" .. num,
+                                            image = "cold",
+                                            preserveAspect = true,
+                                        }
+                                    },
+
+                                }
+                            },
+                            {
+                                tag = "Cell",
+                                children = {
+                                    {
+                                        tag = "Image",
+                                        attributes = {
+                                            id = "elem4_" .. player_color .. "_" .. num,
+                                            image = "electric",
+                                            preserveAspect = true,
+                                        }
+                                    },
+
+                                }
+                            },
+                            {
+                                tag = "Cell",
+                                children = {
+                                    {
+                                        tag = "Image",
+                                        attributes = {
+                                            id = "elem5_" .. player_color .. "_" .. num,
+                                            image = "blight",
+                                            preserveAspect = true,
+                                        }
+                                    },
+
+                                }
+                            },
+
+                        }
+                    },
+                    {
+                        tag = "Row",
+                        children = {
+                            {
+                                tag = "Cell",
+                                attributes = {
+                                    columnSpan = 3
+                                },
+                                children = {
+                                    {
+                                        tag = "Text",
+                                        attributes = {
+                                            text = "Status: ",
+                                            resizeTextForBestFit = true,
+                                            alignment = "MiddleLeft",
+
+                                            preserveAspect = true,
+                                        }
+                                    },
+
+                                }
+                            },
+                            {
+                                tag = "Cell",
+                                children = {
+                                    {
+                                        tag = "Image",
+                                        attributes = {
+                                            id = "decay_" .. player_color .. "_" .. num,
+                                            color = Constant["DECAY"].color,
+                                            image = "decay",
+                                            preserveAspect = true,
+                                        }
+                                    },
+
+                                }
+                            },
+                            {
+                                tag = "Cell",
+                                children = {
+                                    {
+                                        tag = "Text",
+                                        attributes = {
+                                            id = "decay_value_" .. player_color .. "_" .. num,
+                                            color = Constant["DECAY"].color,
+                                            text = "99",
+                                            fontSize = 40,
+                                        }
+                                    },
+
+                                }
+                            },
+                            {
+                                tag = "Cell",
+                                children = {
+                                    {
+                                        tag = "Image",
+                                        attributes = {
+                                            id = "pursuit_" .. player_color .. "_" .. num,
+                                            color = Constant["PURSUIT"].color,
+                                            image = "pursuit",
+                                            preserveAspect = true,
+                                        }
+                                    },
+
+                                }
+                            },
+                            {
+                                tag = "Cell",
+                                children = {
+                                    {
+                                        tag = "Text",
+                                        attributes = {
+                                            id = "pursuit_value_" .. player_color .. "_" .. num,
+                                            color = Constant["PURSUIT"].color,
+                                            text = "99",
+                                            fontSize = 40,
+                                        }
+                                    },
+
+                                }
+                            },
+                            {
+                                tag = "Cell",
+                                children = {
+                                    {
+                                        tag = "Image",
+                                        attributes = {
+                                            id = "confusion_" .. player_color .. "_" .. num,
+                                            color = Constant["CONFUSION"].color,
+                                            image = "confusion",
+                                            preserveAspect = true,
+                                        }
+                                    },
+
+                                }
+                            },
+                            {
+                                tag = "Cell",
+                                children = {
+                                    {
+                                        tag = "Image",
+                                        attributes = {
+                                            id = "paralysis_" .. player_color .. "_" .. num,
+                                            color = Constant["PARALYSIS"].color,
+                                            image = "paralysis",
+                                            preserveAspect = true,
+                                        }
+                                    },
+
+                                }
+                            },
+
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return table
+end
+
+function Damage.add(player_color, list_damages)
+    if Damage.player_color[player_color] == nil then
+        Damage.player_color[player_color] = {}
+    end
+    table.extend(Damage.player_color[player_color], list_damages)
+    Damage.update(player_color)
+end
+function Damage.update_all()
+    for player_color, _ in pairs(Damage.player_color) do
+        Damage.update(player_color)
+    end
+end
+
+function Damage.update(player_color)
+    local list_damages = Damage.player_color[player_color]
+    if list_damages == nil then
+        list_damages = {}
+    end
+    local num = 1
+    while list_damages[num] ~= nil and num <= DAMAGE_NUMBER do
+        local damage = list_damages[num]
+        -- Change the value
+        self.UI.setAttribute("value_" .. player_color .. "_" .. num, "text", damage["DAMAGE"])
+        local elem = 1
+        while damage["TYPE"][elem] ~= nil do
+            --print(damage["TYPE"])
+            local attributes = {
+                image = Constant[damage["TYPE"][elem]].image,
+                color = Constant[damage["TYPE"][elem]].color,
+                tooltip = Constant[damage["TYPE"][elem]].text,
+            }
+            self.UI.setAttributes("elem" .. elem .. "_" .. player_color .. "_" .. num, attributes)
+            -- increase the counter
+            elem = elem + 1
+        end
+        -- hide not used element
+        for i = elem, 5, 1 do
+            self.UI.setAttribute("elem" .. i .. "_" .. player_color .. "_" .. num, "active", false)
+        end
+        -- set from and to
+        self.UI.setAttribute("from_" .. player_color .. "_" .. num, "text", damage["FROM"]["NAME"])
+        self.UI.setAttribute("to_" .. player_color .. "_" .. num, "text", damage["TO"]["NAME"])
+        -- set the battle status
+        if damage["DECAY"] ~= nil then
+            self.UI.setAttribute("decay_" .. player_color .. "_" .. num, "active", true)
+            self.UI.setAttribute("decay_value_" .. player_color .. "_" .. num, "active", true)
+            self.UI.setAttribute("decay_value_" .. player_color .. "_" .. num, "text", damage["DECAY"])
+        else
+            self.UI.setAttribute("decay_" .. player_color .. "_" .. num, "active", false)
+            self.UI.setAttribute("decay_value_" .. player_color .. "_" .. num, "active", false)
+        end
+        if damage["PURSUIT"] ~= nil then
+            self.UI.setAttribute("pursuit_" .. player_color .. "_" .. num, "active", true)
+            self.UI.setAttribute("pursuit_value_" .. player_color .. "_" .. num, "active", true)
+            self.UI.setAttribute("pursuit_value_" .. player_color .. "_" .. num, "text", damage["PURSUIT"])
+        else
+            self.UI.setAttribute("pursuit_" .. player_color .. "_" .. num, "active", false)
+            self.UI.setAttribute("pursuit_value_" .. player_color .. "_" .. num, "active", false)
+        end
+        if damage["CONFUSION"] then
+            self.UI.setAttribute("confusion_" .. player_color .. "_" .. num, "active", true)
+        else
+            self.UI.setAttribute("confusion_" .. player_color .. "_" .. num, "active", false)
+        end
+        if damage["PARALYSIS"] then
+            self.UI.setAttribute("paralysis_" .. player_color .. "_" .. num, "active", true)
+        else
+            self.UI.setAttribute("paralysis_" .. player_color .. "_" .. num, "active", false)
+        end
+
+        -- display the whole table
+        self.UI.setAttribute("damage_" .. player_color .. "_" .. num, "active", true)
+
+
+        -- at the end increment the counter
+        num = num + 1
+    end
+    self.UI.setAttribute("damage_" .. player_color, "height", DAMAGE_HEIGHT * (num - 1))
+    for i = num, DAMAGE_NUMBER, 1 do
+        self.UI.setAttribute("damage_" .. player_color .. "_" .. i, "active", false)
+    end
+end
+
+-- Clicks functions
+function Damage_click(_, player_color)
+    print("Damage_click: " .. player_color)
+    self.UI.setAttribute("damage_validation_" .. player_color, "active", true)
+
+end
+
+function Damage_apply(_, player_color)
+    table.remove(Damage.player_color[player_color], 1)
+    self.UI.setAttribute("damage_validation_" .. player_color, "active", false)
+    Damage.update(player_color)
+end
+
+function Damage_manual(_, player_color)
+    table.remove(Damage.player_color[player_color], 1)
+    self.UI.setAttribute("damage_validation_" .. player_color, "active", false)
+    Damage.update(player_color)
+end
+
+function Damage_cancel(_, player_color)
+    self.UI.setAttribute("damage_validation_" .. player_color, "active", false)
+end
+
+return Damage

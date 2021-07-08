@@ -6,6 +6,7 @@ require("tts_squad_tactics.common.Character")
 require("tts_squad_tactics.common.Constant")
 require("tts_squad_tactics.common.Utils")
 require("tts_squad_tactics.common.TextUtils")
+require("tts_squad_tactics.common.Vector2")
 require("tts_squad_tactics.board.Board")
 require("tts_squad_tactics.board.PlayerPanel")
 require("tts_squad_tactics.board.BoardPanel")
@@ -209,6 +210,9 @@ function onUpdate()
                 end
                 if Board.is_inside(coordinate) then
                     BoardPanel.display(coordinate[1], coordinate[2], true)
+                    if not action.is_moving then
+                        Board.draw_path(player_color, coordinate)
+                    end
                 end
                 old_hover_coordinate[player_color] = coordinate
             end

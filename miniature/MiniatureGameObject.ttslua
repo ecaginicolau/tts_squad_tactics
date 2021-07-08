@@ -1,3 +1,4 @@
+require("tts_squad_tactics.common.Constant")
 require("tts_squad_tactics.common.Utils")
 require("tts_squad_tactics.common.Character")
 require("tts_squad_tactics.miniature.Animated")
@@ -5,7 +6,7 @@ require("tts_squad_tactics.miniature.Miniature")
 require("tts_squad_tactics.listener.Listener")
 
 -- for debug/test
-local load_disabled = false
+local load_disabled = true
 
 -- Toggle if the data is visible or not
 local data_visible = false
