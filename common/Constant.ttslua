@@ -76,6 +76,8 @@ PERSUASION = "PERSUASION"
 REPRESENTATION = "REPRESENTATION"
 DECEPTION = "DECEPTION"
 ANIMAL = "ANIMAL"
+-- special
+CHANCE = "CHANCE"
 
 DECAL = {
     IMPACT = "http://cloud-3.steamusercontent.com/ugc/1687143819155943010/1B6424A774FFEE865F4C9B2AADCC11E0DED6E62B/",
@@ -165,9 +167,9 @@ Constant = {
     -- cardinal direction for simple iterator
     DIRECTION = {
         { 0, -1 }, -- 1 up
-        { 1, 0 }, -- 2 right
-        { 0, 1 }, -- 3 down
         { -1, 0 }, -- 4 left
+        { 0, 1 }, -- 3 down
+        { 1, 0 }, -- 2 right
     },
     -- Miniature Stats
     EVASION = {
@@ -379,6 +381,12 @@ Constant = {
         text = "Animaux", -- the text displayed when needed
         mod = CHARISMA,
     },
+    -- Special
+    CHANCE = {
+        text = "Chance", -- the text displayed when needed
+        mod = nil,
+    },
+
 
     -- the list of characteristic for easier iteration
     CHARACTERISTICS = { STRENGTH, DEXTERITY, INTELLIGENCE, WISDOM, CHARISMA },

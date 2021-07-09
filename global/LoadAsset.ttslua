@@ -25,6 +25,10 @@ function update_asset()
             name = "nocover",
             url = "http://cloud-3.steamusercontent.com/ugc/1687143991063176330/939D3F8215B2ACE108646E0A3540C2D486EF58FC/",
         },
+        {
+            name = "door",
+            url = "http://cloud-3.steamusercontent.com/ugc/1687144598469446593/DDB115CBB0BF957E50CE6A210D8C463355CD18A0/",
+        },
         -- defense
         {
             name = Constant.IMPACT.image,

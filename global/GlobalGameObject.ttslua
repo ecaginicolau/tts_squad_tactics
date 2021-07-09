@@ -1,7 +1,6 @@
 --------------------------------------
 --- This is the main file for the board object type
---- Contains GameObjects event and functions that needs to be called by externally
-require("tts_squad_tactics.common.Utils")
+--- Contains GameObjects event and functions that needs to be called by externally require("tts_squad_tactics.common.Utils")
 require("tts_squad_tactics.common.Constant")
 require("tts_squad_tactics.common.Utils")
 require("tts_squad_tactics.common.Character")
@@ -11,6 +10,7 @@ require("tts_squad_tactics.global.ui.Detail")
 require("tts_squad_tactics.global.ui.Attack")
 require("tts_squad_tactics.global.ui.Action")
 require("tts_squad_tactics.global.ui.Damage")
+require("tts_squad_tactics.global.ui.Roll")
 require("tts_squad_tactics.global.die.PlayerDie")
 require("tts_squad_tactics.listener.Listener")
 require("tts_squad_tactics.global.LoadAsset")
@@ -25,6 +25,12 @@ function onLoad()
                 Listener.register()
             end,
             30
+    )
+    Wait.frames(
+            function()
+                MainUI.refresh()
+            end,
+            90
     )
 
     PlayerDie.init()

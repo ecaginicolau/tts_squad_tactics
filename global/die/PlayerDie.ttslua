@@ -60,7 +60,15 @@ function PlayerDie.end_roll(player_color)
     -- if there is a registered callback, call it
     if PlayerDie[player_color]["callback_obj"] ~= nil and PlayerDie[player_color]["callback_function"] ~= nil then
         -- call the callback with the same parameters each time, player_color, total value of the roll and number of die rolled
-        PlayerDie[player_color]["callback_obj"].call(PlayerDie[player_color]["callback_function"], { player_color, value, nb })
+        -- if the callback object is Global, just call the function
+        if PlayerDie[player_color]["callback_obj"] == self then
+            local func = self.getVar(PlayerDie[player_color]["callback_function"])
+            func(player_color, value, nb)
+        else
+            -- otherwise make a call
+            PlayerDie[player_color]["callback_obj"].call(PlayerDie[player_color]["callback_function"], { player_color, value, nb })
+        end
+
         -- reset the call back
         PlayerDie[player_color]["callback_obj"] = nil
         PlayerDie[player_color]["callback_function"] = nil
@@ -77,6 +85,14 @@ function PlayerDie.check_resting(player_color)
 end
 
 function PlayerDie.set_callback(player_color, callback_obj, callback_function)
+    if PlayerDie[player_color] == nil then
+        PlayerDie[player_color] = {
+            die = {},
+            wait_id = nil,
+            callback_function = nil,
+            callback_obj = nil,
+        }
+    end
     PlayerDie[player_color]["callback_obj"] = callback_obj
     PlayerDie[player_color]["callback_function"] = callback_function
 end

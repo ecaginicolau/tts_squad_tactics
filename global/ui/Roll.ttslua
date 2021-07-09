@@ -1,0 +1,263 @@
+Roll = {
+    against = nil,
+    difficulty = nil,
+    list_color = { "Blue", "Red", "Pink", "Orange", "White" },
+    --list_color = { "Blue" },
+    results = {}
+}
+
+function Roll.create()
+    local difficulty = Roll.difficulty
+    if difficulty == nil then
+        difficulty = "?"
+    end
+    local active = true
+    local against = ""
+    if Roll.against == nil then
+        active = false
+    else
+        against = Constant[Roll["against"]].text
+    end
+
+    local panel = {
+        tag = "Panel",
+        attributes = {
+            id = "RollPanel",
+            width = 550,
+            height = 200,
+            color = "#d0dde5",
+            rectAlignment = "UpperCenter",
+            offsetXY = '0 -80',
+            outline = "Black",
+            outlineSize = 2,
+            shadow = "#444444",
+            allowDragging = true,
+            restrictDraggingToParentBounds = true,
+            returnToOriginalPositionWhenReleased = false,
+            active = active,
+        },
+        children = {
+            {
+                tag = "VerticalLayout",
+                attributes = {
+                    spacing = 10,
+                    childForceExpandWidth = false,
+                    childForceExpandHeight = false,
+                },
+                children = {
+                    {
+                        tag = "HorizontalLayout",
+                        attributes = {
+                        },
+                        children = {
+                            {
+                                tag = "Text",
+                                attributes = {
+                                    id = "roll_type",
+                                    fontSize = 30,
+                                    text = "Jet: " .. tostring(against),
+                                    --alignment = "MiddleLeft",
+                                    outline = "#DDDDDD",
+                                    outlineSize = 2,
+                                }
+                            },
+                            {
+                                tag = "Text",
+                                attributes = {
+                                    id = "roll_difficulty",
+                                    fontSize = 30,
+                                    text = "Difficulté: " .. tostring(difficulty),
+                                    --alignment = "MiddleLeft",
+                                    outline = "#DDDDDD",
+                                    outlineSize = 2,
+                                }
+                            },
+                        }
+                    },
+                    {
+                        tag = "HorizontalLayout",
+                        attributes = {
+                            childForceExpandWidth = false,
+                            childForceExpandHeight = false,
+                            spacing = 10,
+                            padding = "10 10 10 10",
+                        },
+                        children = {
+                        }
+                    }
+                }
+            },
+            -- The close button at the top right
+            {
+                tag = "Button",
+                attributes = {
+                    fontSize = 30,
+                    color = "#AAAAAA",
+                    width = 40,
+                    height = 40,
+                    position = "280 100 0",
+                    onclick = "Roll_reset()",
+                    text = "X",
+                }
+            }
+        }
+    }
+
+    for _, player_color in pairs(Roll.list_color) do
+        table.insert(panel["children"][1]["children"][2]["children"], Roll.create_color(player_color))
+    end
+
+    return panel
+end
+
+function Roll.create_color(player_color)
+    local layout = {
+        tag = "VerticalLayout",
+        attributes = {
+            --color = "#444444",
+            color = player_color,
+            outline = "Black",
+            outlineSize = 1,
+            width = 100,
+
+        },
+        children = {
+            {
+                tag = "Text",
+                attributes = {
+                    fontSize = 20,
+                    --resizeTextMinSize = 10,
+                    text = player_color,
+                    --resizeTextForBestFit = true,
+                    fontStyle = "Bold",
+                    --color = player_color,
+                }
+            },
+            {
+                tag = "InputField",
+                attributes = {
+                    id = "roll_value_" .. player_color,
+                    fontSize = 45,
+                    placeholder = "Jet",
+                    text = "",
+                    onEndEdit = "Roll_input",
+                    characterLimit = 2,
+                    characterValidation = "Integer",
+                    colors = player_color .. "|" .. player_color .. "|" .. player_color .. "|" .. player_color,
+                    alignment = "MiddleCenter",
+                }
+            },
+            {
+                tag = "Button",
+                attributes = {
+                    id = "roll_result_" .. player_color,
+                    onClick = "Roll_toggle(" .. player_color .. ")",
+                    fontSize = 20,
+                    text = "Attente...",
+                    color = "#507888",
+                    --textColor = "#FF0000",
+                    textColor = "#121212",
+                    --textColor = "#00FF00",
+                }
+            },
+        }
+    }
+    return layout
+end
+
+function Roll.new_roll(against, difficulty)
+
+    Roll.against = against
+    Roll.difficulty = difficulty
+    Roll.results = {}
+    self.UI.setAttribute("roll_type", "text", "Jet: " .. Constant[Roll["against"]].text)
+    if Roll.difficulty == nil then
+        self.UI.setAttribute("roll_difficulty", "text", "Difficulté: ?")
+    else
+        self.UI.setAttribute("roll_difficulty", "text", "Difficulté: " .. Roll.difficulty)
+    end
+
+    -- setup call back here for test
+    for _, player_color in pairs(Roll.list_color) do
+        PlayerDie.set_callback(player_color, Global, "Roll_callback")
+        local attributes = {
+            text = "Attente...",
+            textColor = "#121212",
+        }
+        self.UI.setAttributes("roll_result_" .. player_color, attributes)
+        self.UI.setAttribute("roll_value_" .. player_color, "text", "")
+
+    end
+
+    self.UI.setAttribute("RollPanel", "active", true)
+end
+
+function Roll.update_result(player_color)
+    local attributes = {}
+    if Roll.results[player_color] then
+        attributes = {
+            text = "Succès",
+            textColor = "#00FF00",
+        }
+        self.UI.setAttributes("roll_result_" .. player_color, attributes)
+    else
+        attributes = {
+            text = "Echec",
+            textColor = "#FF0000",
+        }
+        self.UI.setAttributes("roll_result_" .. player_color, attributes)
+    end
+end
+
+function Roll_input(player, value, _)
+    if value == nil or value == "" then
+        return
+    end
+    value = tonumber(value)
+    local player_color = player.color
+    -- We should get the character stat, but how to get the character ..
+    if MainUI.main_characters[player_color] ~= nil then
+        value = value + MainUI.main_characters[player_color].get(Roll.against)
+    end
+
+    self.UI.setAttribute("roll_value_" .. player_color, "text", value)
+
+    if Roll.difficulty ~= nil then
+        Roll.results[player_color] = value > Roll.difficulty
+        Roll.update_result(player_color)
+    end
+end
+
+function Roll_toggle(_, player_color)
+    Roll.results[player_color] = not Roll.results[player_color]
+    Roll.update_result(player_color)
+end
+
+function Roll_callback(player_color, value, nb)
+    print("Roll_callback: player_color: " .. tostring(player_color) .. " value: " .. tostring(value) .. " nb: " .. tostring(nb))
+    -- We should get the character stat, but how to get the character ..
+    if MainUI.main_characters[player_color] ~= nil then
+        value = value + MainUI.main_characters[player_color].get(Roll.against)
+    end
+
+    self.UI.setAttribute("roll_value_" .. player_color, "text", value)
+
+    if Roll.difficulty ~= nil then
+        Roll.results[player_color] = value > Roll.difficulty
+        Roll.update_result(player_color)
+    end
+end
+
+function Roll_new_roll(params)
+    print("Roll_new_roll")
+    Roll.new_roll(table.unpack(params))
+end
+
+function Roll_reset()
+    Roll.against = nil
+    Roll.difficulty = nil
+    Roll.results = {}
+    self.UI.setAttribute("RollPanel", "active", false)
+end
+
+return Roll

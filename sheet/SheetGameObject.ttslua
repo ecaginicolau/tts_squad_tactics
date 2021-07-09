@@ -1,0 +1,383 @@
+require("tts_squad_tactics.common.Constant")
+require("tts_squad_tactics.common.Character")
+require("tts_squad_tactics.common.Utils")
+require("tts_squad_tactics.listener.Listener")
+require("tts_squad_tactics.sheet.Sheet")
+
+local GLOBAL_Y = 0.12
+load_disabled = true
+character = nil
+
+layout_label = {
+    -- summary left
+    {
+        pos = { -1.45, GLOBAL_Y, -0.88 },
+        font_size = 250,
+        width = 1400,
+        value = INITIATIVE,
+    },
+    {
+        pos = { -1.45, GLOBAL_Y, -0.74 },
+        font_size = 250,
+        width = 1400,
+        value = SPEED,
+    },
+    -- summary defense
+    {
+        pos = { -0.98, GLOBAL_Y, -1.3 },
+        font_size = 250,
+        width = 1300,
+        value = EVASION,
+    },
+    {
+        pos = { -0.98, GLOBAL_Y, -1.16 },
+        font_size = 250,
+        width = 1300,
+        value = IMPACT,
+    },
+    {
+        pos = { -0.98, GLOBAL_Y, -1.02 },
+        font_size = 250,
+        width = 1300,
+        value = FIRE,
+    },
+    {
+        pos = { -0.98, GLOBAL_Y, -0.88 },
+        font_size = 250,
+        width = 1300,
+        value = COLD,
+    },
+    {
+        pos = { -0.98, GLOBAL_Y, -0.74 },
+        font_size = 250,
+        width = 1300,
+        value = ELECTRIC,
+    },
+    {
+        pos = { -0.98, GLOBAL_Y, -0.60 },
+        font_size = 250,
+        width = 1300,
+        value = BLIGHT,
+    },
+    -- summary right
+    {
+        pos = { -0.33, GLOBAL_Y, -1.3 },
+        font_size = 250,
+        width = 1300,
+        value = WEAPON_SLOT,
+    },
+    {
+        pos = { -0.33, GLOBAL_Y, -1.16 },
+        font_size = 250,
+        width = 1300,
+        value = ACCURACY,
+    },
+    {
+        pos = { -0.33, GLOBAL_Y, -1.02 },
+        font_size = 250,
+        width = 1300,
+        value = DAMAGE,
+    },
+    {
+        pos = { -0.33, GLOBAL_Y, -0.88 },
+        font_size = 250,
+        width = 1300,
+        value = RANGE,
+    },
+    {
+        pos = { -0.25, GLOBAL_Y, -0.74 },
+        font_size = 250,
+        width = 1300,
+        value = MAX_AMMO,
+    },
+
+    -- stats
+    {
+        pos = { -1.1, GLOBAL_Y, 0.145 },
+        font_size = 400,
+        width = 400,
+        value = MAX_FATE,
+    },
+}
+
+layout = {
+    {
+        pos = { -1.49, GLOBAL_Y, -1.3 },
+        font_size = 250,
+        width = 1500,
+        value = NAME,
+    },
+    {
+        pos = { -1.45, GLOBAL_Y, -1.02 },
+        font_size = 250,
+        width = 1400,
+        value = CLASS,
+    },
+}
+
+layout_simple = {
+    {
+        pos = { -1.4, GLOBAL_Y, 0.3 },
+        font_size = 400,
+        width = 400,
+        value = HATE,
+    },
+}
+layout_counter = {
+    -- summary info
+    {
+        pos = { -1.45, GLOBAL_Y, -1.16 },
+        font_size = 250,
+        width = 320,
+        value = LEVEL,
+    },
+    -- summary weapon
+    {
+        pos = { -0.42, GLOBAL_Y, -0.74 },
+        font_size = 250,
+        width = 250,
+        value = CURRENT_AMMO,
+    },
+    -- stat
+    {
+        pos = { -1.4, GLOBAL_Y, 0.0 },
+        font_size = 400,
+        width = 400,
+        value = FATIGUE,
+    },
+    {
+        pos = { -1.4, GLOBAL_Y, 0.145 },
+        font_size = 400,
+        width = 400,
+        value = CURRENT_FATE,
+    },
+
+}
+
+layout_healthbar = {
+    pos = { -1.06, GLOBAL_Y, -0.145 },
+    width = 2990,
+    height = 285,
+    full_size = 9600,
+    full_pos = 1.5,
+    button_minus = { -1.6, GLOBAL_Y, -0.145 },
+    button_plus = { -0.52, GLOBAL_Y, -0.145 },
+}
+
+function full_heal()
+    character.update({ CURRENT_HP = character.get("MAX_HP") }, self)
+    update_healthbar()
+    updateSave()
+end
+
+function full_rest()
+    character.update({ FATIGUE = 0 }, self)
+    index = button_link["FATIGUE"]
+    self.editButton({ index = index, label = 0 })
+    update_healthbar()
+    updateSave()
+end
+
+function reset_hate()
+
+    character.update({ HATE = { BASE = 0 } }, self)
+    index = button_link["HATE"]
+    self.editButton({ index = index, label = character.get("HATE") })
+    updateSave()
+end
+
+function reset_fate()
+    character.update({ CURRENT_FATE = character.get("MAX_FATE") }, self)
+    index = button_link["CURRENT_FATE"]
+    self.editButton({ index = index, label = character.get("CURRENT_FATE") })
+end
+
+function create_characteristic(name, index)
+    local step = 0.142
+    local font_size = 300
+    local width = 300
+
+    local pos = { -1.0, GLOBAL_Y, 0.67 + index * step }
+    local value = character._data[name]["BASE"]
+    local label = name
+    create_counter(label, value, pos, font_size, width, change_characteristic)
+
+    pos = { -0.65, GLOBAL_Y, 0.65 + index * step }
+    value = character._data[name]["BONUS"]
+    label = name .. "_bonus"
+    create_label(label, value, pos, font_size)
+
+    pos = { -0.3, GLOBAL_Y, 0.658 + index * step }
+    value = character.get_mod(name)
+    label = name .. "_mod"
+    create_label(label, value, pos, font_size)
+end
+
+function create_skill(name, index)
+    local step = 0.1395
+    local font_size = 300
+    local width = 300
+
+    local pos = { 0.96, GLOBAL_Y, -1.45 + index * step }
+    local value = character._data[name]["BASE"]
+    local label = name
+    create_counter(label, value, pos, font_size, width, change_skill)
+
+    pos = { 1.25, GLOBAL_Y, -1.45 + index * step }
+    value = character._data[name]["BONUS"]
+    label = name .. "_bonus"
+    create_label(label, value, pos, font_size)
+
+    pos = { 1.49, GLOBAL_Y, -1.45 + index * step }
+    value = character.get_mod(character._data[name]["MOD"])
+    label = name .. "_mod"
+    create_label(label, value, pos, font_size)
+
+    pos = { 1.75, GLOBAL_Y, -1.45 + index * step }
+    value = character.get(name)
+    label = name .. "_total"
+    create_label(label, value, pos, font_size)
+end
+
+--Startup procedure
+function onLoad(saved_data)
+    Wait.frames(init, 30)
+end
+
+function init()
+    Listener.single("558418")
+    -- add callback
+    for _, defense in pairs(Constant.DEFENSES) do
+        Listener.callbacks[defense] = Listener_change_simple
+    end
+    -- stats should work like defenses
+    for _, stat in pairs(Constant.STATS) do
+        Listener.callbacks[stat] = Listener_change_simple
+    end
+    for _, characteristic in pairs(Constant.CHARACTERISTICS) do
+        Listener.callbacks[characteristic] = Listener_change_characteristic
+    end
+    for _, capacity in pairs(Constant.CAPACITIES) do
+        Listener.callbacks[capacity] = Listener_change_capacity
+    end
+    -- special fate and hp
+    Listener.callbacks[MAX_FATE] = Listener_change_simple
+    Listener.callbacks[MAX_HP] = Listener_change_simple
+
+    character = Listener.interest
+
+    for _, data in ipairs(layout) do
+        local value = character.get(data["value"])
+        create_input(data.value, value, data.pos, data.font_size, data.width)
+    end
+
+    for _, data in ipairs(layout_counter) do
+        local value = character.get(data["value"])
+        create_counter(data.value, value, data.pos, data.font_size, data.width)
+    end
+
+    for _, data in ipairs(layout_label) do
+        local value = character.get(data["value"])
+        create_label(data.value, value, data.pos, data.font_size, { 0, 0, 0 })
+    end
+
+    create_label("fate_separator", "/", { -1.18, GLOBAL_Y, 0.145 }, 400, { 0, 0, 0 })
+    create_label("amo_separator", "/", { -0.30, GLOBAL_Y, -0.74 }, 250, { 0, 0, 0 })
+
+    create_healthbar()
+
+    for i, skill in ipairs(Constant.CAPACITIES) do
+        create_skill(skill, i)
+    end
+
+    for i, characteristic in ipairs(Constant.CHARACTERISTICS) do
+        create_characteristic(characteristic, i)
+    end
+
+    for _, data in ipairs(layout_simple) do
+        local value = character.get(data["value"])
+        create_counter(data.value, value, data.pos, data.font_size, data.width, change_simple)
+    end
+
+    --heal
+    pos = { -0.32, GLOBAL_Y, -0.140 }
+    width = 1000
+    height = 400
+    self.createButton({
+        label = '', click_function = "full_heal", function_owner = self,
+        position = pos, height = height, width = width,
+        font_size = height, scale = buttonScale,
+        color = { 0.8, 0.8, 0.8, 0 }, font_color = buttonFontColor
+    })
+
+    --rest
+    pos = { -0.32, GLOBAL_Y, 0.0 }
+    width = 1000
+    height = 400
+    self.createButton({
+        label = '', click_function = "full_rest", function_owner = self,
+        position = pos, height = height, width = width,
+        font_size = height, scale = buttonScale,
+        color = { 0.8, 0.8, 0.8, 0 }, font_color = buttonFontColor
+    })
+
+    --reset hate
+    pos = { -0.32, GLOBAL_Y, 0.14 }
+    width = 1000
+    height = 400
+    self.createButton({
+        label = '', click_function = "reset_fate", function_owner = self,
+        position = pos, height = height, width = width,
+        font_size = height, scale = buttonScale,
+        color = { 0.8, 0.8, 0.8, 0 }, font_color = buttonFontColor
+    })
+
+    --reset hate
+    pos = { -0.32, GLOBAL_Y, 0.28 }
+    width = 1000
+    height = 400
+    self.createButton({
+        label = '', click_function = "reset_hate", function_owner = self,
+        position = pos, height = height, width = width,
+        font_size = height, scale = buttonScale,
+        color = { 0.8, 0.8, 0.8, 0 }, font_color = buttonFontColor
+    })
+
+end
+
+
+-- Listener callback function
+function Listener_change_simple(guid, simple)
+    --print("Listener_change_simple: " .. tostring(guid) .. " defense: " .. tostring(simple) .. " value: " .. tostring(character.get(simple)))
+    self.editButton({ index = button_link[simple], label = character.get(simple) })
+    if simple == "MAX_HP" then
+        update_healthbar()
+    end
+end
+
+function Listener_change_characteristic(guid, characteristic)
+    --print("Listener_change_characteristic: " .. tostring(guid).. " characteristic: " .. tostring(characteristic).. " value: " .. tostring(character.get(characteristic)))
+    index = button_link[characteristic .. "_bonus"]
+    self.editButton({ index = index, label = character._data[characteristic]["BONUS"] })
+    -- bonus
+    index = button_link[characteristic .. "_mod"]
+    self.editButton({ index = index, label = character.get_mod(characteristic) })
+
+    for _, capacity in ipairs(Constant.CHARACTERISTICS_CAPACITIES[characteristic]) do
+        index = button_link[capacity .. "_mod"]
+        self.editButton({ index = index, label = character.get_mod(characteristic) })
+        index = button_link[capacity .. "_total"]
+        self.editButton({ index = index, label = character.get(capacity) })
+    end
+
+end
+
+function Listener_change_capacity(guid, capacity)
+    --print("Listener_change_capacity: " .. tostring(guid).. " capacity: " .. tostring(capacity).. " value: " .. tostring(character.get(capacity)))
+    index = button_link[capacity .. "_bonus"]
+    self.editButton({ index = index, label = character._data[capacity]["BONUS"] })
+    -- bonus
+    index = button_link[capacity .. "_total"]
+    self.editButton({ index = index, label = character.get(capacity) })
+
+end

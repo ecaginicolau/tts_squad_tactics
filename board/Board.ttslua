@@ -153,9 +153,15 @@ function Board.get_cover_status(x1, y1, x2, y2)
         return 0
     end
     -- they are in the board, handle value
-    -- We only need the value of the 2nd tile
-    local tile_value = Board.data[y2][x2]
-    return Constant[tile_value].cover
+    local tile_value1 = Board.data[y1][x1]
+    local tile_value2 = Board.data[y2][x2]
+
+    -- This helps with the switchable
+    if tile_value1 == tile_value2 then
+        return 0
+    end
+
+    return Constant[tile_value2].cover
 end
 
 function Board.reset()
@@ -391,6 +397,13 @@ function Board.move_to(player_color, coordinate)
     local current_position = miniature.getPosition()
     local next_position = Board.get_position(coordinate)
 
+    -- get the old coordinate of this miniature
+    local character = Board.characters[guid]
+    local current_coordinate = character.get("coordinate")
+    -- Hide both current and next destination coordinate during the move animation
+    BoardPanel.display(current_coordinate[1], current_coordinate[2], false)
+    BoardPanel.display(coordinate[1], coordinate[2], false)
+
     -- we need to replace the Y component
     next_position[2] = current_position[2]
 
@@ -482,13 +495,7 @@ function Board.move_end(player_color, guid)
 end
 
 function Board.move_character(character)
-    -- get the old coordinate of this miniature
-    local coordinate = character.get("coordinate")
 
-    if coordinate ~= nil then
-        -- hide the old tile
-        BoardPanel.display(coordinate[1], coordinate[2], false)
-    end
     -- move the miniature in its final position
     Board.set_character_position(character)
 end

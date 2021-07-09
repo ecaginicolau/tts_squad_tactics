@@ -1,0 +1,327 @@
+--Color information for button text (r,g,b, values of 0-1)
+buttonFontColor = { 0, 0, 0 }
+--Color information for button background
+buttonColor = { 1, 1, 1 }
+--Change scale of button (Avoid changing if possible)
+-- buttonScale = {0.1,0.1,0.1}
+buttonScale = { 0.15, 0.15, 0.15 }
+
+input_link = {}
+button_link = {}
+
+spawnedButtonCount = 0
+spawnedInputCount = 0
+
+
+--Save function
+function updateSave()
+    saved_data = JSON.encode(character.dump())
+    self.script_state = saved_data
+    --Global.call("update_data")
+end
+
+function click_none()
+end
+
+--Updates saved value for given text box
+function click_textbox(name, value, selected)
+    if selected == false then
+        local update = {}
+        update[name] = value
+        character.update(update, self)
+        update_healthbar()
+        updateSave()
+    end
+end
+
+--Makes counters
+function create_counter(name, value, pos, font_size, width, func_param)
+    --Sets up label
+    local label = value
+    --Sets height/width for display
+    size = 0
+    --Creates button and counts it
+    self.createButton({
+        label = label, click_function = "click_none", function_owner = self,
+        position = pos, height = size, width = size,
+        font_size = font_size, scale = buttonScale,
+        color = buttonColor, font_color = buttonFontColor
+    })
+    button_link[name] = spawnedButtonCount
+    spawnedButtonCount = spawnedButtonCount + 1
+
+    --Sets up add 1
+    local funcName = "counterAdd" .. name
+    if func_param == nil then
+        func_param = change_value
+    end
+    local func = function()
+        func_param(name, 1)
+    end
+    self.setVar(funcName, func)
+    --Sets up label
+    local label = "+"
+    --Sets up position
+    local offsetDistance = (width / 2 + width / 4) * (buttonScale[1] * 0.0021)
+    if vertical then
+        bpos = { pos[1], pos[2], pos[3] - offsetDistance * 1.2 }
+        if deltapos ~= nil then
+            bpos[1] = bpos[1] + deltapos
+        end
+    else
+        bpos = { pos[1] + offsetDistance, pos[2], pos[3] }
+        if deltapos ~= nil then
+            bpos[3] = bpos[3] + deltapos
+        end
+    end
+
+
+    --Sets up size
+    local size = font_size / 1.5
+    --Creates button and counts it
+    self.createButton({
+        label = label, click_function = funcName, function_owner = self,
+        position = bpos, height = size, width = size,
+        font_size = size, scale = buttonScale,
+        color = buttonColor, font_color = buttonFontColor
+    })
+    spawnedButtonCount = spawnedButtonCount + 1
+    local funcName = "counterSub" .. name
+    local func = function()
+        func_param(name, -1)
+    end
+    self.setVar(funcName, func)
+    --Sets up label
+    local label = "-"
+    --Sets up position
+    if vertical then
+        bpos = { pos[1], pos[2], pos[3] + offsetDistance }
+        if deltapos ~= nil then
+            bpos[1] = bpos[1] - deltapos
+        end
+    else
+        bpos = { pos[1] - offsetDistance, pos[2], pos[3] }
+        if deltapos ~= nil then
+            bpos[3] = bpos[3] - deltapos
+        end
+    end
+    --Sets up size
+    local size = font_size / 1.5
+    --Creates button and counts it
+    self.createButton({
+        label = label, click_function = funcName, function_owner = self,
+        position = bpos, height = size, width = size,
+        font_size = size, scale = buttonScale,
+        color = buttonColor, font_color = buttonFontColor
+    })
+    spawnedButtonCount = spawnedButtonCount + 1
+
+end
+
+function create_label(name, value, pos, font_size, color)
+    if color == nil then
+        color = { 0, 0, 0 }
+    end
+    self.createButton({
+        label = value, click_function = "click_none", function_owner = self,
+        position = pos, height = 0, width = 0,
+        font_size = font_size, scale = buttonScale,
+        color = buttonColor, font_color = color
+    })
+    button_link[name] = spawnedButtonCount
+
+    -- increase the button count
+    spawnedButtonCount = spawnedButtonCount + 1
+end
+
+function create_input(name, value, pos, font_size, width)
+
+    local funcName = "textbox" .. spawnedInputCount
+    local func = function(_, _, val, sel)
+        click_textbox(name, val, sel)
+    end
+    self.setVar(funcName, func)
+
+    self.createInput({
+        input_function = funcName,
+        function_owner = self,
+        label = name,
+        alignment = 2, -- Left
+        position = pos,
+        scale = buttonScale,
+        width = width,
+        height = font_size + 24,
+        font_size = font_size,
+        color = buttonColor,
+        font_color = buttonFontColor,
+        value = value,
+    })
+    input_link[name] = spawnedInputCount
+
+    -- increase the button count
+    spawnedInputCount = spawnedInputCount + 1
+end
+
+function change_hp(mod)
+    character.update({ CURRENT_HP = character.get("CURRENT_HP") + mod }, self)
+    update_healthbar()
+    updateSave()
+end
+
+function change_value(name, mod)
+    local value = character.get(name)
+    value = value + mod
+    local update = {}
+    update[name] = value
+    character.update(update, self)
+    index = button_link[name]
+    self.editButton({ index = index, label = character.get(name) })
+    update_healthbar()
+    updateSave()
+end
+
+function change_skill(name, mod)
+    local value = character._data[name]["BASE"]
+    value = value + mod
+    local update = {}
+    update[name] = { BASE = value }
+    character.update(update, self)
+
+    index = button_link[name]
+    self.editButton({ index = index, label = value })
+    -- bonus
+    index = button_link[name.."_total"]
+    self.editButton({ index = index, label = character.get(name) })
+    update_healthbar()
+    updateSave()
+end
+
+function change_simple(name, mod)
+    local value = character._data[name]["BASE"]
+    value = value + mod
+
+    local update = {}
+    update[name] = { BASE = value }
+    character.update(update, self)
+
+    index = button_link[name]
+    self.editButton({ index = index, label = value })
+
+end
+
+
+function change_characteristic(name, mod)
+    change_simple(name, mod)
+    -- bonus
+    index = button_link[name.."_mod"]
+    self.editButton({ index = index, label = character.get_mod(name) })
+
+    for _, capacity in ipairs(Constant.CHARACTERISTICS_CAPACITIES[name]) do
+        index = button_link[capacity.."_mod"]
+        self.editButton({ index = index, label = character.get_mod(name) })
+        index = button_link[capacity.."_total"]
+        self.editButton({ index = index, label = character.get(capacity) })
+    end
+
+
+    update_healthbar()
+    updateSave()
+end
+
+function update_healthbar()
+    pos = layout_healthbar["pos"]
+    width = layout_healthbar["width"]
+    current = tonumber(character.get("CURRENT_HP"))
+    max = tonumber(character.get("MAX_HP")) - tonumber(character.get("FATIGUE"))
+    if current > max then
+        current = max
+        character.update({ CURRENT_HP = current }, self)
+    end
+    percent = current / max
+    width = width * percent
+    full_size = layout_healthbar["full_size"]
+    full_pos = layout_healthbar["full_pos"]
+    rel_full_pos = (layout_healthbar["width"] / layout_healthbar["full_size"]) * full_pos * (1 - percent)
+    pos_current = table.clone(pos)
+    pos_current[1] = pos_current[1] - rel_full_pos
+    self.editButton({ index = button_link["CURRENT_HP_hb"], position = pos_current, width = width, })
+    value = current .. " / " .. max
+    self.editButton({ index = button_link["hp_bar"], label = value })
+
+end
+
+function create_healthbar()
+    local current = character.get("CURRENT_HP")
+    local max = character.get("MAX_HP")
+    local pos = layout_healthbar["pos"]
+    local width = layout_healthbar["width"]
+    local height = layout_healthbar["height"]
+
+    -- this is the background bar
+    self.createButton({
+        label = '', click_function = "click_none", function_owner = self,
+        position = pos, height = height, width = width,
+        font_size = height, scale = buttonScale,
+        color = { 0.5, 0.5, 0.5 }, font_color = buttonFontColor
+    })
+    button_link["MAX_HP_hb"] = spawnedButtonCount
+    spawnedButtonCount = spawnedButtonCount + 1
+
+    -- this is the red bar
+    local percent = current / max
+    width = width * percent
+    local full_size = layout_healthbar["full_size"]
+    local full_pos = layout_healthbar["full_pos"]
+    local rel_full_pos = (layout_healthbar["width"] / layout_healthbar["full_size"]) * full_pos * (1 - percent)
+    local pos_current = table.clone(pos)
+    pos_current[1] = pos_current[1] - rel_full_pos
+    -- pos_current[3] = pos_current[3] - 0.1
+    self.createButton({
+        label = '', click_function = "click_none", function_owner = self,
+        position = pos_current, height = height, width = width,
+        font_size = height, scale = buttonScale,
+        color = { 0.8, 0, 0 }, font_color = buttonFontColor
+    })
+    button_link["CURRENT_HP_hb"] = spawnedButtonCount
+    spawnedButtonCount = spawnedButtonCount + 1
+
+    -- this is the hp text
+    local pos_value = table.clone(pos)
+    pos_value[2] = pos_value[2] + 1
+    value = current .. " / " .. max
+    create_label("hp_bar", value, pos, height * 0.8)
+    -- sub hp button
+    local funcName = "input" .. spawnedButtonCount
+    local func = function(_, _, _, _)
+        change_hp(-1)
+    end
+    self.setVar(funcName, func)
+    pos = layout_healthbar.button_minus
+    height = layout_healthbar.height
+    width = layout_healthbar.height
+    self.createButton({
+        label = '-', click_function = funcName, function_owner = self,
+        position = pos, height = height, width = width,
+        font_size = height, scale = buttonScale,
+        color = { 0.75, 0.75, 0.75 }, font_color = buttonFontColor
+    })
+    spawnedButtonCount = spawnedButtonCount + 1
+
+    local funcName = "input" .. spawnedButtonCount
+    local func = function(_, _, val, sel)
+        change_hp(1)
+    end
+    self.setVar(funcName, func)
+    pos = layout_healthbar.button_plus
+    height = layout_healthbar.height
+    width = layout_healthbar.height
+    self.createButton({
+        label = '+', click_function = funcName, function_owner = self,
+        position = pos, height = height, width = width,
+        font_size = height, scale = buttonScale,
+        color = { 0.75, 0.75, 0.75 }, font_color = buttonFontColor
+    })
+    spawnedButtonCount = spawnedButtonCount + 1
+
+
+end

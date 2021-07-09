@@ -4,7 +4,8 @@
 
 MainUI = {
     is_in_turn = false,
-    characters = {}
+    characters = {},
+    main_characters = {}
 }
 
 function MainUI.refresh()
@@ -15,6 +16,7 @@ function MainUI.refresh()
     local list_panel = {}
     -- global UI for all player
     table.insert(list_panel, Initiative.create())
+    table.insert(list_panel, Roll.create())
 
     if is_in_turn then
         -- player UI
@@ -34,6 +36,11 @@ function MainUI.update_miniatures()
     for _, character in pairs(Listener.characters) do
         if character.get("on_board") then
             MainUI.characters[character.getGUID()] = character
+            -- add the main character if needed
+            print(character.get("NAME") .. " " .. tostring(character.get("MAIN")))
+            if character.get("MAIN") then
+                MainUI.main_characters[character.get("owner")] = character
+            end
         end
     end
     Detail.update_all()

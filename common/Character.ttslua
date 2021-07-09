@@ -10,6 +10,11 @@ setmetatable(Character, {
                 NAME = "Nom",
                 LEVEL = 10,
                 CLASS = "Civil",
+                MAIN = true, -- store if it's the main character for the player
+                CHANCE = { -- it should not change , but still allow it for the fun...
+                    BASE = 10,
+                    BONUS = 0,
+                },
 
                 -- Characteristics
                 STRENGTH = {
