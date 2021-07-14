@@ -1,4 +1,5 @@
 -- The armor data
+Item.data["type"] = "MOD"
 
 layout = {
     name = {

@@ -353,6 +353,7 @@ function Detail.identify(player)
     local guid = Detail.player[player.color]
     MainUI.characters[guid].update({ identified = not MainUI.characters[guid].get("identified") }, self.getGUID())
     Detail.update(player.color, guid)
+    Initiative_hp_listener(guid)
 end
 
 function Detail.reset()

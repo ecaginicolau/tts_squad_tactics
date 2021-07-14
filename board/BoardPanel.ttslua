@@ -277,8 +277,8 @@ function BoardPanel.open_tile(x, y)
     end
 end
 
-function BoardPanel.display(x, y, display)
-    self.UI.setAttribute(BoardPanel.get_tile_id(x, y), "active", display)
+function BoardPanel.display(coordinate, display)
+    self.UI.setAttribute(BoardPanel.get_tile_id(coordinate[1], coordinate[2]), "active", display)
 end
 
 function BoardPanel_open(_, param)

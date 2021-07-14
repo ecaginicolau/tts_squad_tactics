@@ -1,4 +1,5 @@
 -- The armor data
+Item.data["type"] = "WEAPON"
 
 layout = {
     name = {
@@ -25,52 +26,40 @@ layout = {
         value = "tag3",
         color = { 0, 0, 0 },
     },
-    --tag4 = {
-    --  pos = {0.73 , 0.3,-1.08},
-    --  font_size = 200,
-    --  value = "tag4",
-    --  color = {0,0,0},
-    --},
     rank = {
         pos = { 0.8, 0.3, -1.31 },
         font_size = 400,
         value = "rank",
         color = { 0, 0, 0 },
     },
-    INITIATIVE = {
-        pos = { 0.8, 0.3, -1.08 },
-        font_size = 400,
-        value = INITIATIVE,
-        color = { 0, 0, 0 },
-    },
-    IMPACT = {
+    DAMAGE = {
         pos = { 0.8, 0.3, -0.86 },
         font_size = 400,
-        value = IMPACT,
+        value = DAMAGE,
         color = { 0, 0, 0 },
     },
-    FIRE = {
+    MAX_AMMO = {
         pos = { 0.8, 0.3, -0.63 },
         font_size = 400,
-        value = FIRE,
+        value = MAX_AMMO,
         color = { 0, 0, 0 },
     },
-    COLD = {
+    ACCURACY = {
         pos = { 0.8, 0.3, -0.40 },
         font_size = 400,
-        value = COLD,
+        value = ACCURACY,
         color = { 0, 0, 0 },
     },
-    ELECTRIC = {
+    RANGE = {
         pos = { 0.8, 0.3, -0.17 },
         font_size = 400,
-        value = ELECTRIC,
+        value = RANGE,
         color = { 0, 0, 0 },
     },
-    BLIGHT = {
+    INITIATIVE = {
         pos = { 0.8, 0.3, 0.06 },
         font_size = 400,
-        value = BLIGHT,
+        value = INITIATIVE,
         color = { 0, 0, 0 },
     },
     value = {
@@ -81,7 +70,16 @@ layout = {
     },
 }
 
-decals = {}
+decals = {
+    TYPE1 = {
+        pos = { -0.74, 0.5, -1.09 },
+        scale = { 0.15, 0.15, 0.15 },
+    },
+    TYPE2 = {
+        pos = { -0.85, 0.5, -1.09 },
+        scale = { 0.15, 0.15, 0.15 },
+    }
+}
 
 description_position = { 0, 0.3, 0.78 }
 description_width = 5500

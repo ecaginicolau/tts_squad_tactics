@@ -120,6 +120,14 @@ function update_asset()
             name = "bounce",
             url = "http://cloud-3.steamusercontent.com/ugc/1687144294413503337/260D3E208E7F3B5AE9380E5ABA47A8EA5A211022/",
         },
+        {
+            name = "selectionner",
+            url = "http://cloud-3.steamusercontent.com/ugc/1687144761666869256/5801884F247EB195956595792E2D515FF888923F/",
+        },
+        {
+            name = "equipee",
+            url = "http://cloud-3.steamusercontent.com/ugc/1687144761666870964/EBCE04B6EEAAD37D5EFF46D526D0ABF2BEB49603/",
+        },
 
         --background detail
         {
@@ -133,7 +141,7 @@ function update_asset()
         },
         {
             name = "decay",
-            url = "http://cloud-3.steamusercontent.com/ugc/1687144359181656489/D665776630086DF990681995C203DBC2E77CB529/",
+            url = "http://cloud-3.steamusercontent.com/ugc/1687144670939091621/3A3319740EF70AF88E5B75A0950A3505F3111C91/",
         },
         {
             name = "confusion",
@@ -142,6 +150,14 @@ function update_asset()
         {
             name = "paralysis",
             url = "http://cloud-3.steamusercontent.com/ugc/1687144359181674053/D1C7021BB581065D633FD55F5B4F8580463F71B4/",
+        },
+        {
+            name = "barrier",
+            url = "http://cloud-3.steamusercontent.com/ugc/1687144670939222315/945A87E8A0902722323974900C73F9440FB50775/",
+        },
+        {
+            name = "regen",
+            url = "http://cloud-3.steamusercontent.com/ugc/1687144670939263093/A75EDF6B8856D79AA7227D97D4A8FD63A552FCDF/",
         },
     }
 

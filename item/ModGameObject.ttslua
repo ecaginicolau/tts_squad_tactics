@@ -1,0 +1,6 @@
+require("tts_squad_tactics.common.Constant")
+require("tts_squad_tactics.common.Utils")
+require("tts_squad_tactics.item.Item")
+require("tts_squad_tactics.item.Mod")
+
+load_disabled = false

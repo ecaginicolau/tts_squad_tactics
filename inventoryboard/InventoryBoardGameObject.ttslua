@@ -14,11 +14,32 @@ function onLoad(saved_data)
         Listener.single(miniature_guid)
         -- then initialize the inventory board
         InventoryBoard.init()
-
+        InventoryBoard.compute_armors()
+        InventoryBoard.compute_weapon(1)
+        InventoryBoard.compute_weapon(2)
     end, 30)
+
+
+    Wait.frames(wait_loading_condition, 30)
 
 end
 
+function wait_loading_condition()
+    Wait.condition(ui_init, wait_loading, 30)
+end
+
+
+
+function wait_loading()
+    local is_loading = self.UI.loading or self.loading_custom or Global.UI.loading or self.spawning
+    --print("wait_loading: " .. tostring(not is_loading))
+    return not is_loading
+end
+
+
+function ui_init()
+     InventoryBoard.create_UI()
+end
 function onDestroy()
     if InventoryBoard.scripting_guid ~= nil then
         local object = getObjectFromGUID(InventoryBoard.scripting_guid)

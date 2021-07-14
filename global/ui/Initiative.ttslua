@@ -1,6 +1,8 @@
 -- These Constant can only be used here, there are useless in other packages
 local LINE_HEIGHT = 60
 local LINE_WIDTH = 600
+local COLOR_PLAYED = "#AAAAAA"
+local COLOR_NOT_PLAYED = "#FFFFFF"
 
 Initiative = {
     list_initiative = {}
@@ -17,55 +19,113 @@ function Initiative.create()
         tag = "Panel",
         attributes = {
             id = "panel_initiative",
-            height = LINE_HEIGHT, -- Only use a single line height because the position will be calculated
+            --minHeight = LINE_HEIGHT, -- Only use a single line height because the position will be calculated
             width = LINE_WIDTH,
-            allowDragging = "true",
-            returnToOriginalPositionWhenReleased = "false",
+            --height = LINE_HEIGHT * 3,
+            minHeight = LINE_HEIGHT,
+            --allowDragging = "true",
+            --returnToOriginalPositionWhenReleased = "false",
             rectAlignment = "UpperLeft",
+            --restrictDraggingToParentBounds = false,
+
+            --rectAlignment = "MiddleCenter",
             offsetXY = "80 0",
             scale = "0.5 0.5 0.5",
             active = "True",
         },
         children = {
             {
-                tag = "Button",
+                tag = "TableLayout",
                 attributes = {
-                    id = "button_new_round",
-                    width = (LINE_WIDTH * 7) / 10,
-                    height = LINE_HEIGHT,
-                    fontSize = 30,
-                    position = (-LINE_WIDTH * 3 / 20) .. " 0 0",
-                    color = "#CCCCCC",
-                    textColor = "black",
-                    onClick = "Initiative_new_round()",
-                    text = "Nouveau Tour",
-                }
-            }, {
-                tag = "Button",
-                attributes = {
-                    id = "button_close_round",
-                    width = LINE_WIDTH * 2 / 10,
-                    height = LINE_HEIGHT,
-                    fontSize = 30,
-                    position = (LINE_WIDTH * 4 / 10) .. " 0 0",
-                    color = "#000000",
-                    textColor = "white",
-                    onClick = "Initiative_close()",
-                    text = "Fin",
-                }
-            }, {
-                tag = "Button",
-                attributes = {
-                    id = "button_refresh_round",
-                    width = LINE_WIDTH / 10,
-                    height = LINE_HEIGHT,
-                    fontSize = 30,
-                    position = (LINE_WIDTH * 5 / 20) .. " 0 0",
-                    color = "#000000",
-                    textColor = "white",
-                    onClick = "Initiative_refresh()",
-                    icon = "refresh",
-                    iconColor = "White",
+                    --height  = LINE_HEIGHT,
+
+                    --minHeight = LINE_HEIGHT,
+                    width = LINE_WIDTH,
+                    autoCalculateHeight = true,
+                },
+                children = {
+                    {
+                        tag = "Row",
+                        attributes = {
+                            preferredHeight = LINE_HEIGHT,
+                            flexibleHeight = 0,
+                        },
+                        children = {
+                            {
+                                tag = "Cell",
+                                attributes = {
+                                    columnSpan = 7,
+                                    preferredWidth = (LINE_WIDTH * 7) / 10,
+                                    flexibleWidth = 0,
+                                },
+                                children = {
+                                    {
+                                        tag = "Button",
+                                        attributes = {
+                                            height = LINE_HEIGHT,
+                                            id = "button_new_round",
+                                            --minWidth = (LINE_WIDTH * 7) / 10,
+                                            fontSize = 30,
+                                            --position = (-LINE_WIDTH * 3 / 20) .. " 0 0",
+                                            color = "#CCCCCC",
+                                            textColor = "black",
+                                            onClick = "Initiative_new_round()",
+                                            text = "Nouveau Tour",
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                tag = "Cell",
+                                attributes = {
+                                    columnSpan = 1,
+                                    preferredWidth = LINE_WIDTH / 10,
+                                    flexibleWidth = 0,
+                                },
+                                children = {
+                                    {
+                                        tag = "Button",
+                                        attributes = {
+                                            id = "button_refresh_round",
+                                            --minWidth = LINE_WIDTH / 10,
+                                            --minHeight = LINE_HEIGHT,
+                                            fontSize = 30,
+                                            --position = (LINE_WIDTH * 5 / 20) .. " 0 0",
+                                            color = "#000000",
+                                            textColor = "white",
+                                            onClick = "Initiative_refresh()",
+                                            icon = "refresh",
+                                            iconColor = "White",
+                                        }
+                                    }
+                                },
+                            },
+                            {
+                                tag = "Cell",
+                                attributes = {
+                                    columnSpan = 2,
+                                    preferredWidth = (LINE_WIDTH * 2) / 10,
+                                    flexibleWidth = 0,
+                                },
+                                children = {
+                                    {
+                                        tag = "Button",
+                                        attributes = {
+                                            id = "button_close_round",
+                                            --minWidth = LINE_WIDTH * 2 / 10,
+                                            --minHeight = LINE_HEIGHT,
+                                            fontSize = 30,
+                                            --position = (LINE_WIDTH * 4 / 10) .. " 0 0",
+                                            color = "#000000",
+                                            textColor = "white",
+                                            onClick = "Initiative_close()",
+                                            text = "Fin",
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -95,7 +155,7 @@ function Initiative.create()
         -- get the list of character for this initiative value
         local list_char = Initiative.list_initiative[initiative]
         -- first add the initiative header
-        panel["children"][#panel["children"] + 1] = Initiative.header(line_nb, initiative)
+        table.insert(panel["children"][1]["children"], Initiative.header(initiative))
         line_nb = line_nb + 0.75
         -- check if it's a waited initiative ( < 0)
         local waiting = false
@@ -105,10 +165,7 @@ function Initiative.create()
         -- loop through all character to insert them
         for _, character in pairs(list_char) do
             local line = Initiative.character(line_nb, character, waiting)
-            for _, item in ipairs(line) do
-                panel["children"][#panel["children"] + 1] = item
-            end
-            -- increment line nb for each character
+            table.insert(panel["children"][1]["children"], line)
             line_nb = line_nb + 1
         end
     end
@@ -116,147 +173,242 @@ function Initiative.create()
     return panel
 end
 
-function Initiative.header(line_nb, initiative)
+function Initiative.header(initiative)
+    local active = Initiative.check_header(initiative)
     -- create the initiative header bar
     local line = {
-        tag = "Button",
+        tag = "Row",
         attributes = {
-            width = LINE_WIDTH,
-            height = LINE_HEIGHT * 0.75,
-            fontSize = 25,
-            position = "0 " .. -((line_nb - 0.125) * LINE_HEIGHT) .. " 0",
-            color = "#000000",
-            textColor = "white",
-            onClick = "",
-            text = "Initiative: " .. initiative,
+            id = "initiative_header_" .. initiative,
+            preferredHeight = LINE_HEIGHT * 0.75,
+            flexibleHeight = 0,
+            active = active,
+        },
+        children = {
+            {
+                tag = "Cell",
+                attributes = {
+                    columnSpan = 10,
+                    preferredWidth = LINE_WIDTH,
+                    flexibleWidth = 0,
+                },
+                children = {
+                    {
+                        tag = "Button",
+                        attributes = {
+                            fontSize = 25,
+                            color = "#000000",
+                            textColor = "white",
+                            onClick = "",
+                            text = "Initiative: " .. initiative,
+                        }
+                    }
+                }
+            }
         }
+
     }
+
     return line
 end
 
 function Initiative.character(line_nb, character, waiting)
     -- create a character line, name, hp, actions buttons ...
     -- change the background color if the character has played or is currently waiting
+    local color
     if character.get("played") or (character.get("waited") and not waiting) then
-        color = "#AAAAAA"
+        color = COLOR_PLAYED
     else
-        color = "#FFFFFF"
+        color = COLOR_NOT_PLAYED
     end
-    -- Create the line
-    local line = {
-        {
-            tag = "Button",
-            attributes = {
-                width = LINE_WIDTH * 7 / 10,
-                height = LINE_HEIGHT,
-                fontSize = 25,
-                position = -(LINE_WIDTH * 3 / 20) .. " " .. -(line_nb * LINE_HEIGHT) .. " 0",
-                color = color,
-                textColor = "Black",
-                onClick = "Initiative_play(" .. character.getGUID() .. ")",
-                -- This will highlight the character
-                onMouseEnter = "Initiative_mouse_enter(" .. character.getGUID() .. ")",
-                onMouseExit = "Initiative_mouse_exit(" .. character.getGUID() .. ")",
-            }
-        }
-    }
-    -- The name
-    table.insert(line, {
-        tag = "Text",
-        attributes = {
-            width = LINE_WIDTH * 6 / 10,
-            height = LINE_HEIGHT,
-            fontSize = 30,
-            position = -(LINE_WIDTH * 2 / 10) .. " " .. -(line_nb * LINE_HEIGHT) .. " 0",
-            color = "Black",
-            text = "  " .. character.get("NAME"),
-            alignment = "MiddleLeft",
-        }
-    })
 
     -- Current hp
     local percentage = (character.get("CURRENT_HP") * 100) / character.get("MAX_HP")
     local current_hp = math.tointeger(percentage) .. "%"
-    if character.get("identified") or character.get("player") then
+    if character.get("identified") or character.get("team") == PLAYERS then
         current_hp = character.get("CURRENT_HP") .. " / " .. character.get("MAX_HP")
     end
 
-    table.insert(line, {
-        tag = "Text",
-        attributes = {
-            width = LINE_WIDTH * 2 / 10,
-            height = LINE_HEIGHT,
-            fontSize = 28,
-            position = (LINE_WIDTH * 1.5 / 20) .. " " .. -((line_nb - 0.23) * LINE_HEIGHT) .. " 0",
-            color = "Black",
-            text = current_hp
-        }
-    })
-
-    table.insert(line, {
-        tag = "ProgressBar",
-        attributes = {
-            width = LINE_WIDTH * 2 / 10,
-            height = LINE_HEIGHT / 3,
-            percentage = percentage,
-            showPercentageText = false,
-            position = (LINE_WIDTH * 1.5 / 20) .. " " .. -((line_nb + 0.25) * LINE_HEIGHT) .. " 0",
-            fillImageColor = "#801212",
-            color = "#444444",
-        }
-    })
-    -- Attack button
-    table.insert(line, {
-        tag = "Button",
-        attributes = {
-            id = character.getGUID(),
-            width = LINE_WIDTH / 10,
-            height = LINE_HEIGHT,
-            fontSize = 35,
-            position = (5 * LINE_WIDTH / 20) .. " " .. -(line_nb * LINE_HEIGHT) .. " 0",
-            color = "White",
-            textColor = "Black",
-            onClick = "Attack_character(" .. character.getGUID() .. ")",
-            icon = "attack",
-            iconColor = "#444444",
-        }
-    })
-
-    -- Detail button
-    table.insert(line, {
-        tag = "Button",
-        attributes = {
-            id = character.getGUID(),
-            width = LINE_WIDTH / 10,
-            height = LINE_HEIGHT,
-            fontSize = 35,
-            position = (7 * LINE_WIDTH / 20) .. " " .. -(line_nb * LINE_HEIGHT) .. " 0",
-            color = "white",
-            textColor = "Black",
-            onClick = "Detail_switch(" .. character.getGUID() .. ")",
-            icon = "detail",
-            iconColor = "#444444",
-        }
-    })
-
-    -- Wait button
-    -- only display the wait button it the player has not played and is not waiting
-    if not character.get("played") and (not character.get("waited") or waiting) then
-        table.insert(line, {
-            tag = "Button",
-            attributes = {
-                width = LINE_WIDTH / 10,
-                height = LINE_HEIGHT,
-                fontSize = 20,
-                position = (9 * LINE_WIDTH / 20) .. " " .. -(line_nb * LINE_HEIGHT) .. " 0",
-                color = "white",
-                textColor = "Black",
-                onClick = "Initiative_wait(" .. character.getGUID() .. ")",
-                icon = "wait",
-                iconColor = "#444444",
-            }
-        })
+    -- by default create the waiting inactive
+    local active = not waiting
+    if not character.get("waited") and waiting then
+        active = false
     end
+    if not character.get("visible") then
+        active = false
+    end
+
+    -- suffix for waiting lines
+    local suffix = "_base"
+    if waiting then
+        suffix = "_waiting"
+    end
+
+    -- Create the line
+    local line = {
+        tag = "Row",
+        attributes = {
+            preferredHeight = LINE_HEIGHT,
+            flexibleHeight = 0,
+            active = active,
+            id = "initiative_" .. character.getGUID() .. suffix,
+            --visibility = character.get("owner"),
+        },
+        children = {
+            {
+                tag = "Cell",
+                attributes = {
+                    columnSpan = 7,
+                    preferredWidth = LINE_WIDTH * 7 / 10,
+                    flexibleWidth = 0,
+                },
+                children = {
+                    {
+                        tag = "Button",
+                        attributes = {
+                            id = "initiative_played_" .. character.getGUID() .. suffix,
+                            fontSize = 25,
+                            textColor = "Black",
+                            color = color,
+                            onClick = "Initiative_play(" .. character.getGUID() .. ")",
+                            -- This will highlight the character
+                            onMouseEnter = "Initiative_mouse_enter(" .. character.getGUID() .. ")",
+                            onMouseExit = "Initiative_mouse_exit(" .. character.getGUID() .. ")",
+                        },
+                        children = {
+                            {
+                                tag = "HorizontalLayout",
+                                attributes = {
+
+                                },
+                                children = {
+                                    {
+                                        tag = "Text",
+                                        attributes = {
+                                            preferredWidth = LINE_WIDTH * 4 / 10,
+                                            resizeTextForBestFit = true,
+                                            fontSize = 30,
+                                            resizeTextMaxSize = 30,
+                                            color = "Black",
+                                            text = " " .. character.get("NAME"),
+                                            alignment = "MiddleLeft",
+                                        }
+                                    },
+                                    {
+                                        tag = "VerticalLayout",
+                                        children = {
+                                            {
+                                                tag = "Text",
+                                                attributes = {
+                                                    id = "initiative_hp_" .. character.getGUID() .. suffix,
+                                                    minHeight = LINE_HEIGHT * 2 / 3,
+                                                    fontSize = 40,
+                                                    resizeTextForBestFit = true,
+                                                    resizeTextMaxSize = 40,
+                                                    color = "Black",
+                                                    text = current_hp
+                                                }
+                                            },
+                                            {
+                                                tag = "ProgressBar",
+                                                attributes = {
+                                                    id = "initiative_progressbar_" .. character.getGUID() .. suffix,
+                                                    minHeight = LINE_HEIGHT / 3,
+                                                    percentage = percentage,
+                                                    showPercentageText = false,
+                                                    fillImageColor = "#801212",
+                                                    color = "#444444",
+                                                }
+                                            }
+
+                                        }
+                                    }
+
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                tag = "Cell",
+                attributes = {
+                    columnSpan = 1,
+                    preferredWidth = LINE_WIDTH / 10,
+                    flexibleWidth = 0,
+                },
+                children = {
+                    {
+                        tag = "Button",
+                        attributes = {
+                            id = character.getGUID(),
+                            width = LINE_WIDTH / 10,
+                            height = LINE_HEIGHT,
+                            fontSize = 35,
+                            position = (5 * LINE_WIDTH / 20) .. " " .. -(line_nb * LINE_HEIGHT) .. " 0",
+                            color = "White",
+                            textColor = "Black",
+                            onClick = "Attack_character(" .. character.getGUID() .. ")",
+                            icon = "attack",
+                            iconColor = "#444444",
+                        }
+                    }
+                }
+            },
+            {
+                tag = "Cell",
+                attributes = {
+                    columnSpan = 1,
+                    preferredWidth = LINE_WIDTH / 10,
+                    flexibleWidth = 0,
+                },
+                children = {
+                    {
+                        tag = "Button",
+                        attributes = {
+                            id = character.getGUID(),
+                            width = LINE_WIDTH / 10,
+                            height = LINE_HEIGHT,
+                            fontSize = 35,
+                            position = (7 * LINE_WIDTH / 20) .. " " .. -(line_nb * LINE_HEIGHT) .. " 0",
+                            color = "white",
+                            textColor = "Black",
+                            onClick = "Detail_switch(" .. character.getGUID() .. ")",
+                            icon = "detail",
+                            iconColor = "#444444",
+                        }
+                    }
+                }
+            },
+            -- Wait button
+            {
+                tag = "Cell",
+                attributes = {
+                    columnSpan = 1,
+                    preferredWidth = LINE_WIDTH / 10,
+                    flexibleWidth = 0,
+                },
+                children = {
+                    {
+                        tag = "Button",
+                        attributes = {
+                            id = "initiative_wait_" .. character.getGUID() .. suffix,
+                            width = LINE_WIDTH / 10,
+                            height = LINE_HEIGHT,
+                            fontSize = 20,
+                            position = (9 * LINE_WIDTH / 20) .. " " .. -(line_nb * LINE_HEIGHT) .. " 0",
+                            color = "white",
+                            textColor = "Black",
+                            onClick = "Initiative_wait(" .. character.getGUID() .. ")",
+                            icon = "wait",
+                            iconColor = "#444444",
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     return line
 end
 
@@ -279,16 +431,16 @@ function Initiative.init()
     -- loop through all characters
     for _, character in pairs(MainUI.characters) do
         -- Get the initiative as a string, because otherwise it would make a list
-        local init = tostring(character.get("INITIATIVE") + character.get("INITIATIVE") )
+        local init = tostring(character.get("INITIATIVE"))
         -- add the character at this initiative
         Initiative.add_character(init, character)
 
         -- Handle character that are waiting twice, once at the base initiative, once at the negative initiative
-        if character.get("waited") then
-            init = tostring(-character.get("INITIATIVE"))
-            -- add the character at this initiative
-            Initiative.add_character(init, character)
-        end
+        --if character.get("waited") then
+        init = tostring(-character.get("INITIATIVE"))
+        -- add the character at this initiative
+        Initiative.add_character(init, character)
+        --end
     end
 end
 
@@ -299,6 +451,18 @@ function Initiative.reset()
     Attack.reset_round()
 end
 
+function Initiative.update_hp(guid)
+    local character = MainUI.characters[guid]
+    local percentage = (character.get("CURRENT_HP") * 100) / character.get("MAX_HP")
+    local current_hp = math.tointeger(percentage) .. "%"
+    if character.get("identified") or character.get("team") == PLAYERS then
+        current_hp = character.get("CURRENT_HP") .. " / " .. character.get("MAX_HP")
+    end
+    self.UI.setAttribute("initiative_hp_" .. character.getGUID() .. "_base", "text", current_hp)
+    self.UI.setAttribute("initiative_hp_" .. character.getGUID() .. "_waiting", "text", current_hp)
+    self.UI.setAttribute("initiative_progressbar_" .. character.getGUID() .. "_base", "percentage", percentage)
+    self.UI.setAttribute("initiative_progressbar_" .. character.getGUID() .. "_waiting", "percentage", percentage)
+end
 
 -- Events
 function Initiative_mouse_enter(player, guid)
@@ -316,10 +480,35 @@ function Initiative_mouse_exit(player, guid)
     end
 end
 
+function Initiative.check_header(initiative)
+    initiative = tonumber(initiative)
+    local initiative_index = tostring(initiative)
+    for _, character in pairs(Initiative.list_initiative[initiative_index]) do
+        if character.get("visible") then
+            if character.get("waited") or initiative >= 0 then
+                return true
+            end
+        end
+    end
+    return false
+end
+
 function Initiative_wait(_, guid)
     -- need to send to the Board
     MainUI.characters[guid].update({ waited = not MainUI.characters[guid].get("waited") }, self.getGUID())
-    MainUI.refresh()
+    self.UI.setAttribute("initiative_" .. guid .. "_waiting", "active", MainUI.characters[guid].get("waited"))
+    local color = COLOR_NOT_PLAYED
+    if MainUI.characters[guid].get("waited") then
+        color = COLOR_PLAYED
+    end
+    self.UI.setAttribute("initiative_wait_" .. guid .. "_base", "color", color)
+    self.UI.setAttribute("initiative_wait_" .. guid .. "_waiting", "color", color)
+
+    local initiative = -MainUI.characters[guid].get("INITIATIVE")
+    -- check if any character in this initiative is waiting
+    local active = Initiative.check_header(initiative)
+    self.UI.setAttribute("initiative_header_" .. initiative, "active", active)
+
 end
 
 function Initiative_close()
@@ -339,17 +528,44 @@ function Initiative_new_round()
     is_in_turn = true
     -- make sure every character has both played and waited flag turned off
     for _, character in pairs(MainUI.characters) do
-        character.update({waited=false, played=false}, self.getGUID())
+        character.update({ waited = false, played = false }, self.getGUID())
     end
     -- refresh the complete ui
     MainUI.refresh()
     -- refresh the ui
     Wait.frames(Initiative.reset, 2)
     MainUI.board_object.call("Board_start_turn")
+
 end
 
 function Initiative_play(_, guid)
     MainUI.characters[guid].update({ played = not MainUI.characters[guid].get("played") }, self.getGUID())
-    MainUI.refresh()
+    local played = MainUI.characters[guid].get("played")
+    local color = COLOR_NOT_PLAYED
+    if played then
+        color = COLOR_PLAYED
+    end
+    self.UI.setAttribute("initiative_played_" .. guid .. "_base", "color", color)
+    self.UI.setAttribute("initiative_played_" .. guid .. "_waiting", "color", color)
 end
 
+-- Listener's callback
+function Initiative_hp_listener(guid)
+    Initiative.update_hp(guid)
+end
+
+function Initiative_visible_listener(guid)
+    local character = MainUI.characters[guid]
+    local visible = character.get("visible")
+    self.UI.setAttribute("initiative_" .. guid .. "_base", "active", visible)
+    self.UI.setAttribute("initiative_" .. guid .. "_waiting", "active", MainUI.characters[guid].get("waited") and visible)
+
+    local initiative = character.get("INITIATIVE")
+    local active = Initiative.check_header(initiative)
+    self.UI.setAttribute("initiative_header_" .. initiative, "active", active)
+
+    initiative = -character.get("INITIATIVE")
+    active = Initiative.check_header(initiative)
+    self.UI.setAttribute("initiative_header_" .. initiative, "active", active)
+
+end

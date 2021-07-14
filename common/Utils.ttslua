@@ -124,3 +124,16 @@ function is_between(value, start_value, end_value)
     end
     return false
 end
+
+function toboolean(value)
+    if type(value) == "number" then
+        return value > 0
+    end
+    if type(value) == "string" then
+        return value ~= ""
+    end
+    if value then
+        return true
+    end
+    return false
+end

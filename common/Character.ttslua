@@ -62,6 +62,8 @@ setmetatable(Character, {
                     BASE = 0,
                     BONUS = 0,
                 },
+                DAMAGE_TYPE1 = FIRE,
+                DAMAGE_TYPE2 = COLD,
                 MAX_AMMO = {
                     BASE = 4,
                     BONUS = 0,
@@ -82,7 +84,7 @@ setmetatable(Character, {
                     BONUS = 0,
                 },
                 EVASION = {
-                    BASE = 0,
+                    BASE = 8,
                     BONUS = 0,
                 }, -- no dice, should be around 2D + accuracy
 
@@ -97,7 +99,7 @@ setmetatable(Character, {
                     BONUS = 0,
                 },
                 HATE = {
-                    BASE = 0,
+                    BASE = 2,
                     BONUS = 0,
                 }, -- can be both the HATE score or HATE multiplier
 
@@ -148,10 +150,23 @@ setmetatable(Character, {
                 played = false,
                 identified = false, -- should be true for player's characters
                 on_board = true, -- store if it's on the board or not
+                visible = false, -- check if the miniature is visble by at least 1 player
 
                 -- miniature
                 guid = nil,
                 coordinate = { 20, 20 },
+
+                -- miniature ui
+                ui_height = -150,
+                ui_scale = 0.25,
+
+                -- battle status
+                DECAY = 0,
+                REGEN = 0,
+                PURSUIT = 0,
+                BARRIER = 0,
+                CONFUSION = false,
+                PARALYSIS = false,
 
                 -- skill
                 -- Strength
@@ -289,8 +304,17 @@ setmetatable(Character, {
             for key, value in pairs(new_data) do
                 if type(value) == "table" then
                     for key2, value2 in pairs(value) do
-                        --print("SUB: " .. tostring(key) .. " | " .. tostring(key2) .. " : " .. tostring(value2))
+                        -- handle MAX_HP bonus a bit differently, if we increase the max while beeing full hp then increase CURRENT_HP
+                        local need_heal = false
+                        if key == "MAX_HP" then
+                            if self.get("CURRENT_HP") == self.get("MAX_HP") then
+                                need_heal = true
+                            end
+                        end
                         self._data[key][key2] = value2
+                        if need_heal then
+                            self._data["CURRENT_HP"] = self.get("MAX_HP")
+                        end
                     end
                 else
                     self._data[key] = value
@@ -317,7 +341,8 @@ setmetatable(Character, {
         end
 
         function self.get_mod(key)
-            return math.floor(self.get(key) / 3)
+            --return math.floor(self.get(key) / 3)
+            return math.floor((self.get(key) - 10) / 2)
         end
         function self.get(key)
             if type(self._data[key]) == "table" then

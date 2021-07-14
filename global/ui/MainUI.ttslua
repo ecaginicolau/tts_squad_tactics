@@ -37,7 +37,6 @@ function MainUI.update_miniatures()
         if character.get("on_board") then
             MainUI.characters[character.getGUID()] = character
             -- add the main character if needed
-            print(character.get("NAME") .. " " .. tostring(character.get("MAIN")))
             if character.get("MAIN") then
                 MainUI.main_characters[character.get("owner")] = character
             end

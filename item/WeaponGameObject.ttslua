@@ -1,0 +1,10 @@
+require("tts_squad_tactics.common.Constant")
+require("tts_squad_tactics.common.Utils")
+require("tts_squad_tactics.item.Item")
+require("tts_squad_tactics.item.Weapon")
+
+load_disabled = false
+
+function onPickUp(player_color)
+    update_mod({})
+end

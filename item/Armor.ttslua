@@ -1,4 +1,5 @@
 -- The armor data
+Item.data["type"] = "ARMOR"
 
 layout = {
     name = {
@@ -25,40 +26,52 @@ layout = {
         value = "tag3",
         color = { 0, 0, 0 },
     },
+    --tag4 = {
+    --  pos = {0.73 , 0.3,-1.08},
+    --  font_size = 200,
+    --  value = "tag4",
+    --  color = {0,0,0},
+    --},
     rank = {
         pos = { 0.8, 0.3, -1.31 },
         font_size = 400,
         value = "rank",
         color = { 0, 0, 0 },
     },
-    DAMAGE = {
-        pos = { 0.8, 0.3, -0.86 },
-        font_size = 400,
-        value = DAMAGE,
-        color = { 0, 0, 0 },
-    },
-    MAX_AMMO = {
-        pos = { 0.8, 0.3, -0.63 },
-        font_size = 400,
-        value = MAX_AMMO,
-        color = { 0, 0, 0 },
-    },
-    ACCURACY = {
-        pos = { 0.8, 0.3, -0.40 },
-        font_size = 400,
-        value = ACCURACY,
-        color = { 0, 0, 0 },
-    },
-    RANGE = {
-        pos = { 0.8, 0.3, -0.17 },
-        font_size = 400,
-        value = RANGE,
-        color = { 0, 0, 0 },
-    },
     INITIATIVE = {
-        pos = { 0.8, 0.3, 0.06 },
+        pos = { 0.8, 0.3, -1.08 },
         font_size = 400,
         value = INITIATIVE,
+        color = { 0, 0, 0 },
+    },
+    IMPACT = {
+        pos = { 0.8, 0.3, -0.86 },
+        font_size = 400,
+        value = IMPACT,
+        color = { 0, 0, 0 },
+    },
+    FIRE = {
+        pos = { 0.8, 0.3, -0.63 },
+        font_size = 400,
+        value = FIRE,
+        color = { 0, 0, 0 },
+    },
+    COLD = {
+        pos = { 0.8, 0.3, -0.40 },
+        font_size = 400,
+        value = COLD,
+        color = { 0, 0, 0 },
+    },
+    ELECTRIC = {
+        pos = { 0.8, 0.3, -0.17 },
+        font_size = 400,
+        value = ELECTRIC,
+        color = { 0, 0, 0 },
+    },
+    BLIGHT = {
+        pos = { 0.8, 0.3, 0.06 },
+        font_size = 400,
+        value = BLIGHT,
         color = { 0, 0, 0 },
     },
     value = {
@@ -69,16 +82,7 @@ layout = {
     },
 }
 
-decals = {
-    TYPE1 = {
-        pos = { -0.74, 0.5, -1.09 },
-        scale = { 0.15, 0.15, 0.15 },
-    },
-    TYPE2 = {
-        pos = { -0.85, 0.5, -1.09 },
-        scale = { 0.15, 0.15, 0.15 },
-    }
-}
+decals = {}
 
 description_position = { 0, 0.3, 0.78 }
 description_width = 5500

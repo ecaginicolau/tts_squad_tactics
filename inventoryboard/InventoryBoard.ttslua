@@ -1,5 +1,5 @@
 local list_summable_data = {
-    MAX_AMMO, DAMAGE, ACCURACY, RANGE,MAX_HP, MAX_FATE
+    MAX_AMMO, DAMAGE, ACCURACY, RANGE, MAX_HP, MAX_FATE
 }
 
 InventoryBoard = {
@@ -7,6 +7,7 @@ InventoryBoard = {
     character = nil,
     board_object = nil,
     player_color = nil,
+    slot = 1,
 }
 
 function InventoryBoard.init()
@@ -36,6 +37,62 @@ function InventoryBoard.init()
 
     -- compute armors cards
     InventoryBoard.compute_armors()
+end
+
+function InventoryBoard.create_UI()
+
+    local panel = {
+        tag = "Panel",
+        attributes = {
+            scale = "0.1 0.1 0.1",
+            position = "0 0 -11",
+            rotation = "0 0 180"
+        },
+        children = {
+            {
+                tag = "Image",
+                attributes = {
+                    id = "slot1",
+                    position = "-1260 1750 0",
+                    image = "equipee",
+                    width = 500,
+                    height = 200,
+                    preserveAspect = true,
+                },
+                children = {
+                    {
+                        tag = "Button",
+                        attributes = {
+                            color = "#00000000",
+                            onClick = "InventoryBoard_select(1)"
+                        }
+                    }
+                }
+            },
+            {
+                tag = "Image",
+                attributes = {
+                    id = "slot2",
+                    position = "-420 1750 0",
+                    image = "selectionner",
+                    width = 500,
+                    height = 200,
+                    preserveAspect = true,
+                },
+                children = {
+                    {
+                        tag = "Button",
+                        attributes = {
+                            color = "#00000000",
+                            onClick = "InventoryBoard_select(2)"
+                        }
+                    }
+                }
+
+            }
+        }
+    }
+    self.UI.setXmlTable({ panel })
 end
 
 local zones = {
@@ -188,6 +245,12 @@ function InventoryBoard.compute_weapon(slot)
         end
     end
 
+end
+
+function InventoryBoard_select(_, slot)
+    InventoryBoard.slot = slot
+    self.UI.setAttribute("slot" .. slot, "image", "equipee")
+    self.UI.setAttribute("slot" .. (slot % 2) + 1, "image", "selectionner")
 end
 
 return InventoryBoard

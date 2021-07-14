@@ -4,8 +4,8 @@ require("tts_squad_tactics.common.Utils")
 require("tts_squad_tactics.listener.Listener")
 require("tts_squad_tactics.sheet.Sheet")
 
-local GLOBAL_Y = 0.12
-load_disabled = true
+GLOBAL_Y = 0.12
+load_disabled = false
 character = nil
 
 layout_label = {
@@ -73,7 +73,7 @@ layout_label = {
         value = ACCURACY,
     },
     {
-        pos = { -0.33, GLOBAL_Y, -1.02 },
+        pos = { -0.25, GLOBAL_Y, -1.02 },
         font_size = 250,
         width = 1300,
         value = DAMAGE,
@@ -263,6 +263,8 @@ function init()
     -- special fate and hp
     Listener.callbacks[MAX_FATE] = Listener_change_simple
     Listener.callbacks[MAX_HP] = Listener_change_simple
+    Listener.callbacks["DAMAGE_TYPE1"] = update_damage
+    Listener.callbacks["DAMAGE_TYPE2"] = update_damage
 
     character = Listener.interest
 
@@ -298,6 +300,9 @@ function init()
         local value = character.get(data["value"])
         create_counter(data.value, value, data.pos, data.font_size, data.width, change_simple)
     end
+
+    -- insert the damage type decal
+    update_damage()
 
     --heal
     pos = { -0.32, GLOBAL_Y, -0.140 }
@@ -342,7 +347,6 @@ function init()
         font_size = height, scale = buttonScale,
         color = { 0.8, 0.8, 0.8, 0 }, font_color = buttonFontColor
     })
-
 end
 
 

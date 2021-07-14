@@ -1,6 +1,9 @@
 ------------------------------------------
 --- Multiple Constants that should be useful in many places
 
+-- team
+PLAYERS = "Players"
+
 HINDER_COLOR = "#FFFF50"
 
 -- Recreate the keys outside faster text input
@@ -87,6 +90,13 @@ DECAL = {
     BLIGHT = "http://cloud-3.steamusercontent.com/ugc/1687143819155942567/97ABC74A6F284C8A0B5CC57B9403E14890D7E0F1/",
 }
 
+DECAY = "DECAY"
+REGEN = "REGEN"
+PARALYSIS = "PARALYSIS"
+CONFUSION = "CONFUSION"
+BARRIER = "BARRIER"
+PURSUIT = "PURSUIT"
+
 COVER_BONUS = 2 -- multiplicative ratio
 
 NB_TAGS = 4
@@ -149,6 +159,14 @@ Constant = {
         move_cost = 2, -- how much does it cost to enter this tile, 0 means it can be walked into
         character = "\u{2612}", -- The character displayed in the Text Panel
     },
+    RUBBLE = {
+        color = "#FFFF50", -- the tile color, both in the editor or the player panel
+        value = "RUBBLE", -- the value stored inside the board array (must be unique)
+        stoppable = true, -- can a character finish it's move on the tile
+        cover = 0, -- can be 0, no cover, 1 semi cover, 2 full cover
+        move_cost = 2, -- how much does it cost to enter this tile, 0 means it can be walked into
+        character = "\u{2612}", -- The character displayed in the Text Panel
+    },
     WALKABLE = {
         color = "#50FF50", -- the tile color, both in the editor or the player panel
         value = "WALKABLE", -- the value stored inside the board array (must be unique)
@@ -159,7 +177,7 @@ Constant = {
     },
 
     -- for simple iteration
-    TERRAINS = { "WALKABLE", "BLOCKED", "IMPASSABLE_COVER", "PASSABLE_COVER", "SWITCHABLE", "SWITCHABLE_HIDDEN", "HIDDEN" },
+    TERRAINS = { "WALKABLE", "BLOCKED", "IMPASSABLE_COVER", "PASSABLE_COVER", "RUBBLE", "SWITCHABLE", "SWITCHABLE_HIDDEN", "HIDDEN" },
     NB_TERRAINS = 7, -- could be recalculated
 
     MAX_MOVE = 10, -- the maximum move a character will ever be able to make at once
@@ -259,8 +277,22 @@ Constant = {
         image = "decay", -- the icon
         value = "DECAY", -- UNIQUE ID
     },
+    BARRIER = {
+        color = "#1b44d7", -- the color, both in the editor or the player panel
+        text = "Barriere", -- the text displayed when needed
+        image = "barrier", -- the icon
+        value = "BARRIER", -- UNIQUE ID
+    },
+    REGEN = {
+        color = "#9B0000", -- the color, both in the editor or the player panel
+        text = "Regen", -- the text displayed when needed
+        image = "regen", -- the icon
+        value = "REGEN", -- UNIQUE ID
+    },
     -- Stats, use same color code than damage/defenses
     STRENGTH = {
+        minimum = 1,
+        maximum = 30,
         color = "#121212", -- the color, both in the editor or the player panel
         text = "Force", -- the text displayed when needed
         mod = "FOR", -- the text displayed when needed
@@ -268,6 +300,8 @@ Constant = {
         value = "STRENGTH", -- UNIQUE ID
     },
     DEXTERITY = {
+        minimum = 1,
+        maximum = 30,
         color = "#121280", -- the color, both in the editor or the player panel
         text = "Dextérité", -- the text displayed when needed
         mod = "DEX", -- the text displayed when needed
@@ -275,6 +309,8 @@ Constant = {
         value = "DEXTERITY", -- UNIQUE ID
     },
     INTELLIGENCE = {
+        minimum = 1,
+        maximum = 30,
         color = "#AAAA12", -- the color, both in the editor or the player panel
         text = "Intelligence", -- the text displayed when needed
         mod = "INT", -- the text displayed when needed
@@ -282,6 +318,8 @@ Constant = {
         value = "INTELLIGENCE", -- UNIQUE ID
     },
     WISDOM = {
+        minimum = 1,
+        maximum = 30,
         color = "#801212", -- the color, both in the editor or the player panel
         text = "Sagesse", -- the text displayed when needed
         mod = "SAG", -- the text displayed when needed
@@ -289,95 +327,138 @@ Constant = {
         value = "WISDOM", -- UNIQUE ID
     },
     CHARISMA = {
+        minimum = 1,
+        maximum = 30,
         color = "#128012", -- the color, both in the editor or the player panel
         text = "Charisme", -- the text displayed when needed
         image = "charisma", -- the icon
         value = "CHARISMA", -- UNIQUE ID
     },
+    BATTLE_STATUS = { "DECAY", "REGEN", "PARALYSIS", "CONFUSION", "BARRIER", "PURSUIT" },
 
     -- Capacities
     -- Strength
     ATHLETICS = {
+        minimum = 0,
+        maximum = 10,
         text = "Athlétisme", -- the text displayed when needed
         mod = STRENGTH,
     },
     INTIMIDATION = {
+        minimum = 0,
+        maximum = 10,
         text = "Intimidation", -- the text displayed when needed
         mod = STRENGTH,
     },
     ENDURANCE = {
+        minimum = 0,
+        maximum = 10,
         text = "Endurance", -- the text displayed when needed
         mod = STRENGTH,
     },
     DESTRUCTION = {
+        minimum = 0,
+        maximum = 10,
         text = "Destruction", -- the text displayed when needed
         mod = STRENGTH,
     },
     -- DEXTERITY
     MANIPULATION = {
+        minimum = 0,
+        maximum = 10,
         text = "Manipulation", -- the text displayed when needed
         mod = DEXTERITY,
     },
     SECURITY = {
+        minimum = 0,
+        maximum = 10,
         text = "Sécurité", -- the text displayed when needed
         mod = DEXTERITY,
     },
     STEALTH = {
+        minimum = 0,
+        maximum = 10,
         text = "Furtivité", -- the text displayed when needed
         mod = DEXTERITY,
     },
     ACROBATICS = {
+        minimum = 0,
+        maximum = 10,
         text = "Acrobatie", -- the text displayed when needed
         mod = DEXTERITY,
     },
     -- INTELLIGENCE
     INVESTIGATION = {
+        minimum = 0,
+        maximum = 10,
         text = "Investigation", -- the text displayed when needed
         mod = INTELLIGENCE,
     },
     TECHNOLOGY = {
+        minimum = 0,
+        maximum = 10,
         text = "Technologie", -- the text displayed when needed
         mod = INTELLIGENCE,
     },
     MEDIC = {
+        minimum = 0,
+        maximum = 10,
         text = "Médecine", -- the text displayed when needed
         mod = INTELLIGENCE,
     },
     SCIENCE = {
+        minimum = 0,
+        maximum = 10,
         text = "Science", -- the text displayed when needed
         mod = INTELLIGENCE,
     },
     -- WISDOM
     EMPATHY = {
+        minimum = 0,
+        maximum = 10,
         text = "Empathie", -- the text displayed when needed
         mod = WISDOM,
     },
     PERCEPTION = {
+        minimum = 0,
+        maximum = 10,
         text = "Perception", -- the text displayed when needed
         mod = WISDOM,
     },
     SURVIVAL = {
+        minimum = 0,
+        maximum = 10,
         text = "Survie", -- the text displayed when needed
         mod = WISDOM,
     },
     CRAFT = {
+        minimum = 0,
+        maximum = 10,
         text = "Artisanat", -- the text displayed when needed
         mod = WISDOM,
     },
     -- CHARISMA
     PERSUASION = {
+        minimum = 0,
+        maximum = 10,
         text = "Persuasion", -- the text displayed when needed
         mod = CHARISMA,
     },
     REPRESENTATION = {
+        minimum = 0,
+        maximum = 10,
         text = "Représentation", -- the text displayed when needed
         mod = CHARISMA,
     },
     DECEPTION = {
+        minimum = 0,
+        maximum = 10,
         text = "Tromperie", -- the text displayed when needed
         mod = CHARISMA,
     },
     ANIMAL = {
+        minimum = 0,
+        maximum = 10,
         text = "Animaux", -- the text displayed when needed
         mod = CHARISMA,
     },
@@ -452,7 +533,7 @@ Constant = {
 
 -- add an index for faster lookup
 for i, TERRAIN in ipairs(Constant.TERRAINS) do
-    Constant[TERRAIN].index = i
+    Constant[TERRAIN]["index"] = i
 end
 
 return Constant

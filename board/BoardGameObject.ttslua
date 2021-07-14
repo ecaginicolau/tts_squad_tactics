@@ -31,7 +31,6 @@ local load_disabled = false
 local picked_up_guid
 local picked_up_color
 local old_coordinate = { 99, 99 }
-local wait_in_tile = 0
 local old_hover_coordinate = {}
 
 --Runs when game is loaded.
@@ -41,10 +40,24 @@ function onLoad(saved_data)
         data = JSON.decode(saved_data)
     end
 
+    -- Hack to avoid Alt to zoom, very nice
+    self.alt_view_angle = Vector.new(90,0,0)
+
     -- Create Context
     self.addContextMenuItem("Edit Board", board_edit)
     self.addContextMenuItem("Save Board", board_save)
     self.addContextMenuItem("Reset Board", board_reset)
+    self.addContextMenuItem("Reset Visibility", board_reset_visibility)
+
+        --print(json_data)
+    local start_time =  os.time()
+    --json_data = JSON.decode(json_data)
+    json_data = json.decode(json_data)
+    local end_time =  os.time()
+    local duration = end_time - start_time
+    print("Duration: " .. tostring(duration))
+    print(json_data["3:22"]["value"])
+    print(json_data["3:22"]["character"])
 
     -- give some time to load the ui asset, not sure if there is a better way
     Wait.time(
@@ -53,16 +66,11 @@ function onLoad(saved_data)
             end
     , 1)
 
-    --Wait.condition(
-    --        function()
-    --            board_initialization(data)
-    --        end,
-    --        function()
-    --            print("loading: " .. tostring(UI.loading))
-    --            return not UI.loading
-    --        end,
-    --        3
-    --)
+
+    local json_data = require("tts_squad_tactics.board.data")
+    local json = require ("tts_squad_tactics.common.json")
+
+
 end
 
 function board_initialization(data)
@@ -76,7 +84,7 @@ function board_initialization(data)
     LineDrawer.setup()
 
     -- create the board panel etc
-    BoardPanel.create()
+    BoardPanel.create("run")
 
     Listener.register()
 
@@ -85,17 +93,15 @@ function board_initialization(data)
 end
 
 function onPlayerChangeColor()
-    BoardPanel.create()
+    BoardPanel.create("run")
     LineDrawer.setup()
 end
 
 function find_characters()
+    -- find character in the board
     Board.find_characters()
-    for _, character in pairs(Board.characters) do
-        local coordinate = character.get("coordinate")
-        PathFinding.calculate(character.getGUID())
-        BoardPanel.display(coordinate[1], coordinate[2], true)
-    end
+    -- check the visibility of every miniature on the board
+    board_reset_visibility()
 end
 
 function board_edit()
@@ -109,7 +115,21 @@ end
 function board_save()
     --self.script_state = JSON.encode_pretty(Board.data)
     self.script_state = JSON.encode(Board.data)
-    BoardPanel.create()
+    BoardPanel.create("run")
+end
+
+function board_reset_visibility()
+    for _, character in pairs(Board.characters) do
+        if character.get("team") ~= PLAYERS then
+            character.update({ visible = false }, self)
+            -- hide all characters
+            local miniature = character.getObject()
+            miniature.setInvisibleTo({ "Blue", "Green", "White", "Pink", "Red", "Orange", "Yellow", "Purple" })
+        else
+            character.update({ visible = true }, self)
+        end
+    end
+    Board.check_visibility()
 end
 
 function onObjectDrop(player_color, object)
@@ -196,20 +216,22 @@ function onUpdate()
     -- Check if a cursor need to display cover
     for player_color, action in pairs(Board.actions) do
         if action["action"] == Constant.MOVE or action["action"] == Constant.SAFE_MOVE then
-            local coordinate = Board.get_coordinate(Player[player_color].getPointerPosition())
-            if old_hover_coordinate[player_color] == nil or old_hover_coordinate[player_color][1] ~= coordinate[1] or old_hover_coordinate[player_color][2] ~= coordinate[2] then
-                if old_hover_coordinate[player_color] ~= nil then
-                    BoardPanel.display(old_hover_coordinate[player_color][1], old_hover_coordinate[player_color][2], false)
-                end
-                if Board.is_inside(coordinate) then
-                    if not action.is_moving then
-                        BoardPanel.display(coordinate[1], coordinate[2], true)
+            -- only do this if the character is visible
+            if Board.characters[action["guid"]].get("visible") then
+
+                local coordinate = Board.get_coordinate(Player[player_color].getPointerPosition(), false)
+                if old_hover_coordinate[player_color] == nil or old_hover_coordinate[player_color][1] ~= coordinate[1] or old_hover_coordinate[player_color][2] ~= coordinate[2] then
+                    if old_hover_coordinate[player_color] ~= nil then
+                        BoardPanel.display(old_hover_coordinate[player_color], false)
+                    end
+                    -- display the tile under the cursor
+                    if Board.is_inside(coordinate) and not action.is_moving then
+                        BoardPanel.display(coordinate, true)
                         Board.draw_path(player_color, coordinate)
                     end
+                    old_hover_coordinate[player_color] = coordinate
                 end
-                old_hover_coordinate[player_color] = coordinate
             end
-
         end
     end
 

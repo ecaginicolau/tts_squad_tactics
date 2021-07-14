@@ -183,6 +183,20 @@ end
 function change_skill(name, mod)
     local value = character._data[name]["BASE"]
     value = value + mod
+    local min_value = 0
+    local max_value = 99
+    if Constant[name] ~= nil and Constant[name].minimum ~= nil then
+        min_value = Constant[name].minimum
+    end
+    if Constant[name] ~= nil and Constant[name].maximum ~= nil then
+        max_value = Constant[name].maximum
+    end
+    if value < min_value then
+        value = min_value
+    end
+    if value > max_value then
+        value = max_value
+    end
     local update = {}
     update[name] = { BASE = value }
     character.update(update, self)
@@ -190,7 +204,7 @@ function change_skill(name, mod)
     index = button_link[name]
     self.editButton({ index = index, label = value })
     -- bonus
-    index = button_link[name.."_total"]
+    index = button_link[name .. "_total"]
     self.editButton({ index = index, label = character.get(name) })
     update_healthbar()
     updateSave()
@@ -199,30 +213,45 @@ end
 function change_simple(name, mod)
     local value = character._data[name]["BASE"]
     value = value + mod
+    local min_value = 0
+    local max_value = 99
+    if Constant[name] ~= nil and Constant[name].minimum ~= nil then
+        min_value = Constant[name].minimum
+    end
+    if Constant[name] ~= nil and Constant[name].maximum ~= nil then
+        max_value = Constant[name].maximum
+    end
+    if value < min_value then
+        value = min_value
+    end
+    if value > max_value then
+        value = max_value
+    end
 
     local update = {}
     update[name] = { BASE = value }
     character.update(update, self)
 
     index = button_link[name]
+    if name == HATE then
+        value = value + character._data[name]["BONUS"]
+    end
     self.editButton({ index = index, label = value })
 
 end
 
-
 function change_characteristic(name, mod)
     change_simple(name, mod)
     -- bonus
-    index = button_link[name.."_mod"]
+    index = button_link[name .. "_mod"]
     self.editButton({ index = index, label = character.get_mod(name) })
 
     for _, capacity in ipairs(Constant.CHARACTERISTICS_CAPACITIES[name]) do
-        index = button_link[capacity.."_mod"]
+        index = button_link[capacity .. "_mod"]
         self.editButton({ index = index, label = character.get_mod(name) })
-        index = button_link[capacity.."_total"]
+        index = button_link[capacity .. "_total"]
         self.editButton({ index = index, label = character.get(capacity) })
     end
-
 
     update_healthbar()
     updateSave()
@@ -247,6 +276,38 @@ function update_healthbar()
     self.editButton({ index = button_link["CURRENT_HP_hb"], position = pos_current, width = width, })
     value = current .. " / " .. max
     self.editButton({ index = button_link["hp_bar"], label = value })
+end
+
+function update_damage()
+    local pos1 = { 0.45, GLOBAL_Y, -1.02 }
+    local pos2 = { 0.35, GLOBAL_Y, -1.02 }
+    local scale = { 0.13, 0.13, 0.13 }
+    -- Decals
+    local list_decal = {}
+    if character.get("DAMAGE_TYPE1") ~= nil then
+        table.insert(list_decal,
+                {
+                    name = character.get("DAMAGE_TYPE1"),
+                    url = DECAL[character.get("DAMAGE_TYPE1")],
+                    position = pos1,
+                    rotation = { 90, 180, 0 },
+                    scale = scale,
+                }
+        )
+    end
+    if character.get("DAMAGE_TYPE2") ~= nil then
+        table.insert(list_decal,
+                {
+                    name = character.get("DAMAGE_TYPE2"),
+                    url = DECAL[character.get("DAMAGE_TYPE2")],
+                    position = pos2,
+                    rotation = { 90, 180, 0 },
+                    scale = scale,
+                }
+        )
+    end
+
+    self.setDecals(list_decal)
 
 end
 

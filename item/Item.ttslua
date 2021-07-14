@@ -9,7 +9,7 @@ button_link = {}
 input_link = {}
 button_index = 0
 
-Inventory = {
+Item = {
     data = {
 
         name = "Armor",
@@ -29,7 +29,7 @@ Inventory = {
         ACCURACY = 0,
         RANGE = 0,
         TYPE1 = IMPACT,
-        TYPE2 = FIRE,
+        TYPE2 = nil,
         CHANGE_TYPE = nil,
         ADD_TYPE = nil,
         value = 100,
@@ -44,13 +44,14 @@ Inventory = {
 }
 
 for _, characteristic in pairs(Constant.CHARACTERISTICS) do
-    Inventory.data[characteristic] = 0
+    Item.data[characteristic] = 0
 end
 for _, capacity in pairs(Constant.CAPACITIES) do
-    Inventory.data[capacity] = 0
+    Item.data[capacity] = 0
 end
 
-function Inventory.create()
+function Item.create()
+    --print("Inventory.create")
     self.clearButtons()
     self.clearInputs()
     -- reset the button index
@@ -58,13 +59,14 @@ function Inventory.create()
 
     -- create all fields but description
     for _, layout_info in pairs(layout) do
-        local value = Inventory.compute_value(layout_info["value"])
-        Inventory.create_label(layout_info.value, value, layout_info.pos, layout_info.font_size, layout_info.color)
+        --print("computing value: ".. layout_info["value"])
+        local value = Item.compute_value(layout_info["value"])
+        Item.create_label(layout_info.value, value, layout_info.pos, layout_info.font_size, layout_info.color)
     end
 
     -- create the description
     local font_size = 400
-    local value = Inventory.compute_value("description")
+    local value = Item.compute_value("description")
     if number_line(value) >= 8 then
         font_size = 280
     end
@@ -88,7 +90,7 @@ function Inventory.create()
     local list_decal = {}
 
     for decal_type, definition in pairs(decals) do
-        local decal = Inventory.compute_value(decal_type)
+        local decal = Item.compute_value(decal_type)
         if decal ~= nil then
             table.insert(list_decal,
                     {
@@ -107,33 +109,43 @@ function Inventory.create()
 
 end
 
-function Inventory.compute_value(name)
+function Item.compute_value(name)
     -- type must be computed
     if name == "TYPE1" then
-        if Inventory.mods["CHANGE_TYPE"] ~= nil then
-            return Inventory.mods["CHANGE_TYPE"]
+        if Item.mods["CHANGE_TYPE"] ~= nil then
+            return Item.mods["CHANGE_TYPE"]
         end
     end
     if name == "TYPE2" then
-        if Inventory.mods["ADD_TYPE"] ~= nil then
-            return Inventory.mods["ADD_TYPE"]
+        if Item.mods["ADD_TYPE"] ~= nil then
+            return Item.mods["ADD_TYPE"]
         end
     end
 
-    if Inventory.mods[name] == nil then
-        return Inventory.data[name]
+    if Item.mods[name] == nil then
+        return Item.data[name]
     else
-        return Inventory.data[name] + Inventory.mods[name]
+        return Item.data[name] + Item.mods[name]
     end
 
 end
 
-function Inventory.create_label(name, value, pos, font_size, color)
-    if type(value) == "number" then
-        if value < 0 then
-            color = Constant.DEFENSE_NEGATIVE_COLOR_TAB
-        elseif value > 0 then
-            color = Constant.DEFENSE_POSITIVE_COLOR_TAB
+function Item.create_label(name, value, pos, font_size, color)
+    if Item.data["type"] ~= "WEAPON" then
+        if type(value) == "number" then
+            if value < 0 then
+                color = Constant.DEFENSE_NEGATIVE_COLOR_TAB
+            elseif value > 0 then
+                color = Constant.DEFENSE_POSITIVE_COLOR_TAB
+            end
+        end
+    else
+        if Item.mods[name] ~= nil then
+            if Item.mods[name] < 0 then
+                color = Constant.DEFENSE_NEGATIVE_COLOR_TAB
+            elseif Item.mods[name] > 0 then
+                color = Constant.DEFENSE_POSITIVE_COLOR_TAB
+            end
         end
     end
     self.createButton({
@@ -174,11 +186,11 @@ end
 
 -- avoid description change by input
 function inputDescription(_, _, _, _)
-    return data.description
+    return Item.data.description
 end
 
 function get_data()
-    return Inventory.data
+    return Item.data
 end
 
 function update_mod(mods)
@@ -190,8 +202,8 @@ function update_mod(mods)
     --end
     --print("ADD_TYPE: " .. tostring(mods["ADD_TYPE"]))
     --print("CHANGE_TYPE: " .. tostring(mods["CHANGE_TYPE"]))
-    Inventory.mods = mods
-    Inventory.create()
+    Item.mods = mods
+    Item.create()
 end
 
 
@@ -201,30 +213,29 @@ function onLoad(saved_data)
     if load_disabled == false and saved_data ~= "" then
         local loaded_data = JSON.decode(saved_data)
         for key, value in pairs(loaded_data["data"]) do
-            Inventory.data[key] = value
+            Item.data[key] = value
         end
-
-        Inventory.mods = loaded_data["mods"]
+        Item.mods = loaded_data["mods"]
     end
 
     local notes = self.getGMNotes()
     if notes ~= nil and notes ~= "" then
         for key, value in pairs(JSON.decode(notes)) do
-            Inventory.data[key] = value
+            Item.data[key] = value
         end
     end
 
-    Inventory.create()
+    Item.create()
 end
 
 --Save function
 function updateSave()
-    saved_data = JSON.encode({ data = Inventory.data, mods = Inventory.mods })
+    saved_data = JSON.encode({ data = Item.data, mods = Item.mods })
     self.script_state = saved_data
 end
 
 function Inventor_get_data()
-    return Inventory.data
+    return Item.data
 end
 
-return Inventory
+return Item

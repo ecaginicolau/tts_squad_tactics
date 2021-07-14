@@ -1,7 +1,6 @@
 --------------------------------------
 --- This is the main file for the board object type
---- Contains GameObjects event and functions that needs to be called by externally require("tts_squad_tactics.common.Utils")
-require("tts_squad_tactics.common.Constant")
+--- Contains GameObjects event and functions that needs to be called by externally require("tts_squad_tactics.common.Utils") require("tts_squad_tactics.common.Constant")
 require("tts_squad_tactics.common.Utils")
 require("tts_squad_tactics.common.Character")
 require("tts_squad_tactics.global.ui.MainUI")
@@ -18,22 +17,28 @@ require("tts_squad_tactics.global.manager.Manager")
 
 function onLoad()
     update_asset()
-    Wait.frames(
-            function()
-                MainUI.refresh()
-                -- register another all character listener
-                Listener.register()
-            end,
-            30
-    )
-    Wait.frames(
-            function()
-                MainUI.refresh()
-            end,
-            90
-    )
+
+    Wait.frames(init, 30)
+
+    Wait.frames(add_callback, 80)
+
+    Wait.frames(function()
+        MainUI.refresh()
+    end, 90)
 
     PlayerDie.init()
+end
+
+function init()
+    MainUI.refresh()
+    -- register another all character listener
+    Listener.register()
+end
+
+function add_callback()
+    Listener.callbacks["CURRENT_HP"] = Initiative_hp_listener
+    Listener.callbacks["MAX_HP"] = Initiative_hp_listener
+    Listener.callbacks["visible"] = Initiative_visible_listener
 end
 
 function onPlayerChangeColor(_)

@@ -1,0 +1,266 @@
+MiniatureUI = {
+
+}
+
+function MiniatureUI.init()
+    -- Create a small UI
+    local character = Miniature.character
+    local coordinate = character.get("coordinate")
+    local scale = character.get("ui_scale")
+    local position = coordinate[1] .. ":" .. coordinate[2]
+    local percentage = (character.get("CURRENT_HP") * 100) / character.get("MAX_HP")
+    local current_hp = math.tointeger(percentage) .. "%"
+    if character.get("identified") or character.get("team") == PLAYERS then
+        current_hp = character.get("CURRENT_HP") .. " / " .. character.get("MAX_HP")
+    end
+
+    local battle_status_active = {}
+    local battle_status_value = {}
+    for _, battle_status in pairs(Constant.BATTLE_STATUS) do
+        battle_status_active[battle_status] = toboolean(character.get(battle_status))
+        battle_status_value[battle_status] = character.get(battle_status)
+    end
+
+    local position_panel = {
+        tag = "Panel",
+        attributes = {
+            id = "miniature_panel",
+            position = "0 0 " .. character.get("ui_height"),
+            rotation = "90 0 180",
+            scale = scale .. " " .. scale .. " " .. scale,
+            --color = "#DDDDDD",
+            width = 300,
+            height = 120,
+            visibility = "Black",
+            --rectAlignment = "LowerCenter",
+        },
+        children = {
+            {
+                tag = "VerticalLayout",
+                attributes = {
+                    preferredHeight = 60,
+
+                },
+                children = {
+                    {
+                        tag = "HorizontalLayout",
+                        attributes = {
+                            preferredHeight = 80,
+                        },
+                        children = {
+                            {
+                                tag = "Image",
+                                attributes = {
+                                    id = Constant.DECAY.image,
+                                    image = Constant.DECAY.image,
+                                    color = Constant.DECAY.color,
+                                    preserveAspect = true,
+                                    active = battle_status_active[DECAY],
+                                },
+                                children = {
+                                    {
+                                        tag = "Text",
+                                        attributes = {
+                                            id = Constant.DECAY.image .. "_value",
+                                            resizeTextMaxSize = 60,
+                                            resizeTextForBestFit = true,
+                                            --color = Constant.DECAY.color,
+                                            color = "White",
+                                            text = battle_status_value[DECAY],
+                                            outline = "Black",
+                                            outlineSize = 1,
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                tag = "Image",
+                                attributes = {
+                                    id = Constant.BARRIER.image,
+                                    image = Constant.BARRIER.image,
+                                    color = Constant.BARRIER.color,
+                                    preserveAspect = true,
+                                    active = battle_status_active[BARRIER],
+                                },
+                                children = {
+                                    {
+                                        tag = "Text",
+                                        attributes = {
+                                            id = Constant.BARRIER.image .. "_value",
+                                            resizeTextMaxSize = 60,
+                                            resizeTextForBestFit = true,
+                                            --color = Constant.BARRIER.color,
+                                            color = "White",
+                                            text = battle_status_value[BARRIER],
+                                            outline = "Black",
+                                            outlineSize = 1,
+                                        }
+
+                                    }
+                                }
+                            },
+                            {
+                                tag = "Image",
+                                attributes = {
+                                    id = Constant.PURSUIT.image,
+                                    image = Constant.PURSUIT.image,
+                                    color = Constant.PURSUIT.color,
+                                    preserveAspect = true,
+                                    active = battle_status_active[PURSUIT],
+                                },
+                                children = {
+                                    {
+                                        tag = "Text",
+                                        attributes = {
+                                            id = Constant.PURSUIT.image .. "_value",
+                                            resizeTextMaxSize = 60,
+                                            resizeTextForBestFit = true,
+                                            --color = Constant.PURSUIT.color,
+                                            color = "White",
+                                            text = battle_status_value[PURSUIT],
+                                            outline = "Black",
+                                            outlineSize = 1,
+                                        }
+
+                                    }
+                                }
+                            },
+                            {
+                                tag = "Image",
+                                attributes = {
+                                    id = Constant.REGEN.image,
+                                    image = Constant.REGEN.image,
+                                    color = Constant.REGEN.color,
+                                    preserveAspect = true,
+                                    active = battle_status_active[REGEN],
+                                },
+                                children = {
+                                    {
+                                        tag = "Text",
+                                        attributes = {
+                                            id = Constant.REGEN.image .. "_value",
+                                            resizeTextMaxSize = 60,
+                                            resizeTextForBestFit = true,
+                                            --color = Constant.REGEN.color,
+                                            color = "White",
+                                            text = battle_status_value[REGEN],
+                                            outline = "Black",
+                                            outlineSize = 1,
+                                        }
+
+                                    }
+                                }
+                            },
+                            {
+                                tag = "Image",
+                                attributes = {
+                                    id = Constant.CONFUSION.image,
+                                    image = Constant.CONFUSION.image,
+                                    color = Constant.CONFUSION.color,
+                                    preserveAspect = true,
+                                    outline = "White",
+                                    outlineSize = 1,
+                                    active = battle_status_active[CONFUSION],
+                                },
+                            },
+                            {
+                                tag = "Image",
+                                attributes = {
+                                    id = Constant.PARALYSIS.image,
+                                    image = Constant.PARALYSIS.image,
+                                    color = Constant.PARALYSIS.color,
+                                    preserveAspect = true,
+                                    active = battle_status_active[PARALYSIS],
+                                },
+                            },
+
+                        }
+                    },
+                    {
+                        tag = "ProgressBar",
+                        attributes = {
+                            id = "healthbar",
+                            preferredHeight = 40,
+                            percentage = percentage,
+                            showPercentageText = false,
+                            textColor = "#101010",
+                            fontSize = 50,
+                            fillImageColor = "#AA1212",
+                            color = "#444444",
+                            outlineSize=2,
+                            outline="#121212",
+                        },
+                        children = {
+                            {
+                                tag = "Text",
+                                attributes = {
+                                    id = "healthbar_value",
+                                    text = current_hp,
+                                    resizeTextMaxSize = 60,
+                                    color = "#101010",
+                                    resizeTextForBestFit = true,
+                                },
+                            }
+                        }
+                    }
+
+                }
+            }
+
+        }
+    }
+    self.UI.setXmlTable({ position_panel })
+
+    -- setup the listener
+    Listener.callbacks["coordinate"] = MiniatureUI_position_listener
+    Listener.callbacks["CURRENT_HP"] = MiniatureUI_hp_listener
+    Listener.callbacks["MAX_HP"] = MiniatureUI_hp_listener
+    Listener.callbacks["identified"] = MiniatureUI_hp_listener
+    Listener.callbacks["visible"] = MiniatureUI_visible_listener
+    for _, battle_status in pairs(Constant.BATTLE_STATUS) do
+        Listener.callbacks[battle_status] = MiniatureUI_battle_status_listener
+    end
+
+end
+
+function MiniatureUI.update_height()
+    self.UI.setAttribute("miniature_panel", "position", "0 0 " .. Miniature.character.get("ui_height"))
+end
+
+-- listeners
+function MiniatureUI_position_listener()
+    local coordinate = Miniature.character.get("coordinate")
+    self.UI.setAttribute("position", "text", coordinate[1] .. ":" .. coordinate[2])
+end
+
+function MiniatureUI_hp_listener()
+    local character = Miniature.character
+    local percentage = (character.get("CURRENT_HP") * 100) / character.get("MAX_HP")
+    local current_hp = math.tointeger(percentage) .. "%"
+    if character.get("identified") or character.get("team") == PLAYERS then
+        current_hp = character.get("CURRENT_HP") .. " / " .. character.get("MAX_HP")
+    end
+    self.UI.setAttribute("healthbar", "percentage", percentage)
+    self.UI.setAttribute("healthbar_value", "text", current_hp)
+end
+
+function MiniatureUI_visible_listener()
+    if Miniature.character.get("visible") then
+        self.UI.setAttribute("miniature_panel", "visibility", "")
+    else
+        self.UI.setAttribute("miniature_panel", "visibility", "Black")
+    end
+end
+
+function MiniatureUI_battle_status_listener()
+    print("MiniatureUI_battle_status_listener")
+    local character = Miniature.character
+    for _, battle_status in pairs(Constant.BATTLE_STATUS) do
+        self.UI.setAttribute(battle_status, "active", toboolean(character.get(battle_status)))
+        self.UI.setAttribute(battle_status .. "_value", "active", character.get(battle_status))
+    end
+end
+
+-- Calls
+
+return MiniatureUI

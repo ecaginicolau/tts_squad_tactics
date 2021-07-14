@@ -154,13 +154,13 @@ function LoS.calculate(guid1, coordinate1, player_color)
     startLuaCoroutine(self, "calculate_coroutine")
 end
 
-function LoS.see_through(x, y)
+function LoS.see_through(coordinate)
     -- 0 is invisible and 2 is blocked, both block line of sight
-    if not Board.is_inside({ x, y }) then
+    if not Board.is_inside(coordinate) then
         return false
     end
 
-    local tile_value = Board.data[y][x]
+    local tile_value = Board.data[coordinate[2]][coordinate[1]]
 
     -- only things that block los are full cover and hidden tiles
     if tile_value == HIDDEN or Constant[tile_value].cover == 2 then
@@ -171,7 +171,7 @@ end
 
 function LoS.check_visited_tiled(list_visited_tile)
     for _, coordinate in ipairs(list_visited_tile) do
-        if not LoS.see_through(coordinate[1], coordinate[2]) then
+        if not LoS.see_through(coordinate) then
             return false
         end
     end
@@ -186,9 +186,9 @@ function LoS.coordinate(coordinate1, coordinate2, coroutine)
     local list_d2 = { 0, 1 }
     -- That's 64 rays in totals ... if we use list_d1 twice that would be 256 rays
     for _, dx1 in ipairs(list_d1) do
-        if coroutine == nil or coroutine then
-            coroutine.yield(0) -- this limit the nb of ray calculated per frame to 64
-        end
+        --if coroutine == nil or coroutine then
+        --    coroutine.yield(0) -- this limit the nb of ray calculated per frame to 64
+        --end
         for _, dy1 in ipairs(list_d1) do
             for _, dx2 in ipairs(list_d2) do
                 for _, dy2 in ipairs(list_d2) do

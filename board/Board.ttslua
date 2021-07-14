@@ -11,6 +11,7 @@ Board = {
     data = { },
     actions = {},
     characters = {},
+    teams = {},
     coordinate_team = {},
     world_size_x = 0,
     world_size_y = 0,
@@ -257,7 +258,11 @@ function Board.add_new_character(character)
     local guid = character.getGUID()
 
     -- get the miniature itself
-    local miniature = getObjectFromGUID(guid)
+    local miniature = character.getObject()
+    if Board.teams[character.get("team")] == nil then
+        Board.teams[character.get("team")] = {}
+    end
+    table.insert(Board.teams[character.get("team")], character)
 
     -- get the miniature coordinate
     local coordinate = Board.get_coordinate(miniature.getPosition())
@@ -268,20 +273,6 @@ function Board.add_new_character(character)
 
     -- update the character coordinate
     character.update({ coordinate = coordinate }, self.getGUID())
-end
-
-function Board.characters_color(player_color)
-    local list_characters = {}
-    for _, character in pairs(Board.characters) do
-        if player_color == "All" or miniature.get("owner") == player_color then
-            table.insert(list_characters, character.dump())
-        end
-    end
-    return list_characters
-end
-
-function Board_characters_color(params)
-    return Board.characters_color(table.unpack(params))
 end
 
 function Board.start_action(player_color, guid, action, value)
@@ -401,8 +392,8 @@ function Board.move_to(player_color, coordinate)
     local character = Board.characters[guid]
     local current_coordinate = character.get("coordinate")
     -- Hide both current and next destination coordinate during the move animation
-    BoardPanel.display(current_coordinate[1], current_coordinate[2], false)
-    BoardPanel.display(coordinate[1], coordinate[2], false)
+    BoardPanel.display(current_coordinate, false)
+    BoardPanel.display(coordinate, false)
 
     -- we need to replace the Y component
     next_position[2] = current_position[2]
@@ -492,10 +483,11 @@ function Board.move_end(player_color, guid)
     PlayerPanel.display(player_color, false)
     -- end the action
     Board.actions[player_color] = nil
+    -- check new visibility
+    Board.check_visibility_single(guid)
 end
 
 function Board.move_character(character)
-
     -- move the miniature in its final position
     Board.set_character_position(character)
 end
@@ -521,9 +513,70 @@ function Board.set_character_position(character)
     Board.calculate_team()
 
     -- show the new tile
-    BoardPanel.display(coordinate[1], coordinate[2], true)
+    if character.get("visible") then
+        BoardPanel.display(coordinate, true)
+    end
 end
 
+function Board_check_visibility_single_coroutine(character)
+    local new_visible = {}
+    local character_team = character.get("team")
+    for _, target in pairs(Board.characters) do
+        -- get the target team it's fast
+        local target_team = target.get("team")
+        -- at least one of them need to be a player to be of any sense
+        if target_team == PLAYERS or character_team == PLAYERS then
+            -- the target must be visible on board and of another team than the character
+            if target_team ~= character_team and target.get("on_board") then
+                if not target.get("visible") or not character.get("visible") then
+                    if LoS.coordinate(character.get("coordinate"), target.get("coordinate"), false) then
+                        -- only one of the 2 needs to be added to the list of newly visible
+                        if target_team == PLAYERS then
+                            character.update({ visible = true }, self)
+                            table.insert(new_visible, character)
+                        else
+                            target.update({ visible = true }, self)
+                            table.insert(new_visible, target)
+                        end
+                    end
+                    coroutine.yield(0)
+                end
+            end
+        end
+    end
+    -- handle visibility
+    for _, target in pairs(new_visible) do
+        local miniature = target.getObject()
+        miniature.setInvisibleTo()
+        BoardPanel.display(target.get("coordinate"), true)
+    end
+
+    return 1
+end
+
+function Board.check_visibility_single(guid)
+    local character = Board.characters[guid]
+    local fun_name = "Board_check_visibility_single_coroutine_" .. guid
+    local func = function()
+        return Board_check_visibility_single_coroutine(character)
+    end
+    self.setVar(fun_name, func)
+    startLuaCoroutine(self, fun_name)
+end
+
+function Board_check_visibility_coroutine()
+    for _, character in pairs(Board.teams[PLAYERS]) do
+        if character.get("on_board") then
+            Board_check_visibility_single_coroutine(character)
+            BoardPanel.display(character.get("coordinate"), true)
+        end
+    end
+    return 1
+end
+
+function Board.check_visibility()
+    startLuaCoroutine(self, "Board_check_visibility_coroutine")
+end
 
 -- start and end turn events
 function Board_start_turn()
