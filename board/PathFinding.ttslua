@@ -48,16 +48,16 @@ function PathFinding.calculate(guid, nb_move, safe)
             return
         end
 
-        local tile_value = Board.data[tile_y][tile_x]
+        local tile_value = Board.get_tile(tile_x,tile_y)
 
         -- exit condition, can't walk on this tile
-        if Constant[tile_value].move_cost == 0 then
+        if tile_value.move_cost == 0 then
             -- no move_cost = not walkable
             return
         end
 
         -- Get the cost for this tile
-        local current_cost = Constant[tile_value].move_cost
+        local current_cost = tile_value.move_cost
 
         -- Multiply it if it's a diagonal
         if diagonal then

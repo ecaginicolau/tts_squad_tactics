@@ -474,7 +474,7 @@ function AoE.update_splash(player_color, aoe)
     aoe.is_valid = true
 
     -- first make sure it's inside the board and it's walkable
-    if not Board.is_inside(coordinate) or Constant[Board.data[coordinate[2]][coordinate[1]]].move_cost == 0 then
+    if not Board.is_inside(coordinate) or Board.get_tile(coordinate).move_cost == 0 then
         aoe.is_valid = false
     end
 
@@ -557,7 +557,7 @@ function AoE.update_attack(player_color, aoe)
     aoe.is_valid = true
 
     -- first make sure it's inside the board and it's walkable
-    if not Board.is_inside(coordinate) or Constant[Board.data[coordinate[2]][coordinate[1]]].move_cost == 0 then
+    if not Board.is_inside(coordinate) or Board.get_tile(coordinate).move_cost == 0 then
         aoe.is_valid = false
     end
 

@@ -87,8 +87,8 @@ function PlayerPanel_click(_, color, alt_click, player_color)
     local coordinate = Board.get_coordinate(Player[player_color].getPointerPosition())
     if Board.is_inside(coordinate) then
         -- check if it's a stoppable tile
-        local tile_value = Board.data[coordinate[2]][coordinate[1]]
-        if Constant[tile_value].stoppable then
+        local tile_value = Board.get_tile(coordinate)
+        if tile_value.stoppable then
             -- try to find the GUID
             local action = Board.actions[player_color]
             if action == nil then
@@ -158,7 +158,7 @@ function PlayerPanel.tile_character(x, y, guid, nb_move)
     end
 
     -- we can't stop there, no need to draw
-    local tile_value = Board.data[y][x]
+    local tile_value = Board.get_tile(x,y)
 
 
     -- out of reach , no need to draw
@@ -167,8 +167,8 @@ function PlayerPanel.tile_character(x, y, guid, nb_move)
     end
 
     -- if the player can't stop there, display it's tile information
-    if not Constant[tile_value].stoppable then
-        return block_char(Constant[tile_value].character, 1, Constant[tile_value].color)
+    if not tile_value.stoppable then
+        return block_char(tile_value.character, 1, tile_value.color)
     end
 
     -- the player can move there, will it be hindered?
@@ -176,7 +176,7 @@ function PlayerPanel.tile_character(x, y, guid, nb_move)
         return block_char(Constant.HINDER.character, 1, Constant.HINDER.color)
     end
 
-    return block_char(Constant[tile_value].character, 1, Constant[tile_value].color)
+    return block_char(tile_value.character, 1, tile_value.color)
 end
 
 return PlayerPanel

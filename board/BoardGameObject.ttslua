@@ -41,7 +41,7 @@ function onLoad(saved_data)
     end
 
     -- Hack to avoid Alt to zoom, very nice
-    self.alt_view_angle = Vector.new(90,0,0)
+    self.alt_view_angle = Vector.new(90, 0, 0)
 
     -- Create Context
     self.addContextMenuItem("Edit Board", board_edit)
@@ -49,26 +49,24 @@ function onLoad(saved_data)
     self.addContextMenuItem("Reset Board", board_reset)
     self.addContextMenuItem("Reset Visibility", board_reset_visibility)
 
-        --print(json_data)
-    local start_time =  os.time()
+    local json_data = require("tts_squad_tactics.board.data")
+    local json = require("tts_squad_tactics.common.json")
+    --print(json_data)
+    --local start_time = os.time()
     --json_data = JSON.decode(json_data)
     json_data = json.decode(json_data)
-    local end_time =  os.time()
-    local duration = end_time - start_time
-    print("Duration: " .. tostring(duration))
+    --local end_time = os.time()
+    --local duration = end_time - start_time
+    --print("Duration: " .. tostring(duration))
     print(json_data["3:22"]["value"])
     print(json_data["3:22"]["character"])
 
     -- give some time to load the ui asset, not sure if there is a better way
     Wait.time(
             function()
-                board_initialization(data)
+                board_initialization(json_data)
             end
     , 1)
-
-
-    local json_data = require("tts_squad_tactics.board.data")
-    local json = require ("tts_squad_tactics.common.json")
 
 
 end
@@ -90,6 +88,14 @@ function board_initialization(data)
 
     -- find all miniature can't be called the same frame the board ui is created
     Wait.frames(find_characters, 2)
+
+    for group_id, _ in pairs(Board.zones) do
+        local open_zone = function()
+            Board.open_zone(group_id)
+        end
+        self.addContextMenuItem("Toggle: " .. group_id, open_zone)
+    end
+
 end
 
 function onPlayerChangeColor()
@@ -245,4 +251,14 @@ end
 function PlayerPanel_hide(params)
     player_color = params[1]
     PlayerPanel.display(player_color, false)
+end
+
+
+-- External communication
+function onExternalMessage(data)
+    print("External message received")
+    print(data)
+    for key, value in pairs(data) do
+        --print("key: " .. tostring(key).. "  value: " .. tostring(value))
+    end
 end

@@ -18,6 +18,7 @@ Board = {
     bounds = {},
     bounds_normalized = {},
     board_scale = nil,
+    zones = {},
 }
 
 -- this help loops through all directions
@@ -48,7 +49,56 @@ function Board.setup(size_x, size_y, data)
 
     Board.calculate_team()
     Board.calculate_dimension()
+
+    Board.group_zone()
+
     return Board
+end
+
+function Board.group_zone()
+    Board.zones = {}
+    for y = 1, Board.size_y, 1 do
+        for x = 1, Board.size_x, 1 do
+            local tile_value = Board.get_tile(x, y)
+            -- clean the map coordinate where we are at it
+            tile_value["x"] = x
+            tile_value["y"] = y
+            if tonumber(tile_value.group_id) > 0 then
+                local group_id = tostring(tile_value.group_id)
+                if Board.zones[group_id] == nil then
+                    Board.zones[group_id] = {
+                        open = false,
+                        tiles = {}
+                    }
+                end
+                table.insert(Board.zones[group_id]["tiles"], tile_value)
+            end
+        end
+    end
+
+end
+
+function Board.get_tile(x_or_coordinate, y)
+    local x
+    if y == nil then
+        y = x_or_coordinate[2]
+        x = x_or_coordinate[1]
+    else
+        x = x_or_coordinate
+    end
+    -- this hack is to align js map and lua map
+    x = Board.size_x - x
+    y = Board.size_y - y
+    return Board.data[x .. ":" .. y]
+end
+
+function Board.set_tile(x, y, value)
+    -- this hack is to align js map and lua map
+    x = Board.size_x - x
+    y = Board.size_y - y
+    value["x"] = x
+    value["y"] = y
+    Board.data[x .. ":" .. y] = value
 end
 
 function Board.calculate_dimension()
@@ -154,23 +204,22 @@ function Board.get_cover_status(x1, y1, x2, y2)
         return 0
     end
     -- they are in the board, handle value
-    local tile_value1 = Board.data[y1][x1]
-    local tile_value2 = Board.data[y2][x2]
+    local tile_value1 = Board.get_tile(x1, y1)
+    local tile_value2 = Board.get_tile(x2, y2)
 
     -- This helps with the switchable
-    if tile_value1 == tile_value2 then
+    if tile_value1.value == tile_value2.value then
         return 0
     end
 
-    return Constant[tile_value2].cover
+    return tile_value2.cover
 end
 
 function Board.reset()
     Board.data = {}
     for y = 1, Board.size_y, 1 do
-        Board.data[y] = {}
         for x = 1, Board.size_x, 1 do
-            Board.data[y][x] = Constant.WALKABLE.value
+            Board.data[x .. ":" .. y] = table.shallow_copy(Constant.WALKABLE)
         end
     end
 end
@@ -552,6 +601,22 @@ function Board_check_visibility_single_coroutine(character)
     end
 
     return 1
+end
+
+function Board.open_zone(group_id)
+    print("Opening zone: " .. group_id)
+    group_id = tostring(group_id)
+    for _, tile_value in pairs(Board.zones[group_id]["tiles"]) do
+        print("Opening tile: " .. tile_value["x"] .. ":" .. tile_value["y"])
+
+        if Board.zones[group_id]["open"] then
+            BoardPanel.close_tile(tile_value["x"], tile_value["y"])
+        else
+            BoardPanel.open_tile(tile_value["x"], tile_value["y"])
+        end
+    end
+    Board.zones[group_id]["open"] = not Board.zones[group_id]["open"]
+
 end
 
 function Board.check_visibility_single(guid)

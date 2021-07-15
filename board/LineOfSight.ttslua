@@ -71,8 +71,8 @@ function LoS.raytrace_collision(coordinate1, coordinate2, characters)
             if not Board.is_inside(coordinate) then
                 collision = coordinate
             else
-                local tile_value = Board.data[coordinate[2]][coordinate[1]]
-                if Constant[tile_value].cover == 2 then
+                local tile_value = Board.get_tile(coordinate)
+                if tile_value.cover == 2 then
                     -- cover_value at 2 means we can't see through
                     collision = coordinate
                 end
@@ -160,10 +160,10 @@ function LoS.see_through(coordinate)
         return false
     end
 
-    local tile_value = Board.data[coordinate[2]][coordinate[1]]
+    local tile_value = Board.get_tile(coordinate)
 
     -- only things that block los are full cover and hidden tiles
-    if tile_value == HIDDEN or Constant[tile_value].cover == 2 then
+    if tile_value == HIDDEN or tile_value.cover == 2 then
         return false
     end
     return true
@@ -271,9 +271,9 @@ function LoS.get_cover_value(coordinate1, coordinate2)
         return 0
     end
 
-    local tile_value = Board.data[y][x]
+    local tile_value = Board.get_tile(x, y)
 
-    local cover_value = Constant[tile_value].cover
+    local cover_value = tile_value.cover
 
     return cover_value
 end

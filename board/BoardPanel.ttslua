@@ -60,7 +60,7 @@ function BoardPanel.create(mode)
     if mode ~= "edit" then
         for y = 1, Board.size_y, 1 do
             for x = 1, Board.size_x, 1 do
-                if Board.data[y][x] == Constant.SWITCHABLE_HIDDEN.value or Board.data[y][x] == Constant.SWITCHABLE.value then
+                if Board.get_tile(x, y).value == Constant.SWITCHABLE_HIDDEN.value or Board.get_tile(x, y).value == Constant.SWITCHABLE.value then
                     panel["children"][#panel["children"] + 1] = BoardPanel.create_switch(x, y, mode)
                 end
             end
@@ -82,11 +82,11 @@ function BoardPanel.create_tile(x, y, mode)
     -- Create a single tile for the main board
     -- it has 2 mode, run or edit. In run the tile is hidden by default and in edit it's shown + has a button
     local tile_id = BoardPanel.get_tile_id(x, y)
-    local tile_value = Board.data[y][x]
-    local color = Constant[tile_value].color
+    local tile_value = Board.get_tile(x, y)
+    local color = tile_value.color
     --local color = Constant.HIDDEN.color
     if mode == "edit" then
-        color = Constant[tile_value].color
+        color = tile_value.color
     end
     local pos_x = (BoardPanel.panel_x / Board.size_x) * (x - 0.5) - BoardPanel.panel_x / 2
     local pos_y = BoardPanel.panel_y / 2 - (BoardPanel.panel_y / Board.size_y) * (y - 0.5)
@@ -124,7 +124,7 @@ function BoardPanel.create_tile(x, y, mode)
         }
     else
         -- only need cover on stoppable tile
-        if Constant[tile_value].stoppable or tile_value == Constant.SWITCHABLE_HIDDEN.value or tile_value == Constant.SWITCHABLE.value then
+        if tile_value.stoppable or tile_value.value == Constant.SWITCHABLE_HIDDEN.value or tile_value.value == Constant.SWITCHABLE.value then
             for face = 1, 4, 1 do
                 local cover = BoardPanel.create_cover(x, y, face)
                 if cover ~= nil then
@@ -140,8 +140,8 @@ function BoardPanel.create_switch(x, y)
     -- Create a single tile for the main board
     -- it has 2 mode, run or edit. In run the tile is hidden by default and in edit it's shown + has a button
     local tile_id = "switch_" .. BoardPanel.get_tile_id(x, y)
-    local tile_value = Board.data[y][x]
-    local color = Constant[tile_value].color
+    local tile_value = Board.get_tile(x, y)
+    local color = tile_value.color
     local pos_x = (BoardPanel.panel_x / Board.size_x) * (x - 0.5) - BoardPanel.panel_x / 2
     local pos_y = BoardPanel.panel_y / 2 - (BoardPanel.panel_y / Board.size_y) * (y - 0.5)
     local active = "true"
@@ -154,7 +154,7 @@ function BoardPanel.create_switch(x, y)
             image = TILE_IMAGE,
             width = BoardPanel.tile_size_x,
             height = BoardPanel.tile_size_y,
-            position = pos_x .. " " .. pos_y .. " 0",
+            position = pos_x .. " " .. pos_y .. " -20",
             visibility = "Black",
         },
         children = {},
@@ -162,16 +162,29 @@ function BoardPanel.create_switch(x, y)
 
     tile["children"] = {
         {
-            tag = "Button",
+            tag = "Text",
             attributes = {
                 active = "true",
-                id = "button" .. tile_id,
-                color = "#000000BB",
-                onClick = "BoardPanel_open(" .. x .. "x" .. y .. ")",
+                id = "text" .. tile_id,
+                color = color,
+                fontSize="100",
+                text= tile_value.group_id,
             },
             children = {}
         }
     }
+    --tile["children"] = {
+    --    {
+    --        tag = "Button",
+    --        attributes = {
+    --            active = "true",
+    --            id = "button" .. tile_id,
+    --            color = "#000000BB",
+    --            onClick = "BoardPanel_open(" .. x .. "x" .. y .. ")",
+    --        },
+    --        children = {}
+    --    }
+    --}
     -- only need cover on stoppable tile
     --if Constant[tile_value].stoppable then
     --    for face = 1, 4, 1 do
@@ -187,9 +200,9 @@ end
 
 function BoardPanel.change_tile(x, y)
     local tile_id = BoardPanel.get_tile_id(x, y)
-    local tile_value = Board.data[y][x]
+    local tile_value = Board.get_tile(x, y)
     local next_value = Board.next_value(tile_value)
-    Board.data[y][x] = next_value
+    Board.set_tile(y, x, next_value)
     self.UI.setAttribute(tile_id, "color", Constant[next_value].color)
 
 end
@@ -209,7 +222,7 @@ function BoardPanel.create_cover(x, y, face)
     end
 
     local active = true
-    if Board.data[y][x] == Constant.SWITCHABLE.value or Board.data[y][x] == Constant.SWITCHABLE_HIDDEN.value then
+    if Board.get_tile(x, y).value == Constant.SWITCHABLE.value or Board.get_tile(x, y).value == Constant.SWITCHABLE_HIDDEN.value then
         active = false
     end
 
@@ -245,7 +258,7 @@ function BoardPanel.create_cover(x, y, face)
     local direction = Constant.DIRECTIONS[face]
     local dx = direction[1] + x
     local dy = direction[2] + y
-    if Board.data[dy][dx] == Constant.SWITCHABLE.value then
+    if Board.get_tile(dx, dy).value == Constant.SWITCHABLE.value then
         image = DOOR_IMAGE
     end
 
@@ -266,8 +279,9 @@ function BoardPanel.create_cover(x, y, face)
 end
 
 function BoardPanel.open_tile(x, y)
-    Board.data[y][x] = Constant.WALKABLE.value
-    self.UI.setAttribute("switch_" .. BoardPanel.get_tile_id(x, y), "active", false)
+    Board.set_tile(x, y, table.shallow_copy(Constant.WALKABLE))
+    --self.UI.setAttribute("switch_" .. BoardPanel.get_tile_id(x, y), "active", false)
+    self.UI.setAttribute("switch_" .. BoardPanel.get_tile_id(x, y), "color", Constant.WALKABLE.color)
     self.UI.setAttribute(BoardPanel.get_tile_id(x, y), "color", Constant.WALKABLE.color)
     for face, direction in ipairs(Constant.DIRECTION) do
         local dx = x + direction[1]
@@ -276,6 +290,21 @@ function BoardPanel.open_tile(x, y)
         self.UI.setAttribute(BoardPanel.get_tile_id(x, y) .. "_" .. face, "active", true)
     end
 end
+
+
+function BoardPanel.close_tile(x, y)
+    Board.set_tile(x, y, table.shallow_copy(Constant.SWITCHABLE))
+    --self.UI.setAttribute("switch_" .. BoardPanel.get_tile_id(x, y), "active", true)
+    self.UI.setAttribute("switch_" .. BoardPanel.get_tile_id(x, y), "color", Constant.SWITCHABLE.color)
+    self.UI.setAttribute(BoardPanel.get_tile_id(x, y), "color", Constant.SWITCHABLE.color)
+    for face, direction in ipairs(Constant.DIRECTION) do
+        local dx = x + direction[1]
+        local dy = y + direction[2]
+        self.UI.setAttribute(BoardPanel.get_tile_id(dx, dy) .. "_" .. face, "active", true)
+        self.UI.setAttribute(BoardPanel.get_tile_id(x, y) .. "_" .. face, "active", false)
+    end
+end
+
 
 function BoardPanel.display(coordinate, display)
     self.UI.setAttribute(BoardPanel.get_tile_id(coordinate[1], coordinate[2]), "active", display)
